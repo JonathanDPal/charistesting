@@ -58,8 +58,8 @@ def calibrate_ss_contrast(speccubefile):
 	return wln_um, spot_to_star
 
 
-def step_one(fileset, fake_fluxes, fake_seps, fake_PAs=[0,90,180,270],
-			 output_filepath):
+def step_one(fileset, fake_fluxes, fake_seps, fake_fwhm=3.5,
+			 fake_PAs=[0,90,180,270], output_filepath):
 	"""
 	Injects fake planets into CHARIS data and saves the data as a FITS file.
 	---
@@ -70,8 +70,9 @@ def step_one(fileset, fake_fluxes, fake_seps, fake_PAs=[0,90,180,270],
 										planets.
 		fake_seps (list of integers): The seperations at which to inject
 									  fake planets.
+		fake_fwhm (float): The fwhm for fake planet injection. Default: 3.5.
 		fake_PAs (list of integers): The position angles at which to inject
-									 fake planets.
+									 fake planets. Default: [0,90,180,270].
 		output_filepath (str): The filepath to save data with fakes injected
 							   to. Should end in '.fits'
 	
@@ -98,7 +99,7 @@ def step_one(fileset, fake_fluxes, fake_seps, fake_PAs=[0,90,180,270],
 		flux_to_inject = fake_flux * spot_to_star
 		for pa in fake_PAs:
 			inject_planet(dataset.input, dataset.centers, flux_to_inject,
-					    dataset.wcs, sep, pa, fwhm=fwhm)
+					    dataset.wcs, sep, pa, fwhm=fake_fwhm)
 	
 	# Save Data With Fakes Injected
 	datahdu = fits.ImageHDU(dataset.input)
@@ -107,8 +108,9 @@ def step_one(fileset, fake_fluxes, fake_seps, fake_PAs=[0,90,180,270],
 
 def step_two(object_name, fileset, step_one_output_filepath,
 			 without_fakes_output_directory, with_fakes_output_directory,
-			 annuli, subsections, movement, numbasis, mask_xy=None,
-			 mode='ADI+SDI', KL_modes_contrast_curve=20):
+			 annuli, subsections, movement, numbasis, fake_fluxes,
+			 fake_seps, fake_PAs, mask_xy=None, mode='ADI+SDI',
+			 KL_modes_contrast_curve=20):
 	"""
 	Runs KLIP on data and creates two contrast curves and two csv files with
 	the data plotted on the contrast curves. The first contrast curve and
@@ -130,7 +132,11 @@ def step_two(object_name, fileset, step_one_output_filepath,
 		subsections (int): KLIP parameter.
 		movement (int): KLIP parameter.
 		numbasis (int or list of integers): KLIP parameter.
-		mask_xy (list):
+		fake_fluxes (list): Values used for variable in step one.
+		fake_seps (list): Values used for variable in step one.
+		fake_PAs (list): Values used for variable in step one.
+		mask_xy (list): If a planet/companion needs to be masked, enter list
+						of form [X-coor, Y-coor] giving location. Default: None.
 		mode (str): KLIP parameter. 'ADI+SDI' by default.
 		KL_modes_contrast_curve (int): Identifies which KLIP output to use
 									   for contrast curves. 20 by default.
@@ -195,9 +201,10 @@ def step_two(object_name, fileset, step_one_output_filepath,
 	def generate_contrast_curve(graph_output_filepath, data_output_filepath,
 								wln_um, calib_cube, dataset_center,
 								dataset_iwa, dataset_owa, dataset_fwhm,
-								output_wcs, wavelength_index=10, mask_xy=None,
-								contains_fakes=False, injected_fluxes=None,
-								injected_seps=None, injected_PAs=None):
+								output_wcs, wavelength_index=10,
+								mask_xy=mask_xy, contains_fakes=False,
+								injected_fluxes=None, injected_seps=None,
+								injected_PAs=None):
 		"""
 		Measures contrast in an image and generates contrast curve.
 		---
@@ -217,9 +224,7 @@ def step_two(object_name, fileset, step_one_output_filepath,
 			wavelength_index (int): Index of wavelength to use (subsets
 									calibrated cube along wavelength axis).
 									Default: 10
-			mask_xy (list): If a planet/companion needs to be masked,
-							enter list of form [X-coor, Y-coor] giving
-							location. Default: None
+			mask_xy (list): Reading in argument from step_two func.
 			contains_fakes (bool): Set to true if fakes present. Default: False
 			injected_fluxes (list): If fakes present, provide list of fake
 									planets' fluxes. Default: None
@@ -364,8 +369,8 @@ def step_two(object_name, fileset, step_one_output_filepath,
 							dataset_owa=with_fakes_dataset_owa,
 							dataset_fwhm=with_fakes_dataset_fwhm,
 							output_wcs=with_fakes_output_wcs,
-							contains_fakes=True, injected_fluxes=[],
-							injected_seps=[], injected_PAs=[])
+							contains_fakes=True, injected_fluxes=fake_fluxes,
+							injected_seps=fake_seps, injected_PAs=fake_PAs)
 
 
 def step_three(filename, output_prefix, SNR_threshold=3):
