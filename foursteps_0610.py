@@ -214,8 +214,8 @@ def step_two(object_name, fileset, step_one_output_filepath,
 			data_output_filepath (str): Filepath for contrast curve data.
 										Should end in '.csv'
 			wln_um (list): List of wavelengths in micrometers.
-			calib_cube (np array): Data cube which has been calibrated with
-								   regard to star/spot flux.
+			calib_cube (np array): Data cube calibrated with regard to
+									star/spot flux.
 			dataset_center (list)
 			dataset_iwa (float or int)
 			dataset_owa (float)
@@ -423,7 +423,7 @@ def step_three(filename, output_prefix, SNR_threshold=3):
 		csvwriter.writerows(candidates_table)
 
 
-def step_four(detections_finders, contrasts):
+def step_four(detections_finders, contrast_finders):
 	"""
 	Aggregates information and provides summary plots.
 	---
@@ -432,15 +432,17 @@ def step_four(detections_finders, contrasts):
 														passed into glob in
 														order to find the csv
 														files with detections.
-		contrasts (string or list of strings): Strings(s) will be passed into
-											   glob in order to find the csv
-											   files with the contrast vs.
-											   seperation data.
+		contrast_finders (string or list of strings): Strings(s) will be passed
+														into glob in order
+														to find the csv
+														files with the
+														contrast vs.
+														seperation data.
 	"""
 	import pandas as pd
 
 	detections_list = []
-	for detection_finder in detections_finders:
+	for detection_finder in list(detections_finders):
 		detections_list.append(glob(detection_finder))
 	detections = dict()
 	for filename in detections_list:
@@ -450,6 +452,25 @@ def step_four(detections_finders, contrasts):
 			snr_value = filename[-6] + filename[-5]
 		else:
 			print("Filename {0} is not correctly formatted and will not be "
-				  "included in the compiled data")
+				  "included in the compiled data".format(filename))
 			continue
 		detections[snr_value] = pd.read_csv(filename)
+
+	contrasts_list = []
+	for contrast_finder in list(contrast_finders):
+		contrasts_list.append(glob(contrast_finder))
+	contrasts = dict()
+	for filename in contrasts_list:
+		# Change the following section to fit some convention for saving
+		# contrast data. Determine the convention and then include it in the
+		# docstring for pt2 and probably even throw a test on it to make sure
+		# that data_output_filename arg fits the convention.
+		if filename[-6] == '-':
+			whatever_value = filename[-5]
+		elif filename[-7] == '-':
+			whatever_value = filename[-6] + filename[-5]
+		else:
+			print("Filename {0} is not correctly formatted and will not be "
+				  "included in the compiled data".format(filename))
+			continue
+		contrasts[whatever_value] = pd.read_csv(filename)
