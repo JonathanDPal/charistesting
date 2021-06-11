@@ -58,8 +58,8 @@ def calibrate_ss_contrast(speccubefile):
 	return wln_um, spot_to_star
 
 
-def step_one(fileset, fake_fluxes, fake_seps, fake_fwhm=3.5,
-			 fake_PAs=[0,90,180,270], output_filepath):
+def step_one(fileset, fake_fluxes, fake_seps, output_filepath, fake_fwhm=3.5,
+			 fake_PAs=[0,90,180,270]):
 	"""
 	Injects fake planets into CHARIS data and saves the data as a FITS file.
 	---
@@ -100,7 +100,7 @@ def step_one(fileset, fake_fluxes, fake_seps, fake_fwhm=3.5,
 		for pa in fake_PAs:
 			inject_planet(dataset.input, dataset.centers, flux_to_inject,
 					    dataset.wcs, sep, pa, fwhm=fake_fwhm)
-	
+
 	# Save Data With Fakes Injected
 	datahdu = fits.ImageHDU(dataset.input)
 	datahdu.writeto(output_filepath)
@@ -246,11 +246,11 @@ def step_two(object_name, fileset, step_one_output_filepath,
 		if mask_xy is not None:
 			x_pos = mask_xy[0]
 			y_pos = mask_xy[1]
-			
+
 			ydat, xdat = np.indices(frame.shape)
 			distance_from_planet = np.sqrt((xdat-x_pos)**2+(ydat-y_pos)**2)
 			frame[np.where(distance_from_planet <= 2*dataset_fwhm)] = np.nan
-		
+
 		contrast_seps, contrast = meas_contrast(frame, dataset_iwa,
 												dataset_owa, dataset_fwhm,
 												center=dataset_center,
