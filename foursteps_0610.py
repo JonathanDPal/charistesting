@@ -440,21 +440,44 @@ def step_four(detections_finders, contrast_finders):
 														seperation data.
 	"""
 	import pandas as pd
+	from math import ceil
 
 	detections_list = []
 	for detection_finder in list(detections_finders):
 		detections_list.append(glob(detection_finder))
 	detections = dict()
-	for filename in detections_list:
+	for i, filename in enumerate(detections_list):
 		if filename[-6] == '-':
-			snr_value = filename[-5]
+			try:
+				snr_value = int(filename[-5])
+			except ValueError:
+				print("Filename {0} is not correctly formatted and will not be "
+					  "included in the compiled data".format(filename))
+				continue
 		elif filename[-7] == '-':
-			snr_value = filename[-6] + filename[-5]
+			try:
+				snr_value = int(filename[-6] + filename[-5])
+			except ValueError:
+				print("Filename {0} is not correctly formatted and will not be "
+					  "included in the compiled data".format(filename))
+				continue
 		else:
 			print("Filename {0} is not correctly formatted and will not be "
 				  "included in the compiled data".format(filename))
 			continue
-		detections[snr_value] = pd.read_csv(filename)
+		detections[i] = [pd.read_csv(filename), snr_value]
+
+	snr_detections = dict()
+
+	for i in list(detections.keys()):
+		min_snr = detections[i][1]
+		data = detections[i][0]
+		max_snr = ceil(np.max(data['SNR Value']))
+		snr_to_use = min_snr
+		while snr_to_use <= max_snr:
+			detections_at_snr_value = data[data['SNR Value'] > snr_to_use]
+			for pa in detections_at_snr_value['PA']:
+
 
 	contrasts_list = []
 	for contrast_finder in list(contrast_finders):
