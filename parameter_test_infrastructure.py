@@ -55,16 +55,6 @@ def calibrate_ss_contrast(speccubefile):
 	return wln_um, spot_to_star
 
 
-class CalibratedCube:
-	def __init__(self, data, center, iwa, owa, fwhm, wcs):
-		self.data = data
-		self.center = center
-		self.iwa = iwa
-		self.owa = owa
-		self.fwhm = fwhm
-		self.wcs = wcs
-
-
 class Trial:
 	def __init__(self, annuli, subsections, movement, numbasis, spectrum, mode, mask_xy,
 				 fake_PAs, fake_fluxes, object_name, fake_fwhm, fake_seps):
@@ -237,7 +227,22 @@ class TestDataset:
 	def __init__(self, fileset, object_name, mask_xy, fake_fluxes, fake_seps,
 				 annuli, subsections, movement, numbasis, spectrum=None, mode='ADI+SDI',
 				 fake_fwhm=3.5, fake_PAs=[0,90,180,270]):
-
+		"""
+		Args:
+			fileset: Something probably going like 'directory/*.fits' to let glob find files.
+			object_name: String
+			mask_xy: [X-coor, Y-coor]
+			fake_fluxes: Integer or List of Integers. Must be same length as fake_seps.
+			fake_seps: Integer or List of Integers. Must be same length as fake_fluxes.
+			annuli: Integer or List of Integers
+			subsections: Integer or List of Integers
+			movement: Integer or List of Integers
+			numbasis: Integer or List of Integers
+			spectrum: Either 'methane' or None
+			mode: KLIP Parameter.
+			fake_fwhm: The FWHM for the injected PSF for fake planets
+			fake_PAs: Integer or List of Integers.
+		"""
 		# Creating CHARISData Object With UnKLIPped Data
 		self.dataset_no_fakes = CHARISData(glob(fileset))
 		self.dataset_with_fakes = copy(self.dataset_no_fakes)
@@ -300,10 +305,3 @@ class TestDataset:
 						 fileprefix=self.object_name+'_withoutfakes_' + trial.klip_parameters,
 						 annuli=trial.annuli, subsections=trial.subsections,
 						 movement=trial.movement, numbasis=trial.numbasis, mode=trial.mode)
-
-
-	def aggregate_data(self):
-		"""
-		Aggregates information and provides summary plots.
-		"""
-
