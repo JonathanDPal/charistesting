@@ -67,7 +67,7 @@ class CalibratedCube:
 
 class Trial:
 	def __init__(self, annuli, subsections, movement, numbasis, spectrum, mode, mask_xy,
-				 fake_PAs, fake_fluxes, object_name):
+				 fake_PAs, fake_fluxes, object_name, fake_fwhm, fake_seps):
 		self.annuli = annuli
 		self.subsections = subsections
 		self.movement = movement
@@ -78,6 +78,8 @@ class Trial:
 		self.fake_PAs = fake_PAs
 		self.fake_fluxes = fake_fluxes
 		self.object_name = object_name
+		self.fake_fwhm = fake_fwhm
+		self.fake_seps = fake_seps
 
 		# String Identifying Parameters Used
 		self.klip_parameters = str(annuli)+'Annuli_'+str(subsections)+'Subsections_'+str(
@@ -85,45 +87,22 @@ class Trial:
 
 		# Filepaths to KLIPped Datacubes
 		self.filepath_Wfakes = self.object_name+'/klipped_cubes_Wfakes/'+object_name + \
-									'_withfakes_' + trial.klip_parameters+'-speccube.fits'
+									'_withfakes_' + self.klip_parameters+'-speccube.fits'
 		self.filepath_Nfakes = self.object_name + '/klipped_cubes_Nfakes/' + object_name + \
-									'_withoutfakes_' + trial.klip_parameters + '-speccube.fits'
+									'_withoutfakes_' + self.klip_parameters + '-speccube.fits'
 
 		# Filepath to Save
-		self.filepath_contrast_prefix =
 		self.filepath_detections_prefix = self.object_name + '/detections_SNR-'
 
 		# Data To Be Added Later
-		self.CCube = None
+		self.calib_cube = None
 		self.uncalib_contrast = None
 		self.calib_contrast = None
 		self.detections = None
+		self.classified_detections = None
 
 
-	def ss_calibration(self, contains_fakes):
-		"""
-		Calibrates data cube with respect to star flux and provides a bunch of other information
-		needed for contrast measurements.
-		"""
-		if contains_fakes:
-			filepath = self.filepath_Wfakes
-		else:
-			filepath = self.filepath_Nfakes
-
-		with fits.open(filepath) as hdulist:
-			wln_um, spot_to_star = calibrate_ss_contrast(hdulist)
-			calib_data = copy(hdulist[1].data) * spot_to_star[:, np.newaxis, np.newaxis]
-			dataset_center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
-			dataset_fwhm, dataset_iwa, dataset_owa = FWHMIOWA_calculator(hdulist)
-			output_wcs = WCS(header=hdulist[1].header, naxis=[1, 2])
-
-		calibrated_cube = CalibratedCube(calib_data, dataset_center, dataset_iwa, dataset_owa,
-							   dataset_fwhm, output_wcs)
-
-		self.CCube = calibrated_cube
-
-
-	def get_contrast(self, wavelength_index=10, contains_fakes=False):
+	def get_contrast(self, contains_fakes, wavelength_index=10):
 		"""
 		Measures contrast in an image; saves contrast data both to a CSV file and to the object.
 		---
@@ -132,7 +111,19 @@ class Trial:
 									wavelength axis).Default: 10
 			contains_fakes (bool): Set to true if fakes present. Default: False
 		"""
-		frame = self.CCube.data[wavelength_index]
+		if contains_fakes:
+			filepath = self.filepath_Wfakes
+		else:
+			filepath = self.filepath_Nfakes
+
+		with fits.open(filepath) as hdulist:
+			wln_um, spot_to_star = calibrate_ss_contrast(hdulist)
+			calib_cube = copy(hdulist[1].data) * spot_to_star[:, np.newaxis, np.newaxis]
+			dataset_center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
+			dataset_fwhm, dataset_iwa, dataset_owa = FWHMIOWA_calculator(hdulist)
+			output_wcs = WCS(header=hdulist[1].header, naxis=[1, 2])
+
+		frame = calib_cube[wavelength_index]
 
 		if mask_xy is not None:
 			x_pos = self.mask_xy[0]
@@ -140,10 +131,10 @@ class Trial:
 
 			ydat, xdat = np.indices(frame.shape)
 			distance_from_planet = np.sqrt((xdat - x_pos) ** 2 + (ydat - y_pos) ** 2)
-			frame[np.where(distance_from_planet <= 2 * self.CCube.fwhm)] = np.nan
+			frame[np.where(distance_from_planet <= 2 * dataset.fwhm)] = np.nan
 
-		contrast_seps, contrast = meas_contrast(frame, self.CCube.iwa, self.CCube.owa,
-												self.CCube.fwhm, center=self.CCube.center,
+		contrast_seps, contrast = meas_contrast(frame, dataset_iwa, dataset_owa,
+												dataset_fwhm, center=dataset_center,
 												low_pass_filter=True)
 
 		# Calibrating For KLIP Subtraction If Fakes Present
@@ -152,8 +143,8 @@ class Trial:
 			for sep in injected_seps:
 				fake_planet_fluxes = []
 				for pa in self.fake_PAs:
-					fake_flux = retrieve_planet_flux(frame, self.CCube.center,
-													 self.CCube.wcs, sep, pa,
+					fake_flux = retrieve_planet_flux(frame, dataset_center,
+													 output_wcs, sep, pa,
 													 searchrad=7)
 					fake_planet_fluxes.append(fake_flux)
 				retrieved_fluxes.append(np.mean(fake_planet_fluxes))
@@ -170,7 +161,7 @@ class Trial:
 			self.calib_contrast = [contrast_seps, correct_contrast]
 			data_output_filepath = self.object_name + \
 								   '/calibrated_contrast/{0}_contrast.csv'.format(
-									   self.CCube.klip_parameters)
+									   self.calib_cube.klip_parameters)
 			with open(data_output_filepath, 'w+') as csvfile:
 				csvwriter = writer(csvfile, delimiter=',')
 				csvwriter.writerows([['Sep (Pixels)', 'Contrast']])
@@ -179,7 +170,7 @@ class Trial:
 			self.uncalib_contrast = [contrast_seps, contrast]
 			data_output_filepath = self.object_name + \
 								   '/uncalibrated_contrast/{0}_contrast.csv'.format(
-									   self.CCube.klip_parameters)
+									   self.calib_cube.klip_parameters)
 			with open(data_output_filepath, 'w+') as csvfile:
 				csvwriter = writer(csvfile, delimiter=',')
 				csvwriter.writerows([['Sep (Pixels)', 'Contrast']])
@@ -224,6 +215,21 @@ class Trial:
 			csvwriter.writerows(candidates_table)
 
 
+	def categorize_detections(self):
+		candidates = copy(pd.DataFrame(self.detections))
+		real_planet = []
+		for _, row in candidates.iterrows():
+			if np.min(row['PA'] - self.fake_PAs) <= 0.5*self.fake_fwhm:
+				if np.min(row['Sep (pix)' - self.fake_seps]) <= 2 and \
+					np.min(row['Sep (as)' - self.fake_seps]) <= 2:
+						real_planet.append(True)
+				else:
+					real_planet.append(False)
+			else:
+				real_planet.append(False)
+		candidates['Injected?'] = real_planet
+
+
 class TestDataset:
 	def __init__(self, fileset, object_name, mask_xy, fake_fluxes, fake_seps,
 				 annuli, subsections, movement, numbasis, spectrum=None, mode='ADI+SDI',
@@ -256,7 +262,8 @@ class TestDataset:
 														 spectrum=spec, mode=mod,
 														 mask_xy=mask_xy, fake_PAs=fake_PAs,
 														 fake_fluxes=fake_fluxes,
-														 object_name=object_name))
+														 object_name=object_name,
+														 fake_fwhm=fake_fwhm, fake_seps=fake_seps))
 
 
 	def inject_fakes(self):
