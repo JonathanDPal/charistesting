@@ -60,8 +60,9 @@ def calibrate_ss_contrast(speccubefile):
 class TestDataset:
 	def __init__(self, fileset, object_name, mask_xy, fake_fluxes, fake_seps,
 				 klipped_with_fakes_filepath, klipped_no_fakes_filepath, annuli,
-				 subsections, movement, numbasis, mode='ADI+SDI', fake_fwhm=3.5, fake_PAs=[0,90,
-																						   180,270]):
+				 subsections, movement, numbasis, mode='ADI+SDI', fake_fwhm=3.5,
+				 fake_PAs=[0,90,180,270], contrast_KL_modes=None):
+
 		# Creating CHARISData Object With UnKLIPped Data
 		self.dataset_no_fakes = CHARISData(glob(fileset))
 		self.dataset_with_fakes = copy(self.dataset_no_fakes)
@@ -84,6 +85,12 @@ class TestDataset:
 		self.mode = mode
 		self.klip_parameters = [annuli, subsections, movement, numbasis, mode]
 
+		# Which
+		if contrast_KL_modes is not None:
+			self.KL_modes_contrast = contrast_KL_modes
+		else:
+			self.KL_modes_contrast = list(numbasis)[0]
+
 		# Where Contrast Info Will Be Stored
 		self.uncalib_contrast = dict()
 		self.calib_contrast = dict()
@@ -93,12 +100,11 @@ class TestDataset:
 		self.fakes_klipped_filepath = klipped_with_fakes_filepath
 		self.no_fakes_klipped_filepath = klipped_no_fakes_filepath
 
-		# step four
-		self.detections_finders = None
-		self.contrast_finders = None
+		# detetctions
+		self.detections = dict()
 
 
-	def injecting_fakes(self):
+	def inject_fakes(self):
 		"""
 		Injects fake planets into CHARIS data.
 		"""
@@ -134,19 +140,6 @@ class TestDataset:
 		"""
 		Calibrates data cube with respect to star flux and provides a bunch of other information
 		needed for contrast measurements.
-		---
-		Arg:
-			contains_fakes (bool): Set to True if looking to calibrate data with the fakes and
-									to False if looking to calibrate data without the fakes.
-
-		Returns:
-			wavelength in micrometers
-			datacube calibrated with respect to star flux
-			dataset center as a list of form [X-coor, Y-coor]
-			dataset inner working angle
-			dataset outer working angle
-			dataset full width at half maximum
-			dataset output WCS
 		"""
 		if contains_fakes:
 			directory = self.fakes_klipped_filepath
@@ -156,7 +149,7 @@ class TestDataset:
 			object_name_end = '_withoutfakes-KL'
 
 		with fits.open(directory + '/' + self.object_name + object_name_end
-					   + str(KL_modes_contrast_curve) + '-speccube.fits') as hdulist:
+					   + str(self.KL_modes_contrast) + '-speccube.fits') as hdulist:
 			wln_um, spot_to_star = calibrate_ss_contrast(hdulist)
 			calib_cube = copy(hdulist[1].data) * spot_to_star[:, np.newaxis, np.newaxis]
 			dataset_center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
@@ -219,15 +212,16 @@ class TestDataset:
 				closest_throughput_index = np.argmin(np.abs(sep - injected_seps))
 				correct_contrast[i] /= algo_throughput[closest_throughput_index]
 
-		# Saving Data
+		# Saving Data (both to TestDataset object and externally to file)
+		self.contrast_seps = contrast_seps
 		if contains_fakes:
 			self.calib_contrast = correct_contrast
-			self.contrast_seps = contrast_seps
 			with open(data_output_filepath, 'w+') as csvfile:
 				csvwriter = writer(csvfile, delimiter=',')
 				csvwriter.writerows([['Sep (Pixels)', 'Contrast']])
 				csvwriter.writerows([contrast_seps, correct_contrast])
-		elif not contains_fakes:
+		else:
+			self.uncalib_contrast = contrast
 			with open(data_output_filepath, 'w+') as csvfile:
 				csvwriter = writer(csvfile, delimiter=',')
 				csvwriter.writerows([['Sep (Pixels)', 'Contrast']])
@@ -266,7 +260,8 @@ class TestDataset:
 												  pix2as=pix2as, mask_radius=mask_radius,
 												  maskout_edge=maskout_edge, IWA=None, OWA=None)
 
-		# Write Out Detections To CSV File
+		# Saving Data (both to TestDataset object and externally to file)
+		self.detections = candidates_table
 		with open(output_prefix+'_SNR-'+str(SNR_threshold)+'.csv','w+') as csvfile:
 			csvwriter = writer(csvfile, delimiter=',')
 			csvwriter.writerows([['Index', 'SNR Value', 'PA', 'Sep (pix)',
@@ -279,89 +274,3 @@ class TestDataset:
 		Aggregates information and provides summary plots.
 		"""
 
-		detections_list = []
-		for detection_finder in list(self.detections_finders):
-			detections_list.append(glob(detection_finder))
-		detections = dict()
-		for i, filename in enumerate(detections_list):
-			if filename[-6] == '-':
-				try:
-					snr_value = int(filename[-5])
-				except ValueError:
-					print("Filename {0} is not correctly formatted and will not be "
-						  "included in the compiled data".format(filename))
-					continue
-			elif filename[-7] == '-':
-				try:
-					snr_value = int(filename[-6] + filename[-5])
-				except ValueError:
-					print("Filename {0} is not correctly formatted and will not be "
-						  "included in the compiled data".format(filename))
-					continue
-			else:
-				print("Filename {0} is not correctly formatted and will not be "
-					  "included in the compiled data".format(filename))
-				continue
-			detections[i] = [pd.read_csv(filename), snr_value]
-
-		snr_detections = dict()
-
-		for i in list(detections.keys()):
-			min_snr = detections[i][1]
-			data = detections[i][0]
-			max_snr = ceil(np.max(data['SNR Value']))
-			snr_to_use = min_snr
-			while snr_to_use <= max_snr:
-				detections_at_snr_value = data[data['SNR Value'] > snr_to_use]
-				for pa in detections_at_snr_value['PA']:
-
-
-		contrasts_list = []
-		for contrast_finder in list(self.contrast_finders):
-			contrasts_list.append(glob(contrast_finder))
-		contrasts = dict()
-		for filename in contrasts_list:
-			# Change the following section to fit some convention for saving
-			# contrast data. Determine the convention and then include it in the
-			# docstring for pt2 and probably even throw a test on it to make sure
-			# that data_output_filename arg fits the convention.
-			if filename[-6] == '-':
-				whatever_value = filename[-5]
-			elif filename[-7] == '-':
-				whatever_value = filename[-6] + filename[-5]
-			else:
-				print("Filename {0} is not correctly formatted and will not be "
-					  "included in the compiled data".format(filename))
-				continue
-			contrasts[whatever_value] = pd.read_csv(filename)
-
-
-
-# Measuring Contrast, Generating Contrast Curve on Data Without Fakes &
-# Saving the Contrast Data to a CSV File
-no_fakes_wln_um, no_fakes_calib_cube, no_fakes_dataset_center, no_fakes_dataset_iwa, \
-no_fakes_dataset_owa, no_fakes_dataset_fwhm, no_fakes_output_wcs = ss_calibration(False)
-
-get_contrast(graph_output_filepath=filepath_uncalibrated_curve,
-						data_output_filepath=filepath_uncal_contrast_data,
-						wln_um=no_fakes_wln_um, calib_cube=no_fakes_calib_cube,
-						dataset_center=no_fakes_dataset_center,
-						dataset_iwa=no_fakes_dataset_iwa, dataset_owa=no_fakes_dataset_owa,
-						dataset_fwhm=no_fakes_dataset_fwhm, output_wcs=no_fakes_output_wcs)
-
-# Measuring Contrast, Generating Contrast Curve on Data With Fakes &
-# Saving the Contrast Data to a CSV File
-with_fakes_wln_um, with_fakes_calib_cube, with_fakes_dataset_center, \
-with_fakes_dataset_iwa, with_fakes_dataset_owa, with_fakes_dataset_fwhm, \
-with_fakes_output_wcs = ss_calibration(True)
-
-get_contrast(graph_output_filepath=filepath_calibrated_curve,
-						data_output_filepath=filepath_cal_contrast_data,
-						wln_um=with_fakes_wln_um, calib_cube=with_fakes_calib_cube,
-						dataset_center=with_fakes_dataset_center,
-						dataset_iwa=with_fakes_dataset_iwa,
-						dataset_owa=with_fakes_dataset_owa,
-						dataset_fwhm=with_fakes_dataset_fwhm,
-						output_wcs=with_fakes_output_wcs, contains_fakes=True,
-						injected_fluxes=self.fake_fluxes, injected_seps=self.fake_seps,
-						injected_PAs=self.fake_PAs)
