@@ -66,88 +66,25 @@ class CalibratedCube:
 
 
 class Trial:
-	def __init__(self, annuli, subsections, movement, numbasis, spectrum, mode):
+	def __init__(self, annuli, subsections, movement, numbasis, spectrum, mode, mask_xy, fake_PAs):
 		self.annuli = annuli
 		self.subsections = subsections
 		self.movement = movement
 		self.numbasis = numbasis
 		self.spectrum = spectrum
 		self.mode = mode
+		self.mask_xy = mask_xy
+		self.fake_PAs = fake_PAs
+
 		self.klip_parameters = str(annuli)+'Annuli_'+str(subsections)+'Subsections_'+str(
 			movement)+'Movement_'+str(numbasis)+'Bases_'+str(spectrum)+'Spectrum_'+str(mode)+'Mode'
 
-
-class TestDataset:
-	def __init__(self, fileset, object_name, mask_xy, fake_fluxes, fake_seps,
-				 annuli, subsections, movement, numbasis, spectrum=None, mode='ADI+SDI',
-				 fake_fwhm=3.5, fake_PAs=[0,90,180,270]):
-
-		# Creating CHARISData Object With UnKLIPped Data
-		self.dataset_no_fakes = CHARISData(glob(fileset))
-		self.dataset_with_fakes = copy(self.dataset_no_fakes)
-
-		# Setting Object Name and Location
-		self.object_name = object_name
-		self.mask_xy = mask_xy
-
-		# Info For Injecting (and later identifying) Fake Planets
-		self.fake_fluxes = fake_fluxes
-		self.fake_seps = fake_seps
-		self.fake_fwhm = fake_fwhm
-		self.fake_PAs = fake_PAs
-
-		# Building Trials
-		self.trials = []
-		for ani in list(annuli):
-			for subsec in list(subsections):
-				for mov in list(movement):
-					for numbase in list(numbasis):
-						for spec in list(spectrum):
-							for mod in list(mode):
-								self.trials.append(Trial(annuli=ani, subsections=subsec,
-														 movement=mov, numbasis=numbase,
-														 spectrum=spec, mode=mod))
-
-		# Where Contrast Info Will Be Stored
-		self.uncalib_contrast = dict()
-		self.calib_contrast = dict()
-
-		# detections
+		# Data To Be Put In Later
+		self.filepath_Wfakes = None
+		self.filepath_Nfakes = None
+		self.CCube = None
+		self.contrast = None
 		self.detections = None
-
-
-	def inject_fakes(self):
-		"""
-		Injects fake planets into CHARIS data.
-		"""
-
-		# Getting Values
-		with fits.open(self.filelist[0]) as hdu:
-			_, spot_to_star = calibrate_ss_contrast(hdu)
-
-		# Inject Fake Planets
-		for fake_flux, sep in zip(self.fake_fluxes, self.fake_seps):
-			flux_to_inject = fake_flux * spot_to_star
-			for pa in self.fake_PAs:
-				inject_planet(self.dataset_with_fakes.input, self.dataset_with_fakes.centers,
-							  flux_to_inject, self.dataset_with_fakes.wcs, sep, pa,
-							  fwhm=self.fake_fwhm)
-
-
-	def run_KLIP(self):
-		## ADD CODE TO HAVE IT RUN A VARIETY OF PARAMETERS ON SAME DATA ##
-
-		# Running KLIP on Data With Fakes
-		klip_dataset(self.data_with_fakes, outputdir=self.object_name + '/klipped_cubes_with_fakes',
-					 fileprefix=object_name + '_withfakes', annuli=self.annuli,
-					 subsections=self.subsections, movement=self.movement, numbasis=self.numbasis,
-					 mode=self.mode)
-
-		# Running KLIP on Data Without Fakes
-		klip_dataset(self.data_without_fakes, outputdir=self.object_name+'/klipped_cubes_no_fakes',
-					 fileprefix=self.object_name+'_withoutfakes', annuli=self.annuli,
-					 subsections=self.subsections, movement=self.movement, numbasis=self.numbasis,
-					 mode=self.mode)
 
 
 	def ss_calibration(self, contains_fakes):
@@ -156,24 +93,21 @@ class TestDataset:
 		needed for contrast measurements.
 		"""
 		if contains_fakes:
-			directory = self.object_name+'/klipped_cubes_with_fakes/'
-			object_name_end = '_withfakes-KL'
+			filepath = self.filepath_Wfakes
 		else:
-			directory = self.object_name+'/klipped_cubes_no_fakes/'
-			object_name_end = '_withoutfakes-KL'
+			filepath = self.filepath_Nfakes
 
-		with fits.open(directory + self.object_name + object_name_end
-					   + str(self.KL_modes_contrast) + '-speccube.fits') as hdulist:
+		with fits.open(filepath) as hdulist:
 			wln_um, spot_to_star = calibrate_ss_contrast(hdulist)
 			calib_data = copy(hdulist[1].data) * spot_to_star[:, np.newaxis, np.newaxis]
 			dataset_center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
 			dataset_fwhm, dataset_iwa, dataset_owa = FWHMIOWA_calculator(hdulist)
 			output_wcs = WCS(header=hdulist[1].header, naxis=[1, 2])
 
-		CCube = CalibratedCube(calib_data, dataset_center, dataset_iwa, dataset_owa,
+		calibrated_cube = CalibratedCube(calib_data, dataset_center, dataset_iwa, dataset_owa,
 							   dataset_fwhm, output_wcs)
 
-		return CCube
+		self.CCube = calibrated_cube
 
 
 	def get_contrast(self, calib_cube, wavelength_index=10, contains_fakes=False):
@@ -249,7 +183,7 @@ class TestDataset:
 							identify the subset that would have been identified at a higher SNR.
 		"""
 
-		with fits.open(self.fakes_klipped_filepath) as hdulist:
+		with fits.open(self.filepath_Wfakes) as hdulist:
 			image = hdulist[1].data
 			center = [hdulist[0].header['PSFCENTX'], hdulist[0].header['PSFCENTY']]
 
@@ -264,16 +198,11 @@ class TestDataset:
 		SNR_map = get_image_stat_map_perPixMasking(image_cc, centroid=center, mask_radius=5,
 												   Dr=2, type='SNR')
 
-		detection_threshold = SNR_threshold
-		pix2as = 1
-		mask_radius = 15
-		maskout_edge = 10
+		candidates_table = point_source_detection(SNR_map, center, SNR_threshold,
+												  pix2as=1, mask_radius=15,
+												  maskout_edge=10, IWA=None, OWA=None)
 
-		candidates_table = point_source_detection(SNR_map, center, detection_threshold,
-												  pix2as=pix2as, mask_radius=mask_radius,
-												  maskout_edge=maskout_edge, IWA=None, OWA=None)
-
-		# Saving Data (both to TestDataset object and externally to file)
+		# Saving Data (both to Trial object and externally to CSV File)
 		self.detections = candidates_table
 		with open(output_prefix+'_SNR-'+str(SNR_threshold)+'.csv','w+') as csvfile:
 			csvwriter = writer(csvfile, delimiter=',')
@@ -282,7 +211,79 @@ class TestDataset:
 			csvwriter.writerows(candidates_table)
 
 
-	def step_four(self):
+class TestDataset:
+	def __init__(self, fileset, object_name, mask_xy, fake_fluxes, fake_seps,
+				 annuli, subsections, movement, numbasis, spectrum=None, mode='ADI+SDI',
+				 fake_fwhm=3.5, fake_PAs=[0,90,180,270]):
+
+		# Creating CHARISData Object With UnKLIPped Data
+		self.dataset_no_fakes = CHARISData(glob(fileset))
+		self.dataset_with_fakes = copy(self.dataset_no_fakes)
+
+		# Setting Object Name and Location
+		self.object_name = object_name
+		self.mask_xy = mask_xy
+
+		# Info For Injecting (and later identifying) Fake Planets
+		self.fake_fluxes = fake_fluxes
+		self.fake_seps = fake_seps
+		self.fake_fwhm = fake_fwhm
+		self.fake_PAs = fake_PAs
+
+		# Building Trials
+		self.trials = []
+		for ani in list(annuli):
+			for subsec in list(subsections):
+				for mov in list(movement):
+					for numbase in list(numbasis):
+						for spec in list(spectrum):
+							for mod in list(mode):
+								self.trials.append(Trial(annuli=ani, subsections=subsec,
+														 movement=mov, numbasis=numbase,
+														 spectrum=spec, mode=mod,
+														 mask_xy=mask_xy, fake_PAs=fake_PAs))
+
+
+	def inject_fakes(self):
+		"""
+		Injects fake planets into CHARIS data.
+		"""
+
+		# Getting Values
+		with fits.open(self.filelist[0]) as hdu:
+			_, spot_to_star = calibrate_ss_contrast(hdu)
+
+		# Inject Fake Planets
+		for fake_flux, sep in zip(self.fake_fluxes, self.fake_seps):
+			flux_to_inject = fake_flux * spot_to_star
+			for pa in self.fake_PAs:
+				inject_planet(self.dataset_with_fakes.input, self.dataset_with_fakes.centers,
+							  flux_to_inject, self.dataset_with_fakes.wcs, sep, pa,
+							  fwhm=self.fake_fwhm)
+
+
+	def run_KLIP(self):
+		for trial in self.trials:
+			# Running KLIP on Data With Fakes
+			klip_dataset(self.data_with_fakes, outputdir=self.object_name+'/klipped_cubes_Wfakes',
+						 fileprefix=object_name + '_withfakes_' + trial.klip_parameters,
+						 annuli=trial.annuli,subsections=trial.subsections,
+						 movement=trial.movement, numbasis=trial.numbasis, mode=trial.mode)
+
+			trial.filepath_Wfakes = self.object_name+'/klipped_cubes_Wfakes/'+object_name + \
+									'_withfakes_' + trial.klip_parameters+'-speccube.fits'
+
+			# Running KLIP on Data Without Fakes
+			klip_dataset(self.dataset_no_fakes, outputdir=self.object_name+'/klipped_cubes_Nfakes',
+						 fileprefix=self.object_name+'_withoutfakes_' + trial.klip_parameters,
+						 annuli=trial.annuli, subsections=trial.subsections,
+						 movement=trial.movement, numbasis=trial.numbasis, mode=trial.mode)
+
+			trial.filepath_Nfakes = self.object_name + '/klipped_cubes_Nfakes/' + object_name + \
+									'_withoutfakes_' + trial.klip_parameters + '-speccube.fits'
+
+
+	def aggregate_data(self):
 		"""
 		Aggregates information and provides summary plots.
 		"""
