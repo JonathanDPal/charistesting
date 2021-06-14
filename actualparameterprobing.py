@@ -1,4 +1,4 @@
-from testing_infrastructure import *
+from test_parameter_test_infrastructure import *
 
 # Measuring Contrast, Generating Contrast Curve on Data Without Fakes &
 # Saving the Contrast Data to a CSV File

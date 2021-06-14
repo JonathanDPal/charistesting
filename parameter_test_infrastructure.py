@@ -216,7 +216,9 @@ class Trial:
 
 
 	def categorize_detections(self):
-		candidates = copy(pd.DataFrame(self.detections))
+		candidates = pd.DataFrame(self.detections, columns=['Index', 'SNR Value', 'PA',
+																   'Sep (pix)','Sep (as)', 'x',
+																  'y', 'row', 'col'])
 		real_planet = []
 		for _, row in candidates.iterrows():
 			if np.min(row['PA'] - self.fake_PAs) <= 0.5*self.fake_fwhm:
@@ -227,7 +229,8 @@ class Trial:
 					real_planet.append(False)
 			else:
 				real_planet.append(False)
-		candidates['Injected?'] = real_planet
+		candidates['Injected'] = real_planet
+		self.classified_detections = candidates
 
 
 class TestDataset:
