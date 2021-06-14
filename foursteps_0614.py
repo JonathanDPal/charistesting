@@ -95,7 +95,8 @@ class Trial:
 
 		# Data To Be Added Later
 		self.CCube = None
-		self.contrast = None
+		self.uncalib_contrast = None
+		self.calib_contrast = None
 		self.detections = None
 
 
@@ -124,16 +125,14 @@ class Trial:
 
 	def get_contrast(self, wavelength_index=10, contains_fakes=False):
 		"""
-		Measures contrast in an image;
+		Measures contrast in an image; saves contrast data both to a CSV file and to the object.
 		---
 		Args:
 			wavelength_index (int): Index of wavelength to use (subsets calibrated cube along
 									wavelength axis).Default: 10
 			contains_fakes (bool): Set to true if fakes present. Default: False
 		"""
-		calib_cube = self.CCube
-
-		frame = calib_cube.data[wavelength_index]
+		frame = self.CCube.data[wavelength_index]
 
 		if mask_xy is not None:
 			x_pos = self.mask_xy[0]
@@ -141,10 +140,10 @@ class Trial:
 
 			ydat, xdat = np.indices(frame.shape)
 			distance_from_planet = np.sqrt((xdat - x_pos) ** 2 + (ydat - y_pos) ** 2)
-			frame[np.where(distance_from_planet <= 2 * calib_cube.fwhm)] = np.nan
+			frame[np.where(distance_from_planet <= 2 * self.CCube.fwhm)] = np.nan
 
-		contrast_seps, contrast = meas_contrast(frame, calib_cube.iwa, calib_cube.owa,
-												calib_cube.fwhm, center=calib_cube.center,
+		contrast_seps, contrast = meas_contrast(frame, self.CCube.iwa, self.CCube.owa,
+												self.CCube.fwhm, center=self.CCube.center,
 												low_pass_filter=True)
 
 		# Calibrating For KLIP Subtraction If Fakes Present
@@ -153,8 +152,8 @@ class Trial:
 			for sep in injected_seps:
 				fake_planet_fluxes = []
 				for pa in self.fake_PAs:
-					fake_flux = retrieve_planet_flux(frame, calib_cube.center,
-													 calib_cube.wcs, sep, pa,
+					fake_flux = retrieve_planet_flux(frame, self.CCube.center,
+													 self.CCube.wcs, sep, pa,
 													 searchrad=7)
 					fake_planet_fluxes.append(fake_flux)
 				retrieved_fluxes.append(np.mean(fake_planet_fluxes))
@@ -168,19 +167,19 @@ class Trial:
 
 		# Saving Data (both to TestDataset object and externally to file)
 		if contains_fakes:
-			self.calib_contrast[calib_cube] = [contrast_seps, correct_contrast]
+			self.calib_contrast = [contrast_seps, correct_contrast]
 			data_output_filepath = self.object_name + \
 								   '/calibrated_contrast/{0}_contrast.csv'.format(
-									   calib_cube.klip_parameters)
+									   self.CCube.klip_parameters)
 			with open(data_output_filepath, 'w+') as csvfile:
 				csvwriter = writer(csvfile, delimiter=',')
 				csvwriter.writerows([['Sep (Pixels)', 'Contrast']])
 				csvwriter.writerows([contrast_seps, correct_contrast])
 		else:
-			self.uncalib_contrast[calib_cube] = [contrast_seps, contrast]
+			self.uncalib_contrast = [contrast_seps, contrast]
 			data_output_filepath = self.object_name + \
 								   '/uncalibrated_contrast/{0}_contrast.csv'.format(
-									   calib_cube.klip_parameters)
+									   self.CCube.klip_parameters)
 			with open(data_output_filepath, 'w+') as csvfile:
 				csvwriter = writer(csvfile, delimiter=',')
 				csvwriter.writerows([['Sep (Pixels)', 'Contrast']])
@@ -286,15 +285,11 @@ class TestDataset:
 						 annuli=trial.annuli,subsections=trial.subsections,
 						 movement=trial.movement, numbasis=trial.numbasis, mode=trial.mode)
 
-			trial.filepath_Wfakes =
-
 			# Running KLIP on Data Without Fakes
 			klip_dataset(self.dataset_no_fakes, outputdir=self.object_name+'/klipped_cubes_Nfakes',
 						 fileprefix=self.object_name+'_withoutfakes_' + trial.klip_parameters,
 						 annuli=trial.annuli, subsections=trial.subsections,
 						 movement=trial.movement, numbasis=trial.numbasis, mode=trial.mode)
-
-			trial.filepath_Nfakes =
 
 
 	def aggregate_data(self):
