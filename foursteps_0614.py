@@ -66,7 +66,8 @@ class CalibratedCube:
 
 
 class Trial:
-	def __init__(self, annuli, subsections, movement, numbasis, spectrum, mode, mask_xy, fake_PAs):
+	def __init__(self, annuli, subsections, movement, numbasis, spectrum, mode, mask_xy,
+				 fake_PAs, fake_fluxes, object_name):
 		self.annuli = annuli
 		self.subsections = subsections
 		self.movement = movement
@@ -75,13 +76,24 @@ class Trial:
 		self.mode = mode
 		self.mask_xy = mask_xy
 		self.fake_PAs = fake_PAs
+		self.fake_fluxes = fake_fluxes
+		self.object_name = object_name
 
+		# String Identifying Parameters Used
 		self.klip_parameters = str(annuli)+'Annuli_'+str(subsections)+'Subsections_'+str(
 			movement)+'Movement_'+str(numbasis)+'Bases_'+str(spectrum)+'Spectrum_'+str(mode)+'Mode'
 
-		# Data To Be Put In Later
-		self.filepath_Wfakes = None
-		self.filepath_Nfakes = None
+		# Filepaths to KLIPped Datacubes
+		self.filepath_Wfakes = self.object_name+'/klipped_cubes_Wfakes/'+object_name + \
+									'_withfakes_' + trial.klip_parameters+'-speccube.fits'
+		self.filepath_Nfakes = self.object_name + '/klipped_cubes_Nfakes/' + object_name + \
+									'_withoutfakes_' + trial.klip_parameters + '-speccube.fits'
+
+		# Filepath to Save
+		self.filepath_contrast_prefix =
+		self.filepath_detections_prefix = self.object_name + '/detections_SNR-'
+
+		# Data To Be Added Later
 		self.CCube = None
 		self.contrast = None
 		self.detections = None
@@ -110,16 +122,16 @@ class Trial:
 		self.CCube = calibrated_cube
 
 
-	def get_contrast(self, calib_cube, wavelength_index=10, contains_fakes=False):
+	def get_contrast(self, wavelength_index=10, contains_fakes=False):
 		"""
 		Measures contrast in an image;
 		---
 		Args:
-			calib_cube (CalibratedCube object)
 			wavelength_index (int): Index of wavelength to use (subsets calibrated cube along
 									wavelength axis).Default: 10
 			contains_fakes (bool): Set to true if fakes present. Default: False
 		"""
+		calib_cube = self.CCube
 
 		frame = calib_cube.data[wavelength_index]
 
@@ -157,16 +169,18 @@ class Trial:
 		# Saving Data (both to TestDataset object and externally to file)
 		if contains_fakes:
 			self.calib_contrast[calib_cube] = [contrast_seps, correct_contrast]
-			data_output_filepath = self.object_name + '/calibrated_contrast/{0}.csv'.format(
-				calib_cube.klip_parameters)
+			data_output_filepath = self.object_name + \
+								   '/calibrated_contrast/{0}_contrast.csv'.format(
+									   calib_cube.klip_parameters)
 			with open(data_output_filepath, 'w+') as csvfile:
 				csvwriter = writer(csvfile, delimiter=',')
 				csvwriter.writerows([['Sep (Pixels)', 'Contrast']])
 				csvwriter.writerows([contrast_seps, correct_contrast])
 		else:
 			self.uncalib_contrast[calib_cube] = [contrast_seps, contrast]
-			data_output_filepath = self.object_name + '/uncalibrated_contrast/{0}.csv'.format(
-				self.klip_parameters)
+			data_output_filepath = self.object_name + \
+								   '/uncalibrated_contrast/{0}_contrast.csv'.format(
+									   calib_cube.klip_parameters)
 			with open(data_output_filepath, 'w+') as csvfile:
 				csvwriter = writer(csvfile, delimiter=',')
 				csvwriter.writerows([['Sep (Pixels)', 'Contrast']])
@@ -204,7 +218,7 @@ class Trial:
 
 		# Saving Data (both to Trial object and externally to CSV File)
 		self.detections = candidates_table
-		with open(output_prefix+'_SNR-'+str(SNR_threshold)+'.csv','w+') as csvfile:
+		with open(self.filepath_detections_prefix+str(SNR_threshold)+'.csv','w+') as csvfile:
 			csvwriter = writer(csvfile, delimiter=',')
 			csvwriter.writerows([['Index', 'SNR Value', 'PA', 'Sep (pix)',
 								  'Sep (as)', 'x', 'y', 'row', 'col']])
@@ -241,7 +255,9 @@ class TestDataset:
 								self.trials.append(Trial(annuli=ani, subsections=subsec,
 														 movement=mov, numbasis=numbase,
 														 spectrum=spec, mode=mod,
-														 mask_xy=mask_xy, fake_PAs=fake_PAs))
+														 mask_xy=mask_xy, fake_PAs=fake_PAs,
+														 fake_fluxes=fake_fluxes,
+														 object_name=object_name))
 
 
 	def inject_fakes(self):
@@ -270,8 +286,7 @@ class TestDataset:
 						 annuli=trial.annuli,subsections=trial.subsections,
 						 movement=trial.movement, numbasis=trial.numbasis, mode=trial.mode)
 
-			trial.filepath_Wfakes = self.object_name+'/klipped_cubes_Wfakes/'+object_name + \
-									'_withfakes_' + trial.klip_parameters+'-speccube.fits'
+			trial.filepath_Wfakes =
 
 			# Running KLIP on Data Without Fakes
 			klip_dataset(self.dataset_no_fakes, outputdir=self.object_name+'/klipped_cubes_Nfakes',
@@ -279,8 +294,7 @@ class TestDataset:
 						 annuli=trial.annuli, subsections=trial.subsections,
 						 movement=trial.movement, numbasis=trial.numbasis, mode=trial.mode)
 
-			trial.filepath_Nfakes = self.object_name + '/klipped_cubes_Nfakes/' + object_name + \
-									'_withoutfakes_' + trial.klip_parameters + '-speccube.fits'
+			trial.filepath_Nfakes =
 
 
 	def aggregate_data(self):
