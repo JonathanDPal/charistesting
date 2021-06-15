@@ -86,6 +86,15 @@ class Trial:
 		# Filepath to Save
 		self.filepath_detections_prefix = self.object_name + '/detections/{0}SNR-'.format(
 			self.klip_parameters)
+		# Setting Up Filepath
+		try:
+			os.mkdir(self.object_name)
+		except FileExistsError:
+			pass
+		try:
+			os.mkdir(self.object_name + '/detections')
+		except FileExistsError:
+			pass
 
 		# Data To Be Added Later
 		self.calib_cube = None
@@ -149,7 +158,21 @@ class Trial:
 				closest_throughput_index = np.argmin(np.abs(sep - self.fake_seps))
 				correct_contrast[i] /= algo_throughput[closest_throughput_index]
 
-		# Saving Data (both to TestDataset object and externally to file)
+		# Making Sure That Directories Exist For Saving Data
+		try:
+			os.mkdir(self.object_name)
+		except FileExistsError:
+			pass
+		try:
+			os.mkdir(self.object_name + '/calibrated_contrast')
+		except FileExistsError:
+			pass
+		try:
+			os.mkdir(self.object_name + '/uncalibrated_contrast')
+		except FileExistsError:
+			pass
+
+		# Saving Data to Object and to CSV File
 		if contains_fakes:
 			self.calib_contrast = [contrast_seps, correct_contrast]
 			data_output_filepath = self.object_name + \
@@ -201,24 +224,23 @@ class Trial:
 
 		self.detections = candidates_table
 
-
-	def categorize_detections(self):
-		candidates = pd.DataFrame(self.detections, columns=['Index', 'SNR Value', 'PA',
-																   'Sep (pix)','Sep (as)', 'x',
-																  'y', 'row', 'col'])
+		candidates = pd.DataFrame(candidates_table, columns=['Index', 'SNR Value', 'PA',
+															'Sep (pix)', 'Sep (as)', 'x',
+															'y', 'row', 'col'])
 		real_planet = []
 		for _, row in candidates.iterrows():
-			if np.min(row['PA'] - self.fake_PAs) <= 0.5*self.fake_fwhm:
+			if np.min(row['PA'] - self.fake_PAs) <= 0.5 * self.fake_fwhm:
 				if np.min(row['Sep (pix)' - self.fake_seps]) <= 2 and \
-					np.min(row['Sep (as)' - self.fake_seps]) <= 2:
-						real_planet.append(True)
+						np.min(row['Sep (as)' - self.fake_seps]) <= 2:
+					real_planet.append(True)
 				else:
 					real_planet.append(False)
 			else:
 				real_planet.append(False)
 		candidates['Injected'] = real_planet
 		self.classified_detections = candidates
-		candidates.to_csv(self.filepath_detections_prefix+str(SNR_threshold)+'.csv')
+		candidates.to_csv(self.filepath_detections_prefix + str(SNR_threshold) + '.csv')
+
 
 	def __eq__(self, other):
 		"""
@@ -228,6 +250,7 @@ class Trial:
 		return self.annuli == other.annuli and self.subsections == other.subsections and \
 			   self.movement == other.movement and self.numbasis == other.numbasis and \
 			   self.spectrum == other.spectrum and self.mode == other.mode
+
 
 # Each Object (eg. HD1160, BetaPic) Will Have An Instance of TestDataset Associated With It
 class TestDataset:

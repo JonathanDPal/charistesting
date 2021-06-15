@@ -71,6 +71,3 @@ def test_get_contrast():
 def test_detect_planets():
     pass
 
-def test_categorize_detections():
-    pass
-
