@@ -14,6 +14,7 @@ from pyklip.kpp.stat.statperPix_utils import get_image_stat_map_perPixMasking
 from pyklip.kpp.detection.detection import point_source_detection
 import pandas as pd
 from math import ceil
+import os
 
 
 def FWHMIOWA_calculator(speccubefile):
@@ -55,6 +56,7 @@ def calibrate_ss_contrast(speccubefile):
 	return wln_um, spot_to_star
 
 
+# TestDataset Will Have a List of Trials Associated With It (one for each group of KLIP Parameters)
 class Trial:
 	def __init__(self, annuli, subsections, movement, numbasis, spectrum, mode, mask_xy,
 				 fake_PAs, fake_fluxes, object_name, fake_fwhm, fake_seps):
@@ -223,6 +225,16 @@ class Trial:
 		self.classified_detections = candidates
 
 
+	def __eq__(self, other):
+		"""
+		Checks to see if two Trials have the same KLIP parameters. Intended for testing
+		out code functionality.
+		"""
+		return self.annuli == other.annuli and self.subsections == other.subsections and \
+			   self.movement == other.movement and self.numbasis == other.numbasis and \
+			   self.spectrum == other.spectrum and self.mode == other.mode
+
+# Each Object (eg. HD1160, BetaPic) Will Have An Instance of TestDataset Associated With It
 class TestDataset:
 	def __init__(self, fileset, object_name, mask_xy, fake_fluxes, fake_seps,
 				 annuli, subsections, movement, numbasis, spectrum=None, mode='ADI+SDI',
@@ -293,6 +305,16 @@ class TestDataset:
 
 
 	def run_KLIP(self):
+		# Making Sure Output Directories Exist
+		try:
+			os.mkdir(self.object_name+'/klipped_cubes_Wfakes')
+		except FileExistsError:
+			pass
+		try:
+			os.mkdir(self.object_name+'/klipped_cubes_Nfakes')
+		except FileExistsError:
+			pass
+
 		for trial in self.trials:
 			# Running KLIP on Data With Fakes
 			klip_dataset(self.data_with_fakes, outputdir=self.object_name+'/klipped_cubes_Wfakes',
