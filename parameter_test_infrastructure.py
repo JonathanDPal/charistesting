@@ -84,7 +84,8 @@ class Trial:
 									'_withoutfakes_' + self.klip_parameters + '-speccube.fits'
 
 		# Filepath to Save
-		self.filepath_detections_prefix = self.object_name + '/detections_SNR-'
+		self.filepath_detections_prefix = self.object_name + '/detections/{0}SNR-'.format(
+			self.klip_parameters)
 
 		# Data To Be Added Later
 		self.calib_cube = None
@@ -198,13 +199,7 @@ class Trial:
 												  pix2as=1, mask_radius=15,
 												  maskout_edge=10, IWA=None, OWA=None)
 
-		# Saving Data (both to Trial object and externally to CSV File)
 		self.detections = candidates_table
-		with open(self.filepath_detections_prefix+str(SNR_threshold)+'.csv','w+') as csvfile:
-			csvwriter = writer(csvfile, delimiter=',')
-			csvwriter.writerows([['Index', 'SNR Value', 'PA', 'Sep (pix)',
-								  'Sep (as)', 'x', 'y', 'row', 'col']])
-			csvwriter.writerows(candidates_table)
 
 
 	def categorize_detections(self):
@@ -223,7 +218,7 @@ class Trial:
 				real_planet.append(False)
 		candidates['Injected'] = real_planet
 		self.classified_detections = candidates
-
+		candidates.to_csv(self.filepath_detections_prefix+str(SNR_threshold)+'.csv')
 
 	def __eq__(self, other):
 		"""
@@ -306,6 +301,10 @@ class TestDataset:
 
 	def run_KLIP(self):
 		# Making Sure Output Directories Exist
+		try:
+			os.mkdir(self.object_name)
+		except FileExistsError:
+			pass
 		try:
 			os.mkdir(self.object_name+'/klipped_cubes_Wfakes')
 		except FileExistsError:
