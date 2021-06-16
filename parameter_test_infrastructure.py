@@ -222,14 +222,13 @@ class Trial:
 																'y', 'row', 'col'])
 			real_planet = []
 			for _, row in candidates.iterrows():
-				if np.min(row['PA'] - self.fake_PAs) <= 0.5 * self.fake_fwhm:
-					if np.min(row['Sep (pix)'] - self.fake_seps) <= 2 and \
-							np.min(row['Sep (as)'] - self.fake_seps) <= 2:
-						real_planet.append(True)
-					else:
+				if np.min(np.array(row['PA']) - np.array(
+						self.fake_PAs)) > 0.5 * self.fake_fwhm or np.min(
+						np.array(row['Sep (pix)']) - np.array(self.fake_seps)) > 2 or np.min(
+						np.array(row['Sep (as)']) - np.array(self.fake_seps)) > 2:
 						real_planet.append(False)
 				else:
-					real_planet.append(False)
+						real_planet.append(True)
 			candidates['Injected'] = real_planet
 			self.classified_detections = candidates
 			candidates.to_csv('{0}{1}.csv'.format(self.filepath_detections_prefixes[i],
@@ -269,6 +268,8 @@ class TestDataset:
 		# Setting Object Name and Location
 		self.object_name = object_name
 		self.mask_xy = mask_xy
+
+		print("##################### STARTING WORK ON {0} #####################".format(self.object_name))
 
 		# Creating CHARISData Object With UnKLIPped Data
 		self.fileset = glob(fileset)
@@ -342,12 +343,11 @@ class TestDataset:
 						 fileprefix=self.object_name+'_withoutfakes_' + trial.klip_parameters,
 						 annuli=trial.annuli, subsections=trial.subsections,
 						 movement=trial.movement, numbasis=trial.numbasis, spectrum=trial.spectrum, verbose=False)
-			if i == len(self.trials) - 1:
+			if i + 1 == len(self.trials):
 				print("############## DONE WITH KLIP FOR {0} ##############".format(self.object_name))
-			elif (i * 2) % 10 == 0:
-				print("####### {0}/{1} KLIP Runs Complete ({2}%) #######".format(i * 2, len(self.trials) * 2,
-																 round(float(i)/float(len(
-																	 self.trials)), 2) * 100))
+			elif ((i+1) * 2) % 10 == 0:
+				print("####### {0}/{1} KLIP Runs Complete ({2}%) #######".format((i+1) * 2,
+						len(self.trials) * 2, round(float(i+1)/float(len(self.trials)), 3) * 100))
 
 
 
@@ -355,12 +355,13 @@ class TestDataset:
 		print("############## BEGINNING CONTRAST AND DETECTION FOR {0} ##############".format(
 			self.object_name))
 		for i, trial in enumerate(self.trials):
-			for tf in [True, False]:
-				trial.get_contrast(tf)
+		# 	for tf in [True, False]:
+		# 		trial.get_contrast(tf)
 			trial.detect_planets()
-			if i == len(self.trials) - 1:
+			if i + 1 == len(self.trials):
 				print('############## DONE WITH CONTRAST AND DETECTION FOR {0} '
 					  '##############'.format(self.object_name))
-			elif (i * 2) % 10 == 0:
-				print("####### Detection and contrast complete for {0}/{1} Trials ({2}%) #######".format(i * 2,
-						len(self.trials) * 2, round(float(i)/float(len(self.trials)), 2) * 100))
+			elif ((i+1) * 2) % 10 == 0:
+				print("####### Detection and contrast complete for {0}/{1} Trials ({2}%) "
+					  "#######".format((i+1) * 2, len(self.trials) * 2, round(float(i+1)/float(len(
+					self.trials)), 3) * 100))
