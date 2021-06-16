@@ -3,7 +3,7 @@ import warnings
 from time import time
 from numpy import floor
 
-start = time.time()
+start = time()
 warnings.simplefilter('ignore', category=RuntimeWarning)
 
 # Describe Fake Planets To Be Injected
@@ -31,7 +31,7 @@ hd1160.run_KLIP()
 hd1160.contrast_and_detection()
 
 # Print Out Time Taken
-end = time.time()
+end = time()
 time_elapsed = end - start
 hours = int(floor(time_elapsed / 3600))
 remaining_time = time_elapsed - (hours * 3600)
