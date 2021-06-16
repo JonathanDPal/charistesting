@@ -1,4 +1,5 @@
-from astropy.io import fits, WCS
+from astropy.io import fits
+from astropy.wcs import WCS
 import numpy as np
 from glob import glob
 from pyklip.instruments.CHARIS import CHARISData
@@ -9,8 +10,8 @@ import pylab as P
 from csv import writer
 from pyklip.fakes import inject_planet, retrieve_planet_flux
 from pyklip.kpp.utils.mathfunc import gauss2d
-from pyklip.kpp.metric.crossCorr import calculate_cc
-from pyklip.kpp.stat.statperPix_utils import get_image_stat_map_perPixMasking
+from pyklip.kpp.metrics.crossCorr import calculate_cc
+from pyklip.kpp.stat.statPerPix_utils import get_image_stat_map_perPixMasking
 from pyklip.kpp.detection.detection import point_source_detection
 import pandas as pd
 from math import ceil
@@ -58,14 +59,13 @@ def calibrate_ss_contrast(speccubefile):
 
 # TestDataset Will Have a List of Trials Associated With It (one for each group of KLIP Parameters)
 class Trial:
-	def __init__(self, annuli, subsections, movement, numbasis, spectrum, mode, mask_xy,
+	def __init__(self, annuli, subsections, movement, numbasis, spectrum, mask_xy,
 				 fake_PAs, fake_fluxes, object_name, fake_fwhm, fake_seps):
 		self.annuli = annuli
 		self.subsections = subsections
 		self.movement = movement
 		self.numbasis = numbasis
 		self.spectrum = spectrum
-		self.mode = mode
 		self.mask_xy = mask_xy
 		self.fake_PAs = fake_PAs
 		self.fake_fluxes = fake_fluxes
@@ -75,26 +75,24 @@ class Trial:
 
 		# String Identifying Parameters Used
 		self.klip_parameters = str(annuli)+'Annuli_'+str(subsections)+'Subsections_'+str(
-			movement)+'Movement_'+str(numbasis)+'Bases_'+str(spectrum)+'Spectrum_'+str(mode)+'Mode'
+			movement)+'Movement_'+str(spectrum)+'Spectrum_'
 
 		# Filepaths to KLIPped Datacubes
-		self.filepath_Wfakes = self.object_name+'/klipped_cubes_Wfakes/'+object_name + \
-									'_withfakes_' + self.klip_parameters+'-speccube.fits'
-		self.filepath_Nfakes = self.object_name + '/klipped_cubes_Nfakes/' + object_name + \
-									'_withoutfakes_' + self.klip_parameters + '-speccube.fits'
+		self.filepaths_Wfakes = [self.object_name + '/klipped_cubes_Wfakes/' + self.object_name + \
+									'_withfakes_' + self.klip_parameters +'-KL{0}-' \
+									'speccube.fits'.format(nb) for nb in self.numbasis]
+		self.filepaths_Nfakes = [self.object_name + '/klipped_cubes_Nfakes/' + self.object_name + \
+									'_withoutfakes_' + self.klip_parameters +'-KL{0}-' \
+									'speccube.fits'.format(nb) for nb in self.numbasis]
 
 		# Filepath to Save
-		self.filepath_detections_prefix = self.object_name + '/detections/{0}SNR-'.format(
-			self.klip_parameters)
+		self.filepath_detections_prefixes = [self.object_name + '/detections/{0}_KL{1}_SNR-'.format(
+			self.klip_parameters, nb) for nb in self.numbasis]
 		# Setting Up Filepath
-		try:
+		if not os.path.exists(self.object_name):
 			os.mkdir(self.object_name)
-		except FileExistsError:
-			pass
-		try:
+		if not os.path.exists(self.object_name + '/detections'):
 			os.mkdir(self.object_name + '/detections')
-		except FileExistsError:
-			pass
 
 		# Data To Be Added Later
 		self.calib_cube = None
@@ -114,83 +112,78 @@ class Trial:
 			contains_fakes (bool): Set to true if fakes present. Default: False
 		"""
 		if contains_fakes:
-			filepath = self.filepath_Wfakes
+			filepaths = self.filepaths_Wfakes
 		else:
-			filepath = self.filepath_Nfakes
+			filepaths = self.filepaths_Nfakes
 
-		with fits.open(filepath) as hdulist:
-			wln_um, spot_to_star = calibrate_ss_contrast(hdulist)
-			calib_cube = copy(hdulist[1].data) * spot_to_star[:, np.newaxis, np.newaxis]
-			dataset_center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
-			dataset_fwhm, dataset_iwa, dataset_owa = FWHMIOWA_calculator(hdulist)
-			output_wcs = WCS(header=hdulist[1].header, naxis=[1, 2])
+		for i, filepath in enumerate(filepaths):
+			with fits.open(filepath) as hdulist:
+				wln_um, spot_to_star = calibrate_ss_contrast(hdulist)
+				calib_cube = copy(hdulist[1].data) * spot_to_star[:, np.newaxis, np.newaxis]
+				dataset_center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
+				dataset_fwhm, dataset_iwa, dataset_owa = FWHMIOWA_calculator(hdulist)
+				output_wcs = WCS(header=hdulist[1].header, naxis=[1, 2])
 
-		frame = calib_cube[wavelength_index]
+			frame = calib_cube[wavelength_index]
 
-		if mask_xy is not None:
-			x_pos = self.mask_xy[0]
-			y_pos = self.mask_xy[1]
+			if mask_xy is not None:
+				x_pos = self.mask_xy[0]
+				y_pos = self.mask_xy[1]
 
-			ydat, xdat = np.indices(frame.shape)
-			distance_from_planet = np.sqrt((xdat - x_pos) ** 2 + (ydat - y_pos) ** 2)
-			frame[np.where(distance_from_planet <= 2 * dataset.fwhm)] = np.nan
+				ydat, xdat = np.indices(frame.shape)
+				distance_from_planet = np.sqrt((xdat - x_pos) ** 2 + (ydat - y_pos) ** 2)
+				frame[np.where(distance_from_planet <= 2 * dataset.fwhm)] = np.nan
 
-		contrast_seps, contrast = meas_contrast(frame, dataset_iwa, dataset_owa,
-												dataset_fwhm, center=dataset_center,
-												low_pass_filter=True)
+			contrast_seps, contrast = meas_contrast(frame, dataset_iwa, dataset_owa,
+													dataset_fwhm, center=dataset_center,
+													low_pass_filter=True)
 
-		# Calibrating For KLIP Subtraction If Fakes Present
-		if contains_fakes:
-			retrieved_fluxes = []
-			for sep in injected_seps:
-				fake_planet_fluxes = []
-				for pa in self.fake_PAs:
-					fake_flux = retrieve_planet_flux(frame, dataset_center,
-													 output_wcs, sep, pa,
-													 searchrad=7)
-					fake_planet_fluxes.append(fake_flux)
-				retrieved_fluxes.append(np.mean(fake_planet_fluxes))
+			# Calibrating For KLIP Subtraction If Fakes Present
+			if contains_fakes:
+				retrieved_fluxes = []
+				for sep in injected_seps:
+					fake_planet_fluxes = []
+					for pa in self.fake_PAs:
+						fake_flux = retrieve_planet_flux(frame, dataset_center,
+														 output_wcs, sep, pa,
+														 searchrad=7)
+						fake_planet_fluxes.append(fake_flux)
+					retrieved_fluxes.append(np.mean(fake_planet_fluxes))
 
-			algo_throughput = np.array(retrieved_fluxes) / np.array(self.fake_fluxes)
+				algo_throughput = np.array(retrieved_fluxes) / np.array(self.fake_fluxes)
 
-			correct_contrast = np.copy(contrast)
-			for i, sep in enumerate(contrast_seps):
-				closest_throughput_index = np.argmin(np.abs(sep - self.fake_seps))
-				correct_contrast[i] /= algo_throughput[closest_throughput_index]
+				correct_contrast = np.copy(contrast)
+				for i, sep in enumerate(contrast_seps):
+					closest_throughput_index = np.argmin(np.abs(sep - self.fake_seps))
+					correct_contrast[i] /= algo_throughput[closest_throughput_index]
 
-		# Making Sure That Directories Exist For Saving Data
-		try:
-			os.mkdir(self.object_name)
-		except FileExistsError:
-			pass
-		try:
-			os.mkdir(self.object_name + '/calibrated_contrast')
-		except FileExistsError:
-			pass
-		try:
-			os.mkdir(self.object_name + '/uncalibrated_contrast')
-		except FileExistsError:
-			pass
+			# Making Sure That Directories Exist For Saving Data
+			if not os.path.exists(self.object_name):
+				os.mkdir(self.object_name)
+			if not os.path.exists(self.object_name + '/calibrated_contrast'):
+				os.mkdir(self.object_name + '/calibrated_contrast')
+			if not os.path.exists(self.object_name + '/uncalibrated_contrast'):
+				os.mkdir(self.object_name + '/uncalibrated_contrast')
 
-		# Saving Data to Object and to CSV File
-		if contains_fakes:
-			self.calib_contrast = [contrast_seps, correct_contrast]
-			data_output_filepath = self.object_name + \
-								   '/calibrated_contrast/{0}_contrast.csv'.format(
-									   self.calib_cube.klip_parameters)
-			with open(data_output_filepath, 'w+') as csvfile:
-				csvwriter = writer(csvfile, delimiter=',')
-				csvwriter.writerows([['Sep (Pixels)', 'Contrast']])
-				csvwriter.writerows([contrast_seps, correct_contrast])
-		else:
-			self.uncalib_contrast = [contrast_seps, contrast]
-			data_output_filepath = self.object_name + \
-								   '/uncalibrated_contrast/{0}_contrast.csv'.format(
-									   self.calib_cube.klip_parameters)
-			with open(data_output_filepath, 'w+') as csvfile:
-				csvwriter = writer(csvfile, delimiter=',')
-				csvwriter.writerows([['Sep (Pixels)', 'Contrast']])
-				csvwriter.writerows([contrast_seps, contrast])
+			# Saving Data to Object and to CSV File
+			if contains_fakes:
+				self.calib_contrast = [contrast_seps, correct_contrast]
+				data_output_filepath = self.object_name + \
+									   '/calibrated_contrast/{0}_KL{1}_contrast.csv'.format(
+										   self.klip_parameters, self.numbasis[i])
+				with open(data_output_filepath, 'w+') as csvfile:
+					csvwriter = writer(csvfile, delimiter=',')
+					csvwriter.writerows([['Sep (Pixels)', 'Contrast']])
+					csvwriter.writerows([contrast_seps, correct_contrast])
+			else:
+				self.uncalib_contrast = [contrast_seps, contrast]
+				data_output_filepath = self.object_name + \
+									   '/uncalibrated_contrast/{0}_KL{1}_contrast.csv'.format(
+										   self.klip_parameters, self.numbasis[i])
+				with open(data_output_filepath, 'w+') as csvfile:
+					csvwriter = writer(csvfile, delimiter=',')
+					csvwriter.writerows([['Sep (Pixels)', 'Contrast']])
+					csvwriter.writerows([contrast_seps, contrast])
 
 
 	def detect_planets(self, SNR_threshold=3):
@@ -202,44 +195,45 @@ class Trial:
 							explore because it is super easy to just subset the output data to
 							identify the subset that would have been identified at a higher SNR.
 		"""
+		for i, filepath in emumerate(self.filepaths_Wfakes):
+			with fits.open(filepath) as hdulist:
+				image = hdulist[1].data
+				center = [hdulist[0].header['PSFCENTX'], hdulist[0].header['PSFCENTY']]
 
-		with fits.open(self.filepath_Wfakes) as hdulist:
-			image = hdulist[1].data
-			center = [hdulist[0].header['PSFCENTX'], hdulist[0].header['PSFCENTY']]
+			x_grid, y_grid = np.meshgrid(np.arange(-10,10), np.arange(-10,10))
+			kernel_gauss = gauss2d(x_grid, y_grid)
 
-		x_grid, y_grid = np.meshgrid(np.arange(-10,10), np.arange(-10,10))
-		kernel_gauss = gauss2d(x_grid, y_grid)
+			# flat spectrum given so that it collapses it into one image, instead of giving seperate
+			# images for each wavelength
+			image_cc = calculate_cc(image, kernel_gauss, spectrum=np.ones(len(image[0])),
+									nans2zero=True)
 
-		# flat spectrum given so that it collapses it into one image, instead of giving seperate
-		# images for each wavelength
-		image_cc = calculate_cc(image, kernel_gauss, spectrum=np.ones(len(image[0])),
-								nans2zero=True)
+			SNR_map = get_image_stat_map_perPixMasking(image_cc, centroid=center, mask_radius=5,
+													   Dr=2, type='SNR')
 
-		SNR_map = get_image_stat_map_perPixMasking(image_cc, centroid=center, mask_radius=5,
-												   Dr=2, type='SNR')
+			candidates_table = point_source_detection(SNR_map, center, SNR_threshold,
+													  pix2as=1, mask_radius=15,
+													  maskout_edge=10, IWA=None, OWA=None)
 
-		candidates_table = point_source_detection(SNR_map, center, SNR_threshold,
-												  pix2as=1, mask_radius=15,
-												  maskout_edge=10, IWA=None, OWA=None)
+			self.detections = candidates_table
 
-		self.detections = candidates_table
-
-		candidates = pd.DataFrame(candidates_table, columns=['Index', 'SNR Value', 'PA',
-															'Sep (pix)', 'Sep (as)', 'x',
-															'y', 'row', 'col'])
-		real_planet = []
-		for _, row in candidates.iterrows():
-			if np.min(row['PA'] - self.fake_PAs) <= 0.5 * self.fake_fwhm:
-				if np.min(row['Sep (pix)' - self.fake_seps]) <= 2 and \
-						np.min(row['Sep (as)' - self.fake_seps]) <= 2:
-					real_planet.append(True)
+			candidates = pd.DataFrame(candidates_table, columns=['Index', 'SNR Value', 'PA',
+																'Sep (pix)', 'Sep (as)', 'x',
+																'y', 'row', 'col'])
+			real_planet = []
+			for _, row in candidates.iterrows():
+				if np.min(row['PA'] - self.fake_PAs) <= 0.5 * self.fake_fwhm:
+					if np.min(row['Sep (pix)' - self.fake_seps]) <= 2 and \
+							np.min(row['Sep (as)' - self.fake_seps]) <= 2:
+						real_planet.append(True)
+					else:
+						real_planet.append(False)
 				else:
 					real_planet.append(False)
-			else:
-				real_planet.append(False)
-		candidates['Injected'] = real_planet
-		self.classified_detections = candidates
-		candidates.to_csv(self.filepath_detections_prefix + str(SNR_threshold) + '.csv')
+			candidates['Injected'] = real_planet
+			self.classified_detections = candidates
+			candidates.to_csv('{0}{1}.csv'.format(self.filepath_detections_prefixes[i],
+												   str(SNR_threshold)))
 
 
 	def __eq__(self, other):
@@ -255,7 +249,7 @@ class Trial:
 # Each Object (eg. HD1160, BetaPic) Will Have An Instance of TestDataset Associated With It
 class TestDataset:
 	def __init__(self, fileset, object_name, mask_xy, fake_fluxes, fake_seps,
-				 annuli, subsections, movement, numbasis, spectrum=None, mode='ADI+SDI',
+				 annuli, subsections, movement, numbasis, spectrum=['methane', None],
 				 fake_fwhm=3.5, fake_PAs=[0,90,180,270]):
 		"""
 		Args:
@@ -269,12 +263,13 @@ class TestDataset:
 			movement: Integer or List of Integers
 			numbasis: Integer or List of Integers
 			spectrum: Either 'methane' or None
-			mode: KLIP Parameter.
 			fake_fwhm: The FWHM for the injected PSF for fake planets
 			fake_PAs: Integer or List of Integers.
 		"""
 		# Creating CHARISData Object With UnKLIPped Data
-		self.dataset_no_fakes = CHARISData(glob(fileset))
+		self.fileset = glob(fileset)
+		self.dataset_no_fakes = CHARISData(self.fileset)
+		print("####### Done building CHARISData object for {0} ########".format(object_name))
 		self.dataset_with_fakes = copy(self.dataset_no_fakes)
 
 		# Setting Object Name and Location
@@ -292,16 +287,15 @@ class TestDataset:
 		for ani in list(annuli):
 			for subsec in list(subsections):
 				for mov in list(movement):
-					for numbase in list(numbasis):
 						for spec in list(spectrum):
-							for mod in list(mode):
 								self.trials.append(Trial(annuli=ani, subsections=subsec,
-														 movement=mov, numbasis=numbase,
-														 spectrum=spec, mode=mod,
+														 movement=mov, numbasis=numbasis,
+														 spectrum=spec,
 														 mask_xy=mask_xy, fake_PAs=fake_PAs,
 														 fake_fluxes=fake_fluxes,
 														 object_name=object_name,
 														 fake_fwhm=fake_fwhm, fake_seps=fake_seps))
+		print("####### Done building Trials for {0} #######".format(self.object_name))
 
 
 	def inject_fakes(self):
@@ -310,7 +304,7 @@ class TestDataset:
 		"""
 
 		# Getting Values
-		with fits.open(self.filelist[0]) as hdu:
+		with fits.open(self.fileset[0]) as hdu:
 			_, spot_to_star = calibrate_ss_contrast(hdu)
 
 		# Inject Fake Planets
@@ -321,31 +315,44 @@ class TestDataset:
 							  flux_to_inject, self.dataset_with_fakes.wcs, sep, pa,
 							  fwhm=self.fake_fwhm)
 
+		print("####### Done injecting fakes for {0} #######".format(self.object_name))
+
 
 	def run_KLIP(self):
 		# Making Sure Output Directories Exist
-		try:
+		if not os.path.exists(self.object_name):
 			os.mkdir(self.object_name)
-		except FileExistsError:
-			pass
-		try:
+		if not os.path.exists(self.object_name+'/klipped_cubes_Wfakes'):
 			os.mkdir(self.object_name+'/klipped_cubes_Wfakes')
-		except FileExistsError:
-			pass
-		try:
+		if not os.path.exists(self.object_name+'/klipped_cubes_Nfakes'):
 			os.mkdir(self.object_name+'/klipped_cubes_Nfakes')
-		except FileExistsError:
-			pass
 
-		for trial in self.trials:
+		print("####### Beginning KLIP For {0} #######".format(self.object_name))
+		print("####### Total KLIP Runs to Complete: {0} #######".format(len(self.trials) * 2))
+
+		for i, trial in enumerate(self.trials):
 			# Running KLIP on Data With Fakes
-			klip_dataset(self.data_with_fakes, outputdir=self.object_name+'/klipped_cubes_Wfakes',
-						 fileprefix=object_name + '_withfakes_' + trial.klip_parameters,
+			klip_dataset(self.dataset_with_fakes, outputdir=self.object_name+'/klipped_cubes_Wfakes',
+						 fileprefix=self.object_name + '_withfakes_' + trial.klip_parameters,
 						 annuli=trial.annuli,subsections=trial.subsections,
-						 movement=trial.movement, numbasis=trial.numbasis, mode=trial.mode)
+						 movement=trial.movement, numbasis=trial.numbasis, spectrum=trial.spectrum, verbose=False)
 
 			# Running KLIP on Data Without Fakes
 			klip_dataset(self.dataset_no_fakes, outputdir=self.object_name+'/klipped_cubes_Nfakes',
 						 fileprefix=self.object_name+'_withoutfakes_' + trial.klip_parameters,
 						 annuli=trial.annuli, subsections=trial.subsections,
-						 movement=trial.movement, numbasis=trial.numbasis, mode=trial.mode)
+						 movement=trial.movement, numbasis=trial.numbasis, spectrum=trial.spectrum, verbose=False)
+			if (i * 2) % 10 == 0:
+				print("####### {0}/{1} KLIP Runs Complete ({2}%) #######".format(i * 2, len(self.trials) * 2,
+																 round(i/len(self.trials))))
+
+
+	def contrast_and_detection(self):
+		print("Beginning contrast and detection for {0}".format(self.object_name))
+		for i, trial in enumerate(self.trials):
+			for tf in [True, False]:
+				trial.get_contrast(tf)
+			trial.detect_planets()
+			if (i * 2) % 10 == 0:
+				print("####### Detection and contrast complete for {0}/{1} Trials ({2}%) #######".format(i * 2,
+						len(self.trials) * 2, round(i/len(self.trials))))
