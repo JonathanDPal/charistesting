@@ -222,10 +222,10 @@ class Trial:
 																'y', 'row', 'col'])
 			real_planet = []
 			for _, row in candidates.iterrows():
-				if np.min(np.array(row['PA']) - np.array(
-						self.fake_PAs)) > 0.5 * self.fake_fwhm or np.min(
-						np.array(row['Sep (pix)']) - np.array(self.fake_seps)) > 2 or np.min(
-						np.array(row['Sep (as)']) - np.array(self.fake_seps)) > 2:
+				if np.min(np.abs(np.array(row['PA']) - np.array(
+						self.fake_PAs))) > 0.5 * self.fake_fwhm or np.min(np.abs(
+						np.array(row['Sep (pix)']) - np.array(self.fake_seps))) > 2 or np.min(
+						np.abs(np.array(row['Sep (as)']) - np.array(self.fake_seps))) > 2:
 						real_planet.append(False)
 				else:
 						real_planet.append(True)
