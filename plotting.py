@@ -28,14 +28,30 @@ def roc_generator(snr_values, vals_and_finders, filepath_to_save):
                 collection[val][snr_value].append([np.sum(relevant_column), len(relevant_column) -
                                                np.sum(relevant_column)])
 
+    for val in vals_and_finders.keys():
+        k = collection[val]
+        x = []
+        y = []
+        for snr in snr_values:
+            tp = np.sum([a[0] for a in k[snr]])
+            y.append(tp)
+            fp = np.sum([a[1] for a in k[snr]])
+            x.append(fp)
+        plt.plot(x,y, label=val)
 
-def contrast_curve(vals_and_finders, filepath_to_save):
+    plt.xlabel('False Positives')
+    plt.ylabel('True Positives')
+    plt.legend(loc='upper right')
+    plt.savefig(filepath_to_save)
 
 
-    # Plotting Script From Planetfinder
-    plt.plot(contrast_seps, contrast)
+def contrast_curve(vals_and_files, filepath_to_save):
+    for val in vals_and_files.keys():
+        data = pd.read_csv(vals_and_files[val])
+        data.plot(label=val)
+
     plt.semilogy()
     plt.xlabel('Seperation (pixels)')
-    plt.ylabel(r'$5\sigma$ contrast (Not Calibrated)')
-    plt.title(r'$5\sigma$ Contrast at {0} $\mu$m (Not Calibrated)'.format(wavelength))
-    plt.savefig('HD1160-KL20cc-{0}um-uncal.png'.format(wavelength))
+    plt.ylabel('Contrast')
+    plt.legend(loc='upper right')
+    plt.savefig(filepath_to_save)
