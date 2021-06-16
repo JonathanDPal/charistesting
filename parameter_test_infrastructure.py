@@ -122,17 +122,17 @@ class Trial:
 				calib_cube = copy(hdulist[1].data) * spot_to_star[:, np.newaxis, np.newaxis]
 				dataset_center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
 				dataset_fwhm, dataset_iwa, dataset_owa = FWHMIOWA_calculator(hdulist)
-				output_wcs = WCS(header=hdulist[1].header, naxis=[1, 2])
+				output_wcs = WCS(header=hdulist[0].header, naxis=[1, 2])
 
 			frame = calib_cube[wavelength_index]
 
-			if mask_xy is not None:
+			if self.mask_xy is not None:
 				x_pos = self.mask_xy[0]
 				y_pos = self.mask_xy[1]
 
 				ydat, xdat = np.indices(frame.shape)
 				distance_from_planet = np.sqrt((xdat - x_pos) ** 2 + (ydat - y_pos) ** 2)
-				frame[np.where(distance_from_planet <= 2 * dataset.fwhm)] = np.nan
+				frame[np.where(distance_from_planet <= 2 * dataset_fwhm)] = np.nan
 
 			contrast_seps, contrast = meas_contrast(frame, dataset_iwa, dataset_owa,
 													dataset_fwhm, center=dataset_center,
@@ -141,7 +141,7 @@ class Trial:
 			# Calibrating For KLIP Subtraction If Fakes Present
 			if contains_fakes:
 				retrieved_fluxes = []
-				for sep in injected_seps:
+				for sep in self.fake_seps:
 					fake_planet_fluxes = []
 					for pa in self.fake_PAs:
 						fake_flux = retrieve_planet_flux(frame, dataset_center,
@@ -153,9 +153,9 @@ class Trial:
 				algo_throughput = np.array(retrieved_fluxes) / np.array(self.fake_fluxes)
 
 				correct_contrast = np.copy(contrast)
-				for i, sep in enumerate(contrast_seps):
+				for j, sep in enumerate(contrast_seps):
 					closest_throughput_index = np.argmin(np.abs(sep - self.fake_seps))
-					correct_contrast[i] /= algo_throughput[closest_throughput_index]
+					correct_contrast[j] /= algo_throughput[closest_throughput_index]
 
 			# Making Sure That Directories Exist For Saving Data
 			if not os.path.exists(self.object_name):
@@ -195,10 +195,10 @@ class Trial:
 							explore because it is super easy to just subset the output data to
 							identify the subset that would have been identified at a higher SNR.
 		"""
-		for i, filepath in emumerate(self.filepaths_Wfakes):
+		for i, filepath in enumerate(self.filepaths_Wfakes):
 			with fits.open(filepath) as hdulist:
 				image = hdulist[1].data
-				center = [hdulist[0].header['PSFCENTX'], hdulist[0].header['PSFCENTY']]
+				center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
 
 			x_grid, y_grid = np.meshgrid(np.arange(-10,10), np.arange(-10,10))
 			kernel_gauss = gauss2d(x_grid, y_grid)
@@ -223,8 +223,8 @@ class Trial:
 			real_planet = []
 			for _, row in candidates.iterrows():
 				if np.min(row['PA'] - self.fake_PAs) <= 0.5 * self.fake_fwhm:
-					if np.min(row['Sep (pix)' - self.fake_seps]) <= 2 and \
-							np.min(row['Sep (as)' - self.fake_seps]) <= 2:
+					if np.min(row['Sep (pix)'] - self.fake_seps) <= 2 and \
+							np.min(row['Sep (as)'] - self.fake_seps) <= 2:
 						real_planet.append(True)
 					else:
 						real_planet.append(False)
@@ -266,15 +266,15 @@ class TestDataset:
 			fake_fwhm: The FWHM for the injected PSF for fake planets
 			fake_PAs: Integer or List of Integers.
 		"""
-		# Creating CHARISData Object With UnKLIPped Data
-		self.fileset = glob(fileset)
-		self.dataset_no_fakes = CHARISData(self.fileset)
-		print("####### Done building CHARISData object for {0} ########".format(object_name))
-		self.dataset_with_fakes = copy(self.dataset_no_fakes)
-
 		# Setting Object Name and Location
 		self.object_name = object_name
 		self.mask_xy = mask_xy
+
+		# Creating CHARISData Object With UnKLIPped Data
+		self.fileset = glob(fileset)
+		self.dataset_no_fakes = CHARISData(self.fileset)
+		print("####### DONE BUILDING CHARISData OBJECT FOR {0} ########".format(self.object_name))
+		self.dataset_with_fakes = copy(self.dataset_no_fakes)
 
 		# Info For Injecting (and later identifying) Fake Planets
 		self.fake_fluxes = fake_fluxes
@@ -295,7 +295,7 @@ class TestDataset:
 														 fake_fluxes=fake_fluxes,
 														 object_name=object_name,
 														 fake_fwhm=fake_fwhm, fake_seps=fake_seps))
-		print("####### Done building Trials for {0} #######".format(self.object_name))
+		print("############## DONE BUILDING TRIALS FOR {0} ##############".format(self.object_name))
 
 
 	def inject_fakes(self):
@@ -315,7 +315,7 @@ class TestDataset:
 							  flux_to_inject, self.dataset_with_fakes.wcs, sep, pa,
 							  fwhm=self.fake_fwhm)
 
-		print("####### Done injecting fakes for {0} #######".format(self.object_name))
+		print("############## DONE INJECTING FAKES FOR {0} ##############".format(self.object_name))
 
 
 	def run_KLIP(self):
@@ -327,7 +327,7 @@ class TestDataset:
 		if not os.path.exists(self.object_name+'/klipped_cubes_Nfakes'):
 			os.mkdir(self.object_name+'/klipped_cubes_Nfakes')
 
-		print("####### Beginning KLIP For {0} #######".format(self.object_name))
+		print("############## BEGINNING KLIP FOR {0} ##############".format(self.object_name))
 		print("####### Total KLIP Runs to Complete: {0} #######".format(len(self.trials) * 2))
 
 		for i, trial in enumerate(self.trials):
@@ -342,17 +342,25 @@ class TestDataset:
 						 fileprefix=self.object_name+'_withoutfakes_' + trial.klip_parameters,
 						 annuli=trial.annuli, subsections=trial.subsections,
 						 movement=trial.movement, numbasis=trial.numbasis, spectrum=trial.spectrum, verbose=False)
-			if (i * 2) % 10 == 0:
+			if i == len(self.trials) - 1:
+				print("############## DONE WITH KLIP FOR {0} ##############".format(self.object_name))
+			elif (i * 2) % 10 == 0:
 				print("####### {0}/{1} KLIP Runs Complete ({2}%) #######".format(i * 2, len(self.trials) * 2,
-																 round(i/len(self.trials))))
+																 round(float(i)/float(len(
+																	 self.trials)), 2) * 100))
+
 
 
 	def contrast_and_detection(self):
-		print("Beginning contrast and detection for {0}".format(self.object_name))
+		print("############## BEGINNING CONTRAST AND DETECTION FOR {0} ##############".format(
+			self.object_name))
 		for i, trial in enumerate(self.trials):
 			for tf in [True, False]:
 				trial.get_contrast(tf)
 			trial.detect_planets()
-			if (i * 2) % 10 == 0:
+			if i == len(self.trials) - 1:
+				print('############## DONE WITH CONTRAST AND DETECTION FOR {0} '
+					  '##############'.format(self.object_name))
+			elif (i * 2) % 10 == 0:
 				print("####### Detection and contrast complete for {0}/{1} Trials ({2}%) #######".format(i * 2,
-						len(self.trials) * 2, round(i/len(self.trials))))
+						len(self.trials) * 2, round(float(i)/float(len(self.trials)), 2) * 100))
