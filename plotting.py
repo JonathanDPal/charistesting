@@ -3,6 +3,7 @@ import seaborn as sns
 import pandas as pd
 import numpy as np
 from glob import glob
+import os
 
 snr_values = np.arange(start=3, stop=10, step=0.5)
 
@@ -58,19 +59,18 @@ def contrast_curve(vals_and_files, filepath_to_save):
     plt.savefig(filepath_to_save)
 
 
-def heatmap(file_finder, filepath_to_save):
+def heatmap(annuli, movement, directory_switcher, filepath_to_save, file_finder='*.csv'):
     """
     For now, just shows the maximum SNR value found
     """
+    os.chdir(directory_switcher)
     fileset = glob(file_finder)
-    annuli = [7,8,9]
-    movement = [1,2]
     full_data = {a: {m:[] for m in movement} for a in annuli}
     for file in fileset:
         df = pd.read_csv(file)
         snr = df['SNR Value'].max()
         ani = int(file[0])
-        mov = int(file[8])
+        mov = int(file[21])
         full_data[ani][mov].append(snr)
     for ani in annuli:
         for mov in movement:
@@ -79,5 +79,5 @@ def heatmap(file_finder, filepath_to_save):
     for mov in movement:
         plot_snr.append([full_data[ani][mov] for ani in annuli])
     data_to_plot = pd.DataFrame(plot_snr, index=movement, columns=annuli)
-    sns.heatmap(data_to_plot)
+    sns.heatmap(data_to_plot, annot=True, linewidths=0.2, fmt='d')
     plt.savefig(filepath_to_save)
