@@ -60,7 +60,7 @@ def calibrate_ss_contrast(speccubefile):
 # TestDataset Will Have a List of Trials Associated With It (one for each group of KLIP Parameters)
 class Trial:
 	def __init__(self, annuli, subsections, movement, numbasis, spectrum, mask_xy,
-				 fake_PAs, fake_fluxes, object_name, fake_fwhm, fake_seps):
+				 fake_PAs, fake_fluxes, object_name, fake_fwhm, fake_seps, corr_smooth, highpass):
 		self.annuli = annuli
 		self.subsections = subsections
 		self.movement = movement
@@ -72,10 +72,13 @@ class Trial:
 		self.object_name = object_name
 		self.fake_fwhm = fake_fwhm
 		self.fake_seps = fake_seps
+		self.corr_smooth = corr_smooth
+		self.highpass = highpass
 
 		# String Identifying Parameters Used
 		self.klip_parameters = str(annuli)+'Annuli_'+str(subsections)+'Subsections_'+str(
-			movement)+'Movement_'+str(spectrum)+'Spectrum_'
+			movement)+'Movement_'+str(spectrum)+'Spectrum_'+str(corr_smooth)+'Smooth_'+str(
+			highpass)+'Highpass_'
 
 		# Filepaths to KLIPped Datacubes
 		self.filepaths_Wfakes = [self.object_name + '/klipped_cubes_Wfakes/' + self.object_name + \
@@ -248,7 +251,8 @@ class Trial:
 # Each Object (eg. HD1160, BetaPic) Will Have An Instance of TestDataset Associated With It
 class TestDataset:
 	def __init__(self, fileset, object_name, mask_xy, fake_fluxes, fake_seps,
-				 annuli, subsections, movement, numbasis, spectrum=['methane', None],
+				 annuli, subsections, movement, numbasis, corr_smooth, highpass, spectrum=[
+				'methane', None],
 				 fake_fwhm=3.5, fake_PAs=[0,90,180,270]):
 		"""
 		Args:
@@ -261,6 +265,8 @@ class TestDataset:
 			subsections: Integer or List of Integers
 			movement: Integer or List of Integers
 			numbasis: Integer or List of Integers
+			corr_smooth:
+			highpass:
 			spectrum: Either 'methane' or None
 			fake_fwhm: The FWHM for the injected PSF for fake planets
 			fake_PAs: Integer or List of Integers.
@@ -289,7 +295,9 @@ class TestDataset:
 			for subsec in list(subsections):
 				for mov in list(movement):
 						for spec in list(spectrum):
-								self.trials.append(Trial(annuli=ani, subsections=subsec,
+							for cs in list(corr_smooth):
+								for hp in list(highpass):
+									self.trials.append(Trial(annuli=ani, subsections=subsec,
 														 movement=mov, numbasis=numbasis,
 														 spectrum=spec,
 														 mask_xy=mask_xy, fake_PAs=fake_PAs,
@@ -336,7 +344,9 @@ class TestDataset:
 			klip_dataset(self.dataset_with_fakes, outputdir=self.object_name+'/klipped_cubes_Wfakes',
 						 fileprefix=self.object_name + '_withfakes_' + trial.klip_parameters,
 						 annuli=trial.annuli,subsections=trial.subsections,
-						 movement=trial.movement, numbasis=trial.numbasis, spectrum=trial.spectrum, verbose=False)
+						 movement=trial.movement, numbasis=trial.numbasis,
+						 spectrum=trial.spectrum,  verbose=False, corr_smooth=trial.corr_smooth,
+						 highpass=trial.highpass)
 
 			# Update Every 5
 			if (((i+1) * 2) - 1) % 5 == 0:
@@ -347,7 +357,9 @@ class TestDataset:
 			klip_dataset(self.dataset_no_fakes, outputdir=self.object_name+'/klipped_cubes_Nfakes',
 						 fileprefix=self.object_name+'_withoutfakes_' + trial.klip_parameters,
 						 annuli=trial.annuli, subsections=trial.subsections,
-						 movement=trial.movement, numbasis=trial.numbasis, spectrum=trial.spectrum, verbose=False)
+						 movement=trial.movement, numbasis=trial.numbasis,
+						 spectrum=trial.spectrum, verbose=False, corr_smooth=trial.corr_smooth,
+						 highpass=trial.highpass)
 
 			# Update Every 5 or When Completely Done
 			if i + 1 == len(self.trials):
@@ -362,8 +374,8 @@ class TestDataset:
 		print("############## BEGINNING CONTRAST AND DETECTION FOR {0} ##############".format(
 			self.object_name))
 		for i, trial in enumerate(self.trials):
-		# 	for tf in [True, False]:
-		# 		trial.get_contrast(tf)
+			for tf in [True, False]:
+				trial.get_contrast(tf)
 			trial.detect_planets()
 			if i + 1 == len(self.trials):
 				print('############## DONE WITH CONTRAST AND DETECTION FOR {0} '
