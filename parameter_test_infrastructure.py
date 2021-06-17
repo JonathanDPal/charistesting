@@ -38,7 +38,7 @@ def calibrate_ss_contrast(speccubefile):
 	"""
 	Provides ratios to calibrate flux to be relative to the star at all wavelengths.
 	"""
-	cube = copy(speccubefile[1].var1_data)
+	cube = copy(speccubefile[1].data)
 
 	# Number of Wavelength Bins
 	Nwlm = cube.shape[0]
@@ -119,7 +119,7 @@ class Trial:
 		for i, filepath in enumerate(filepaths):
 			with fits.open(filepath) as hdulist:
 				wln_um, spot_to_star = calibrate_ss_contrast(hdulist)
-				calib_cube = copy(hdulist[1].var1_data) * spot_to_star[:, np.newaxis, np.newaxis]
+				calib_cube = copy(hdulist[1].data) * spot_to_star[:, np.newaxis, np.newaxis]
 				dataset_center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
 				dataset_fwhm, dataset_iwa, dataset_owa = FWHMIOWA_calculator(hdulist)
 				output_wcs = WCS(header=hdulist[0].header, naxis=[1, 2])
@@ -197,7 +197,7 @@ class Trial:
 		"""
 		for i, filepath in enumerate(self.filepaths_Wfakes):
 			with fits.open(filepath) as hdulist:
-				image = hdulist[1].var1_data
+				image = hdulist[1].data
 				center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
 
 			x_grid, y_grid = np.meshgrid(np.arange(-10,10), np.arange(-10,10))
