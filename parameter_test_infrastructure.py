@@ -174,19 +174,17 @@ class Trial:
 				data_output_filepath = self.object_name + \
 									   '/calibrated_contrast/{0}_KL{1}_contrast.csv'.format(
 										   self.klip_parameters, self.numbasis[i])
-				with open(data_output_filepath, 'w+') as csvfile:
-					csvwriter = writer(csvfile, delimiter=',')
-					csvwriter.writerows([['Sep (Pixels)', 'Contrast']])
-					csvwriter.writerows([contrast_seps, correct_contrast])
+				df = pd.DataFrame(self.calib_contrast, columns=['Sep (Pixels)',
+																			 'Contrast'])
+				df.to_csv(data_output_filepath)
 			else:
 				self.uncalib_contrast = [contrast_seps, contrast]
 				data_output_filepath = self.object_name + \
 									   '/uncalibrated_contrast/{0}_KL{1}_contrast.csv'.format(
 										   self.klip_parameters, self.numbasis[i])
-				with open(data_output_filepath, 'w+') as csvfile:
-					csvwriter = writer(csvfile, delimiter=',')
-					csvwriter.writerows([['Sep (Pixels)', 'Contrast']])
-					csvwriter.writerows([contrast_seps, contrast])
+				df = pd.DataFrame(self.uncalib_contrast, columns=['Sep (Pixels)',
+																			'Contrast'])
+				df.to_csv(data_output_filepath)
 
 
 	def detect_planets(self, SNR_threshold=3):
@@ -252,8 +250,7 @@ class Trial:
 class TestDataset:
 	def __init__(self, fileset, object_name, mask_xy, fake_fluxes, fake_seps,
 				 annuli, subsections, movement, numbasis, corr_smooth, highpass, spectrum=[
-				'methane', None],
-				 fake_fwhm=3.5, fake_PAs=[0,90,180,270]):
+				'methane', None], fake_fwhm=3.5, fake_PAs=[0,90,180,270]):
 		"""
 		Args:
 			fileset: Something probably going like 'directory/*.fits' to let glob find files.
@@ -291,19 +288,21 @@ class TestDataset:
 
 		# Building Trials
 		self.trials = []
-		for ani in list(annuli):
-			for subsec in list(subsections):
-				for mov in list(movement):
-						for spec in list(spectrum):
-							for cs in list(corr_smooth):
-								for hp in list(highpass):
+		for ani in annuli:
+			for subsec in subsections:
+				for mov in movement:
+						for spec in spectrum:
+							for cs in corr_smooth:
+								for hp in highpass:
 									self.trials.append(Trial(annuli=ani, subsections=subsec,
 														 movement=mov, numbasis=numbasis,
 														 spectrum=spec,
 														 mask_xy=mask_xy, fake_PAs=fake_PAs,
 														 fake_fluxes=fake_fluxes,
 														 object_name=object_name,
-														 fake_fwhm=fake_fwhm, fake_seps=fake_seps))
+														 fake_fwhm=fake_fwhm,
+															 fake_seps=fake_seps, corr_smooth=cs,
+															 highpass=hp))
 		print("############## DONE BUILDING TRIALS FOR {0} ##############".format(self.object_name))
 
 
