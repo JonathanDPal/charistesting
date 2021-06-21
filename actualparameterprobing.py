@@ -31,8 +31,8 @@ hr8799 = TestDataset(fileset=hr8799_fileset, object_name='HR8799', mask_xy=hr879
 
 # Have TestDataset Go To Town
 # hr8799.inject_fakes()
-hr8799.run_KLIP(run_on_fakes=False)
-# hr8799.contrast_and_detection()
+# hr8799.run_KLIP(run_on_fakes=False)
+hr8799.contrast_and_detection(detect_planets=False, calibrate=[False])
 
 # Print Out Time Taken
 end = time()
