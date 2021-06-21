@@ -122,7 +122,7 @@ class Trial:
 		for i, filepath in enumerate(filepaths):
 			with fits.open(filepath) as hdulist:
 				wln_um, spot_to_star = calibrate_ss_contrast(hdulist)
-				calib_cube = copy(hdulist[1].data) / spot_to_star[:, np.newaxis, np.newaxis]
+				calib_cube = copy(hdulist[1].data) * spot_to_star[:, np.newaxis, np.newaxis]
 				dataset_center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
 				dataset_fwhm, dataset_iwa, dataset_owa = FWHMIOWA_calculator(hdulist)
 				output_wcs = WCS(header=hdulist[0].header, naxis=[1, 2])
@@ -347,8 +347,14 @@ class TestDataset:
 		if not os.path.exists(self.object_name+'/klipped_cubes_Nfakes'):
 			os.mkdir(self.object_name+'/klipped_cubes_Nfakes')
 
+		# Determining Number of KLIP Runs That Will Be Conducted
+		if run_on_fakes and run_on_nofakes:
+			number_of_klip = len(self.trials) * 2
+		elif (run_on_fakes and not run_on_nofakes) or (run_on_nofakes and not run_on_fakes):
+			number_of_klip = len(self.trials)
+
 		print("############## BEGINNING KLIP FOR {0} ##############".format(self.object_name))
-		print("####### Total KLIP Runs to Complete: {0} #######".format(len(self.trials) * 2))
+		print("####### Total KLIP Runs to Complete: {0} #######".format(number_of_klip))
 
 		for i, trial in enumerate(self.trials):
 			if run_on_fakes:
@@ -383,13 +389,14 @@ class TestDataset:
 
 
 
-	def contrast_and_detection(self):
+	def contrast_and_detection(self, calibrate=[True, False], detect_planets=True):
 		print("############## BEGINNING CONTRAST AND DETECTION FOR {0} ##############".format(
 			self.object_name))
 		for i, trial in enumerate(self.trials):
-			for tf in [True, False]:
-				trial.get_contrast(tf)
-			trial.detect_planets()
+			for calib in calibrate:
+				trial.get_contrast(calib)
+			if detect_planets:
+				trial.detect_planets()
 			if i + 1 == len(self.trials):
 				print('############## DONE WITH CONTRAST AND DETECTION FOR {0} '
 					  '##############'.format(self.object_name))
