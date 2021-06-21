@@ -6,7 +6,6 @@ from pyklip.instruments.CHARIS import CHARISData
 from copy import copy
 from pyklip.parallelized import klip_dataset
 from pyklip.klip import meas_contrast
-import pylab as P
 from csv import writer
 from pyklip.fakes import inject_planet, retrieve_planet_flux
 from pyklip.kpp.utils.mathfunc import gauss2d
@@ -16,6 +15,7 @@ from pyklip.kpp.detection.detection import point_source_detection
 import pandas as pd
 from math import ceil
 import os
+import matplotlib.pyplot as plt
 
 
 def FWHMIOWA_calculator(speccubefile):
@@ -122,7 +122,7 @@ class Trial:
 		for i, filepath in enumerate(filepaths):
 			with fits.open(filepath) as hdulist:
 				wln_um, spot_to_star = calibrate_ss_contrast(hdulist)
-				calib_cube = copy(hdulist[1].data) * spot_to_star[:, np.newaxis, np.newaxis]
+				calib_cube = copy(hdulist[1].data) / spot_to_star[:, np.newaxis, np.newaxis]
 				dataset_center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
 				dataset_fwhm, dataset_iwa, dataset_owa = FWHMIOWA_calculator(hdulist)
 				output_wcs = WCS(header=hdulist[0].header, naxis=[1, 2])
@@ -174,16 +174,28 @@ class Trial:
 				data_output_filepath = self.object_name + \
 									   '/calibrated_contrast/{0}_KL{1}_contrast.csv'.format(
 										   self.klip_parameters, self.numbasis[i])
-				df = pd.DataFrame(self.calib_contrast, columns=['Sep (Pixels)',
-																			 'Contrast'])
+				df = pd.DataFrame()
+				df['Seps'] = contrast_seps
+				df['Calibrated Contrast'] = contrast
+				wavelength = wln_um[wavelength_index]
+				title = 'Calibrated Contrast at {0}um'.format(wavelength)
+				df.plot(x='Seps', y='Calibrated Contrast', legend=False, title=title)
+				plt.ylabel('Calibrated Contrast')
+				plt.savefig(data_output_filepath[0:-4] + '.png')
 				df.to_csv(data_output_filepath)
 			else:
 				self.uncalib_contrast = [contrast_seps, contrast]
 				data_output_filepath = self.object_name + \
 									   '/uncalibrated_contrast/{0}_KL{1}_contrast.csv'.format(
 										   self.klip_parameters, self.numbasis[i])
-				df = pd.DataFrame(self.uncalib_contrast, columns=['Sep (Pixels)',
-																			'Contrast'])
+				df = pd.DataFrame()
+				df['Seps'] = contrast_seps
+				df['Uncalibrated Contrast'] = contrast
+				wavelength = wln_um[wavelength_index]
+				title = 'Uncalibrated Contrast at {0}um'.format(wavelength)
+				df.plot(x='Seps', y='Uncalibrated Contrast', legend=False, title=title)
+				plt.ylabel('Uncalibrated Contrast')
+				plt.savefig(data_output_filepath[0:-4] + '.png')
 				df.to_csv(data_output_filepath)
 
 
@@ -326,7 +338,7 @@ class TestDataset:
 		print("############## DONE INJECTING FAKES FOR {0} ##############".format(self.object_name))
 
 
-	def run_KLIP(self):
+	def run_KLIP(self, run_on_fakes=True, run_on_nofakes=True):
 		# Making Sure Output Directories Exist
 		if not os.path.exists(self.object_name):
 			os.mkdir(self.object_name)
@@ -339,26 +351,28 @@ class TestDataset:
 		print("####### Total KLIP Runs to Complete: {0} #######".format(len(self.trials) * 2))
 
 		for i, trial in enumerate(self.trials):
-			# Running KLIP on Data With Fakes
-			klip_dataset(self.dataset_with_fakes, outputdir=self.object_name+'/klipped_cubes_Wfakes',
-						 fileprefix=self.object_name + '_withfakes_' + trial.klip_parameters,
-						 annuli=trial.annuli,subsections=trial.subsections,
-						 movement=trial.movement, numbasis=trial.numbasis,
-						 spectrum=trial.spectrum,  verbose=False, corr_smooth=trial.corr_smooth,
-						 highpass=trial.highpass)
+			if run_on_fakes:
+				# Running KLIP on Data With Fakes
+				klip_dataset(self.dataset_with_fakes, outputdir=self.object_name+'/klipped_cubes_Wfakes',
+							 fileprefix=self.object_name + '_withfakes_' + trial.klip_parameters,
+							 annuli=trial.annuli,subsections=trial.subsections,
+							 movement=trial.movement, numbasis=trial.numbasis,
+							 spectrum=trial.spectrum,  verbose=False, corr_smooth=trial.corr_smooth,
+							 highpass=trial.highpass)
 
 			# Update Every 5
 			if (((i+1) * 2) - 1) % 5 == 0:
 				print("####### {0}/{1} KLIP Runs Complete ({2}%) #######".format((i + 1) * 2,
 						len(self.trials) * 2, round(float(i + 1) / float(len(self.trials)), 3) * 100))
 
-			# Running KLIP on Data Without Fakes
-			klip_dataset(self.dataset_no_fakes, outputdir=self.object_name+'/klipped_cubes_Nfakes',
-						 fileprefix=self.object_name+'_withoutfakes_' + trial.klip_parameters,
-						 annuli=trial.annuli, subsections=trial.subsections,
-						 movement=trial.movement, numbasis=trial.numbasis,
-						 spectrum=trial.spectrum, verbose=False, corr_smooth=trial.corr_smooth,
-						 highpass=trial.highpass)
+			if run_on_nofakes:
+				# Running KLIP on Data Without Fakes
+				klip_dataset(self.dataset_no_fakes, outputdir=self.object_name+'/klipped_cubes_Nfakes',
+							 fileprefix=self.object_name+'_withoutfakes_' + trial.klip_parameters,
+							 annuli=trial.annuli, subsections=trial.subsections,
+							 movement=trial.movement, numbasis=trial.numbasis,
+							 spectrum=trial.spectrum, verbose=False, corr_smooth=trial.corr_smooth,
+							 highpass=trial.highpass)
 
 			# Update Every 5 or When Completely Done
 			if i + 1 == len(self.trials):
