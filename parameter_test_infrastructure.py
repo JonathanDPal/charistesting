@@ -112,7 +112,7 @@ class Trial:
 		Args:
 			wavelength_index (int): Index of wavelength to use (subsets calibrated cube along
 									wavelength axis).Default: 10
-			contains_fakes (bool): Set to true if fakes present. Default: False
+			contains_fakes (bool): Set to true if fakes present.
 		"""
 		if contains_fakes:
 			filepaths = self.filepaths_Wfakes
@@ -175,12 +175,13 @@ class Trial:
 									   '/calibrated_contrast/{0}_KL{1}_contrast.csv'.format(
 										   self.klip_parameters, self.numbasis[i])
 				df = pd.DataFrame()
-				df['Seps'] = contrast_seps
+				df['Seperation'] = contrast_seps
 				df['Calibrated Contrast'] = contrast
 				wavelength = wln_um[wavelength_index]
 				title = 'Calibrated Contrast at {0}um'.format(wavelength)
-				df.plot(x='Seps', y='Calibrated Contrast', legend=False, title=title)
+				df.plot(x='Seperation', y='Calibrated Contrast', legend=False, title=title)
 				plt.ylabel('Calibrated Contrast')
+				plt.semilogy()
 				plt.savefig(data_output_filepath[0:-4] + '.png')
 				df.to_csv(data_output_filepath)
 			else:
@@ -189,12 +190,13 @@ class Trial:
 									   '/uncalibrated_contrast/{0}_KL{1}_contrast.csv'.format(
 										   self.klip_parameters, self.numbasis[i])
 				df = pd.DataFrame()
-				df['Seps'] = contrast_seps
+				df['Seperation'] = contrast_seps
 				df['Uncalibrated Contrast'] = contrast
-				wavelength = wln_um[wavelength_index]
-				title = 'Uncalibrated Contrast at {0}um'.format(wavelength)
-				df.plot(x='Seps', y='Uncalibrated Contrast', legend=False, title=title)
+				wavelength = round(wln_um[wavelength_index], 2)
+				title = 'Uncalibrated Contrast at {0}um ({1})'.format(wavelength, self.object_name)
+				df.plot(x='Seperation', y='Uncalibrated Contrast', legend=False, title=title)
 				plt.ylabel('Uncalibrated Contrast')
+				plt.semilogy()
 				plt.savefig(data_output_filepath[0:-4] + '.png')
 				df.to_csv(data_output_filepath)
 
@@ -262,7 +264,7 @@ class Trial:
 class TestDataset:
 	def __init__(self, fileset, object_name, mask_xy, fake_fluxes, fake_seps,
 				 annuli, subsections, movement, numbasis, corr_smooth, highpass, spectrum=[
-				'methane', None], fake_fwhm=3.5, fake_PAs=[0,90,180,270]):
+				'methane', None], fake_fwhm=3.5, fake_PAs=[0,90,180,270], mode='ADI+SDI'):
 		"""
 		Args:
 			fileset: Something probably going like 'directory/*.fits' to let glob find files.
@@ -315,8 +317,8 @@ class TestDataset:
 														 fake_fwhm=fake_fwhm,
 															 fake_seps=fake_seps, corr_smooth=cs,
 															 highpass=hp))
+		self.mode = mode
 		print("############## DONE BUILDING TRIALS FOR {0} ##############".format(self.object_name))
-
 
 	def inject_fakes(self):
 		"""
@@ -329,7 +331,7 @@ class TestDataset:
 
 		# Inject Fake Planets
 		for fake_flux, sep in zip(self.fake_fluxes, self.fake_seps):
-			flux_to_inject = fake_flux * spot_to_star
+			flux_to_inject = fake_flux / spot_to_star
 			for pa in self.fake_PAs:
 				inject_planet(self.dataset_with_fakes.input, self.dataset_with_fakes.centers,
 							  flux_to_inject, self.dataset_with_fakes.wcs, sep, pa,
@@ -364,7 +366,7 @@ class TestDataset:
 							 annuli=trial.annuli,subsections=trial.subsections,
 							 movement=trial.movement, numbasis=trial.numbasis,
 							 spectrum=trial.spectrum,  verbose=False, corr_smooth=trial.corr_smooth,
-							 highpass=trial.highpass)
+							 highpass=trial.highpass, mode=self.mode)
 
 			# Update Every 5
 			if (((i+1) * 2) - 1) % 5 == 0:
@@ -378,7 +380,7 @@ class TestDataset:
 							 annuli=trial.annuli, subsections=trial.subsections,
 							 movement=trial.movement, numbasis=trial.numbasis,
 							 spectrum=trial.spectrum, verbose=False, corr_smooth=trial.corr_smooth,
-							 highpass=trial.highpass)
+							 highpass=trial.highpass, mode=self.mode)
 
 			# Update Every 5 or When Completely Done
 			if i + 1 == len(self.trials):
