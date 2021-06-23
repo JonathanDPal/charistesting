@@ -3,12 +3,17 @@ import warnings
 from time import time
 from numpy import floor
 
+# Keeping Track of Time Taken
 start = time()
+
+# KLIP often gets a bunch of RuntimeWarnings that we don't need to worry about
 warnings.simplefilter('ignore', category=RuntimeWarning)
 
 # Describe Fake Planets To Be Injected
-fake_fluxes = [5e-3, 5e-4, 5e-5]
+fake_fluxes = [500, 1000, 5000]
 fake_seps = [20, 40, 60]
+fake_fwhm = 1.0/3.0
+fake_PAs=[0,90,180,270]
 
 # KLIP Parameters To Be Sampled
 # annuli = [4, 6, 8, 10, 12]
@@ -21,26 +26,28 @@ movement = [0]
 numbasis = [20]
 # corr_smooth = [0, 1, 2]
 corr_smooth = [1]
-highpass = [False]
+highpass = [True]
+# highpass = [False, 5.0, True, 15.0]
+# fourier_sigma_size = (dataset.input.shape[1]/(highpass)) / (2*np.sqrt(2*np.log(2)))
 spectrum = [None]
 mode = 'ADI+SDI'
 
-# Filelist(s) & Associated Mask(s)
-fileset = 'HR8799_cubes/*.fits'
-mask = None
-object_name = 'HR8799_mod2'
+# Filelist(s) & Associated Mask(s) & Associated Name(s)
+fileset0 = 'HR8799_cubes/*.fits'
+mask0 = None
+object_name0 = 'HR8799_mod3'
 
-# Create TestDataset For Each Set of Observations, e.g. hd = TestDataset('hd1160/*.fits', ...)
-td1 = TestDataset(fileset=fileset, object_name=object_name, mask_xy=mask,
-                 fake_fluxes=fake_fluxes,fake_seps=fake_seps, annuli=annuli,
-                 subsections=subsections, movement=movement, numbasis=numbasis,
-                     corr_smooth=corr_smooth, highpass=highpass, spectrum=spectrum, mode=mode,
-                  fake_PAs=[20,110,200,290])
+# Create TestDataset For Each Set of Observations
+td0 = TestDataset(fileset=fileset1, object_name=object_name0, mask_xy=mask0,
+                  fake_fluxes=fake_fluxes, fake_seps=fake_seps, annuli=annuli,
+                  subsections=subsections, movement=movement, numbasis=numbasis,
+                  corr_smooth=corr_smooth, highpass=highpass, spectrum=spectrum, mode=mode,
+                  fake_PAs=fake_PAs, fake_fwhm=fake_fwhm)
 
-# Have TestDataset Go To Town
-td1.inject_fakes()
-td1.run_KLIP()
-td1.contrast_and_detection()
+# Have TestDataset Run Each Part
+td0.inject_fakes()
+td0.run_KLIP(run_on_nofakes=False)
+td0.contrast_and_detection(calibrate=[True])
 
 # Print Out Time Taken
 end = time()

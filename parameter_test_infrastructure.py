@@ -21,6 +21,10 @@ import inspect
 
 @contextmanager
 def suppress_print():
+	"""
+	Thanks to Dave Smith for this. (https://thesmithfam.org/blog/2012/10/25/temporarily-suppress
+	-console-output-in-python/)
+	"""
 	with open(os.devnull, 'w') as devnull:
 		old_stdout = sys.stdout
 		sys.stdout = devnull
@@ -32,7 +36,8 @@ def suppress_print():
 
 def FWHMIOWA_calculator(speccubefile):
 	"""
-	Finds FWHM, IWA, and OWA for a opened CHARIS data cube.
+	Finds FWHM, IWA, and OWA for a opened CHARIS data cube. Thanks to Dr. Tobin for this.
+	(https://docs.google.com/document/d/1S1Oo9QweKwnOfmv6fu28bb75lYeQXGzn/edit)
 	"""
 	wavelengths = {'j': 1200e-9, 'h': 1550e-9, 'k': 2346e-9, 'broadband': 1550e-9}
 	wavelength = wavelengths[str.lower(speccubefile[1].header['FILTNAME'])]
@@ -48,7 +53,8 @@ def FWHMIOWA_calculator(speccubefile):
 
 def calibrate_ss_contrast(speccubefile):
 	"""
-	Provides ratios to calibrate flux to be relative to the star at all wavelengths.
+	Provides ratios to calibrate flux to be relative to the star at all wavelengths. Thanks to
+	Dr. Tobin for this. (https://docs.google.com/document/d/1S1Oo9QweKwnOfmv6fu28bb75lYeQXGzn/edit)
 	"""
 	cube = deepcopy(speccubefile[1].data)
 
@@ -71,6 +77,15 @@ def calibrate_ss_contrast(speccubefile):
 
 # TestDataset Will Have a List of Trials Associated With It (one for each group of KLIP Parameters)
 class Trial:
+	"""
+	NOTE: The user will almost certainly not interact with this class directly, rather they will
+	interact with an instance of TestDataset and that instance of TestDataset will interact with
+	instances of this class.
+	---
+	Stores a particular set of KLIP parameters and then is able to run contrast
+	measurement or planet detection code from KLIP for the KLIP output with that particular set
+	of parameters.
+	"""
 	def __init__(self, annuli, subsections, movement, numbasis, spectrum, mask_xy,
 				 fake_PAs, fake_fluxes, object_name, fake_fwhm, fake_seps, corr_smooth, highpass,
 				 length):
@@ -126,12 +141,12 @@ class Trial:
 
 	def get_contrast(self, contains_fakes, wavelength_index=10):
 		"""
-		Measures contrast in an image; saves contrast data both to a CSV file and to the object.
+		Measures contrast, then saves a contrast curve as a PNG and the contrast data as a CSV.
 		---
 		Args:
+			contains_fakes (bool): Set to true if fakes present.
 			wavelength_index (int): Index of wavelength to use (subsets calibrated cube along
 									wavelength axis).Default: 10
-			contains_fakes (bool): Set to true if fakes present.
 		"""
 		if contains_fakes:
 			filepaths = self.filepaths_Wfakes
@@ -189,7 +204,6 @@ class Trial:
 
 			# Saving Data to Object and to CSV File
 			if contains_fakes:
-				self.calib_contrast = [contrast_seps, correct_contrast]
 				data_output_filepath = self.object_name + \
 									   '/calibrated_contrast/{0}_KL{1}_contrast.csv'.format(
 										   self.klip_parameters, self.numbasis[i])
@@ -205,7 +219,6 @@ class Trial:
 				plt.savefig(data_output_filepath[0:-4] + '.png')
 				df.to_csv(data_output_filepath)
 			else:
-				self.uncalib_contrast = [contrast_seps, contrast]
 				data_output_filepath = self.object_name + \
 									   '/uncalibrated_contrast/{0}_KL{1}_contrast.csv'.format(
 										   self.klip_parameters, self.numbasis[i])
@@ -227,9 +240,10 @@ class Trial:
 		Looks at a KLIPped dataset with fakes and indicates potential planets.
 		---
 		Args:
-			SNR_threshold: Default: 3. In general, have this be the lowest value that we want to
-							explore because it is super easy to just subset the output data to
-							identify the subset that would have been identified at a higher SNR.
+			SNR_threshold: Default: 3. Set this to the lowest value to be looked at; when
+			generating ROC curves, the code will automatically look at subsets of the detections
+			at different SNR thresholds, but it can only look at SNR thresholds greater than or
+			equal to the one specifie here.
 		"""
 		for i, filepath in enumerate(self.filepaths_Wfakes):
 			with fits.open(filepath) as hdulist:
@@ -251,8 +265,6 @@ class Trial:
 													  pix2as=1, mask_radius=15,
 													  maskout_edge=10, IWA=None, OWA=None)
 
-			self.detections = candidates_table
-
 			candidates = pd.DataFrame(candidates_table, columns=['Index', 'SNR Value', 'PA',
 																'Sep (pix)', 'Sep (as)', 'x',
 																'y', 'row', 'col'])
@@ -266,7 +278,6 @@ class Trial:
 				else:
 						real_planet.append(True)
 			candidates['Injected'] = real_planet
-			self.classified_detections = candidates
 			candidates.to_csv('{0}{1}.csv'.format(self.filepath_detections_prefixes[i],
 												   str(SNR_threshold)))
 
@@ -274,7 +285,8 @@ class Trial:
 	def __eq__(self, other):
 		"""
 		Checks to see if two Trials have the same KLIP parameters. Intended for testing
-		out code functionality.
+		out code functionality. Thanks to akritigoswami for some of this code.
+		(https://www.geeksforgeeks.org/how-to-get-a-list-of-class-attributes-in-python/)
 		"""
 		equal_attributes = list()
 		for i, j in zip(inspect.getmembers(self), inspect.getmembers(other)):
@@ -289,6 +301,11 @@ class Trial:
 
 # Each Object (eg. HD1160, BetaPic) Will Have An Instance of TestDataset Associated With It
 class TestDataset:
+	"""
+	The main object which the user will interact with. Will load in CHARIS fileset into
+	CHARISData class (see pyklip.instruments.CHARIS) and then create an instance of Trial for
+	each set of KLIP parameters to be looked at.
+	"""
 	def __init__(self, fileset, object_name, mask_xy, fake_fluxes, fake_seps,
 				 annuli, subsections, movement, numbasis, corr_smooth, highpass, spectrum,
 				 fake_fwhm, fake_PAs, mode):
