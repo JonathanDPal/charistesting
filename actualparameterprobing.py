@@ -28,7 +28,6 @@ numbasis = [20]
 corr_smooth = [1]
 highpass = [True]
 # highpass = [False, 5.0, True, 15.0]
-# fourier_sigma_size = (dataset.input.shape[1]/(highpass)) / (2*np.sqrt(2*np.log(2)))
 spectrum = [None]
 mode = 'ADI+SDI'
 
@@ -38,7 +37,7 @@ mask0 = None
 object_name0 = 'HR8799_mod3'
 
 # Create TestDataset For Each Set of Observations
-td0 = TestDataset(fileset=fileset1, object_name=object_name0, mask_xy=mask0,
+td0 = TestDataset(fileset=fileset0, object_name=object_name0, mask_xy=mask0,
                   fake_fluxes=fake_fluxes, fake_seps=fake_seps, annuli=annuli,
                   subsections=subsections, movement=movement, numbasis=numbasis,
                   corr_smooth=corr_smooth, highpass=highpass, spectrum=spectrum, mode=mode,
