@@ -13,7 +13,6 @@ from pyklip.kpp.metrics.crossCorr import calculate_cc
 from pyklip.kpp.stat.statPerPix_utils import get_image_stat_map_perPixMasking
 from pyklip.kpp.detection.detection import point_source_detection
 import pandas as pd
-from math import ceil
 import sys, os
 import matplotlib.pyplot as plt
 from contextlib import contextmanager
