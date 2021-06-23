@@ -102,7 +102,7 @@ class Trial:
 		self.corr_smooth = corr_smooth
 
 		# Switching Highpass From Fournier to Pixels If Necessary
-		if isinstance(highpass, (int, float)):
+		if isinstance(highpass, (int, float)) and not isinstance(highpass, bool):
 			highpass = float(highpass)
 			self.highpass = length / (highpass * 2 * np.sqrt(2 * np.log(2)))
 		else:
