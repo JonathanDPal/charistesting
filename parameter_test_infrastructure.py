@@ -331,11 +331,12 @@ class TestDataset:
 
 		# Inject Fake Planets
 		for fake_flux, sep in zip(self.fake_fluxes, self.fake_seps):
-			flux_to_inject = fake_flux / spot_to_star
+			flux_to_inject = fake_flux / spot_to_star # UNcalibrating it, NOT calibrating
 			for pa in self.fake_PAs:
 				inject_planet(self.dataset_with_fakes.input, self.dataset_with_fakes.centers,
 							  flux_to_inject, self.dataset_with_fakes.wcs, sep, pa,
 							  fwhm=self.fake_fwhm)
+
 
 		print("############## DONE INJECTING FAKES FOR {0} ##############".format(self.object_name))
 
@@ -344,10 +345,12 @@ class TestDataset:
 		# Making Sure Output Directories Exist
 		if not os.path.exists(self.object_name):
 			os.mkdir(self.object_name)
-		if not os.path.exists(self.object_name+'/klipped_cubes_Wfakes'):
-			os.mkdir(self.object_name+'/klipped_cubes_Wfakes')
-		if not os.path.exists(self.object_name+'/klipped_cubes_Nfakes'):
-			os.mkdir(self.object_name+'/klipped_cubes_Nfakes')
+		if run_on_fakes:
+			if not os.path.exists(self.object_name+'/klipped_cubes_Wfakes'):
+				os.mkdir(self.object_name+'/klipped_cubes_Wfakes')
+		if run_on_nofakes:
+			if not os.path.exists(self.object_name+'/klipped_cubes_Nfakes'):
+				os.mkdir(self.object_name+'/klipped_cubes_Nfakes')
 
 		# Determining Number of KLIP Runs That Will Be Conducted
 		if run_on_fakes and run_on_nofakes:
