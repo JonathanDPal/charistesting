@@ -10,9 +10,9 @@ start = time()
 warnings.simplefilter('ignore', category=RuntimeWarning)
 
 # Describe Fake Planets To Be Injected
-fake_fluxes = [500, 1000, 5000]
+fake_fluxes = [1e-4, 1e-5, 1e-5]
 fake_seps = [20, 40, 60]
-fake_fwhm = 1.0/3.0
+fake_fwhm = 6.01924560185
 fake_PAs=[0,90,180,270]
 
 # KLIP Parameters To Be Sampled
