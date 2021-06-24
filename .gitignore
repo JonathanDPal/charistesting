@@ -4,3 +4,5 @@ Cookbooks/
 *.png
 *.fits
 *.txt
+*.gitignore
+*.xml
