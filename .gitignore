@@ -1,0 +1,6 @@
+detections/
+Cookbooks/
+*.pdf
+*.png
+*.fits
+*.txt
