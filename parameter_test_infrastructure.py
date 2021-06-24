@@ -33,13 +33,16 @@ def suppress_print():
 			sys.stdout = old_stdout
 
 
-def FWHMIOWA_calculator(speccubefile):
+def FWHMIOWA_calculator(speccubefile, filtname=None):
 	"""
 	Finds FWHM, IWA, and OWA for a opened CHARIS data cube. Thanks to Dr. Tobin for this.
 	(https://docs.google.com/document/d/1S1Oo9QweKwnOfmv6fu28bb75lYeQXGzn/edit)
 	"""
 	wavelengths = {'j': 1200e-9, 'h': 1550e-9, 'k': 2346e-9, 'broadband': 1550e-9}
-	wavelength = wavelengths[str.lower(speccubefile[1].header['FILTNAME'])]
+	if filtname is None:
+		wavelength = wavelengths[str.lower(speccubefile[1].header['FILTNAME'])]
+	else:
+		wavelength = wavelengths[str.lower(filtname)]
 	D = 8
 	lenslet_scale = 0.0162
 	field_radius = 1.035
@@ -98,7 +101,7 @@ class Trial:
 		self.fake_seps = np.array(fake_seps)
 		self.corr_smooth = corr_smooth
 
-		# Switching Highpass From Fournier to Pixels If Necessary
+		# Switching Highpass From Fourier to Pixels If Necessary
 		if isinstance(highpass, (int, float)) and not isinstance(highpass, bool):
 			highpass = float(highpass)
 			self.highpass = length / (highpass * 2 * np.sqrt(2 * np.log(2)))
@@ -138,8 +141,7 @@ class Trial:
 		---
 		Args:
 			contains_fakes (bool): Set to True if fakes present.
-			wavelength_index (int): Index of wavelength to use (subsets calibrated cube along wavelength
-									axis). Default: 10
+			wavelength_index (int): Index of wavelength to use (subsets calibrated cube along wavelength axis).
 		"""
 		if contains_fakes:
 			filepaths = self.filepaths_Wfakes
@@ -152,7 +154,7 @@ class Trial:
 				calib_cube = deepcopy(hdulist[1].data) * spot_to_star[:, np.newaxis, np.newaxis]
 				dataset_center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
 				dataset_fwhm, dataset_iwa, dataset_owa = FWHMIOWA_calculator(hdulist)
-				output_wcs = WCS(header=hdulist[0].header, naxis=[1, 2])
+				output_wcs = WCS(header=hdulist[1].header, naxis=[1, 2])
 
 			frame = calib_cube[wavelength_index]
 
@@ -256,9 +258,9 @@ class Trial:
 																 'Sep (as)', 'x', 'y', 'row', 'col'])
 			injected = []
 			for _, row in candidates.iterrows():
-				if np.min(np.abs(np.array(row['PA']) - self.fake_PAs)) > 0.5 * self.fake_fwhm or \
-					np.min(np.abs(np.array(row['Sep (pix)']) - self.fake_seps)) > 2 or np.min(
-					np.abs(np.array(row['Sep (as)']) - self.fake_seps)) > 2:
+				if np.min(np.abs(np.array(row['PA']) - self.fake_PAs)) > 0.5 * self.fake_fwhm or np.min(np.abs(
+						np.array(row['Sep (pix)']) - self.fake_seps)) > 2 or np.min(np.abs(np.array(row['Sep (as)'])
+																							- self.fake_seps)) > 2:
 						injected.append(False)
 				else:
 						injected.append(True)
@@ -268,8 +270,8 @@ class Trial:
 
 	def __eq__(self, other):
 		"""
-		Checks to see if two Trials have the same KLIP parameters. Intended for testing
-		out code functionality. Thanks to akritigoswami for some of this code.
+		Checks to see if two Trials have the same KLIP parameters. Intended for testing out code functionality.
+		Thanks to akritigoswami for some of this code.
 		(https://www.geeksforgeeks.org/how-to-get-a-list-of-class-attributes-in-python/)
 		"""
 		equal_attributes = list()
