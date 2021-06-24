@@ -77,6 +77,21 @@ def calibrate_ss_contrast(speccubefile):
 	return wln_um, spot_to_star
 
 
+def pasep_to_xy(PAs, seps):
+	"""
+	Takes lists of position angles and seperations and yields a numpy array with x-y coordinates for each combo.
+	"""
+	radians = np.array(PAs) / 180 * np.pi
+	xy = []
+	for sep in seps:
+		for rad in radians:
+			x = -np.sin(rad) * sep
+			y = np.cos(rad) * sep
+			xy.append(np.array([x,y]))
+
+	return np.array(xy)
+
+
 # TestDataset Will Have a List of Trials Associated With It (one for each group of KLIP Parameters)
 class Trial:
 	"""
@@ -120,7 +135,7 @@ class Trial:
 
 		# Filepath to Save
 		self.filepath_detections_prefixes = [self.object_name + '/detections/{0}_KL{1}_SNR-'.format(
-			self.klip_parameters, nb) for nb in self.numbasis]
+												self.klip_parameters, nb) for nb in self.numbasis]
 		# Setting Up Filepath
 		if not os.path.exists(self.object_name):
 			os.mkdir(self.object_name)
@@ -154,7 +169,7 @@ class Trial:
 				calib_cube = deepcopy(hdulist[1].data) * spot_to_star[:, np.newaxis, np.newaxis]
 				dataset_center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
 				dataset_fwhm, dataset_iwa, dataset_owa = FWHMIOWA_calculator(hdulist)
-				output_wcs = WCS(header=hdulist[1].header, naxis=[1, 2])
+				output_wcs = WCS(header=hdulist[0].header, naxis=[1, 2])
 
 			frame = calib_cube[wavelength_index]
 
@@ -256,11 +271,12 @@ class Trial:
 
 			candidates = pd.DataFrame(candidates_table, columns=['Index', 'SNR Value', 'PA', 'Sep (pix)',
 																 'Sep (as)', 'x', 'y', 'row', 'col'])
+
 			injected = []
+			fakelocs = pasep_to_xy(self.fake_PAs, self.fake_seps)
 			for _, row in candidates.iterrows():
-				if np.min(np.abs(np.array(row['PA']) - self.fake_PAs)) > 0.5 * self.fake_fwhm or np.min(np.abs(
-						np.array(row['Sep (pix)']) - self.fake_seps)) > 2 or np.min(np.abs(np.array(row['Sep (as)'])
-																							- self.fake_seps)) > 2:
+				distances = [np.sqrt((row['x'] - fl[0]) ** 2 + (row['y'] - fl[1]) ** 2) for fl in fakelocs]
+				if np.min(distances) > self.fake_fwhm:
 						injected.append(False)
 				else:
 						injected.append(True)
@@ -306,7 +322,7 @@ class TestDataset:
 			numbasis: Integer or List of Integers
 			corr_smooth:
 			highpass:
-			spectrum: Either 'methane' or None
+			spectrum: Either 'methane' or None_
 			fake_fwhm: The FWHM for the injected PSF for fake planets
 			fake_PAs: Integer or List of Integers.
 		"""
@@ -363,7 +379,7 @@ class TestDataset:
 
 
 	def run_KLIP(self, run_on_fakes=True, run_on_nofakes=True):
-		if run_on_fakes or run_on_nofakes:
+		if run_on_fakes or run_on_nofakes: # making sure at least set of KLIP runs will happen
 			# Making Sure Output Directories Exist
 			if not os.path.exists(self.object_name):
 				os.mkdir(self.object_name)
@@ -430,7 +446,7 @@ class TestDataset:
 
 
 	def contrast_and_detection(self, calibrate=[True, False], detect_planets=True):
-		if True in calibrate or False in calibrate or detect_planets == True:
+		if True in calibrate or False in calibrate or detect_planets == True: # checking arguments
 			print("############## BEGINNING CONTRAST AND DETECTION FOR {0} ##############".format(self.object_name))
 			for i, trial in enumerate(self.trials):
 				for calib in calibrate:
