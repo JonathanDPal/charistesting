@@ -77,13 +77,11 @@ def calibrate_ss_contrast(speccubefile):
 # TestDataset Will Have a List of Trials Associated With It (one for each group of KLIP Parameters)
 class Trial:
 	"""
-	NOTE: The user will almost certainly not interact with this class directly, rather they will
-	interact with an instance of TestDataset and that instance of TestDataset will interact with
-	instances of this class.
+	NOTE: The user will almost certainly not interact with this class directly, rather they will interact with an
+	instance of TestDataset and that instance of TestDataset will interact with instances of this class.
 	---
-	Stores a particular set of KLIP parameters and then is able to run contrast
-	measurement or planet detection code from KLIP for the KLIP output with that particular set
-	of parameters.
+	Stores a particular set of KLIP parameters and then is able to run contrast measurement or planet detection code
+	from KLIP for the KLIP output with that particular set of parameters.
 	"""
 	def __init__(self, annuli, subsections, movement, numbasis, spectrum, mask_xy, fake_PAs, fake_fluxes,
 				 object_name, fake_fwhm, fake_seps, corr_smooth, highpass, length):
@@ -288,9 +286,8 @@ class Trial:
 # Each Object (eg. HD1160, BetaPic) Will Have An Instance of TestDataset Associated With It
 class TestDataset:
 	"""
-	The main object which the user will interact with. Will load in CHARIS fileset into
-	CHARISData class (see pyklip.instruments.CHARIS) and then create an instance of Trial for
-	each set of KLIP parameters to be looked at.
+	The main object which the user will interact with. Will load in CHARIS fileset into CHARISData class (see
+	pyklip.instruments.CHARIS) and then create an instance of Trial for each set of KLIP parameters to be looked at.
 	"""
 	def __init__(self, fileset, object_name, mask_xy, fake_fluxes, fake_seps, annuli, subsections, movement,
 				 numbasis, corr_smooth, highpass, spectrum, fake_fwhm, fake_PAs, mode):
@@ -348,10 +345,6 @@ class TestDataset:
 		print("############## DONE BUILDING TRIALS FOR {0} ##############".format(self.object_name))
 
 	def inject_fakes(self):
-		"""
-		Injects fake planets into CHARIS data.
-		"""
-
 		# Getting Values
 		with fits.open(self.fileset[0]) as hdu:
 			_, spot_to_star = calibrate_ss_contrast(hdu)
@@ -360,13 +353,11 @@ class TestDataset:
 		for fake_flux, sep in zip(self.fake_fluxes, self.fake_seps):
 			flux_to_inject = fake_flux / spot_to_star # UNcalibrating it, NOT calibrating
 			for pa in self.fake_PAs:
-				inject_planet(frames=self.dataset_with_fakes.input,
-							  centers=self.dataset_with_fakes.centers,
-							  inputflux=flux_to_inject, astr_hdrs=self.dataset_with_fakes.wcs,
-							  radius=sep, pa=pa, fwhm=self.fake_fwhm)
+				inject_planet(frames=self.dataset_with_fakes.input, centers=self.dataset_with_fakes.centers,
+							  inputflux=flux_to_inject, astr_hdrs=self.dataset_with_fakes.wcs, radius=sep, pa=pa,
+							  fwhm=self.fake_fwhm)
 
-		print("############## DONE INJECTING FAKES FOR {0} ##############".format(
-			 self.object_name))
+		print("############## DONE INJECTING FAKES FOR {0} ##############".format(self.object_name))
 
 
 	def run_KLIP(self, run_on_fakes=True, run_on_nofakes=True):
@@ -419,8 +410,7 @@ class TestDataset:
 				if run_on_nofakes:
 					# Running KLIP on Data Without Fakes
 					with suppress_print():
-						klip_dataset(self.dataset_no_fakes,
-									 outputdir=self.object_name+'/klipped_cubes_Nfakes',
+						klip_dataset(self.dataset_no_fakes, outputdir=self.object_name+'/klipped_cubes_Nfakes',
 									 fileprefix=self.object_name+ '_withoutfakes_' + trial.klip_parameters,
 									 annuli=trial.annuli, subsections=trial.subsections, movement=trial.movement,
 									 numbasis=trial.numbasis, spectrum=trial.spectrum, verbose=False,
