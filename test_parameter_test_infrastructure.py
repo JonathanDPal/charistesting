@@ -1,5 +1,8 @@
 import pytest
 from parameter_test_infrastructure import *
+from glob import glob
+import pandas as pd
+import numpy as np
 
 speccubefile = 'test_files/HD1160-KL20-speccube.fits'
 
@@ -70,4 +73,17 @@ def test_get_contrast():
 
 def test_detect_planets():
     pass
+
+def test_pasep_to_xy():
+    same = []
+    csvs = glob('detections/*.csv')
+    for csv in csvs:
+        df = pd.read_csv(csv)
+        rads = np.array(df['PA']) / 180 * np.pi
+        seps = np.array(df['Sep (pix)'])
+        for i, j in enumerate(zip(rads, seps)):
+            same.append(np.abs(-np.sin(j[0]) * j[1] - df['x'][i]) < 0.05)
+            same.append(np.abs(np.cos(j[0]) * j[1] - df['y'][i]) < 0.05)
+
+    assert np.sum(same) == len(same)
 
