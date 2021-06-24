@@ -10,10 +10,10 @@ start = time()
 warnings.simplefilter('ignore', category=RuntimeWarning)
 
 # Describe Fake Planets To Be Injected
-fake_fluxes = [1e-4, 1e-5, 1e-5]
-fake_seps = [20, 40, 60]
-fake_fwhm = 6.01924560185
-fake_PAs=[0,90,180,270]
+fake_fluxes = [1e-4]
+fake_seps = [40]
+fake_fwhm = 6.01924560185 # broadband
+fake_PAs=[0]
 
 # KLIP Parameters To Be Sampled
 # annuli = [4, 6, 8, 10, 12]
@@ -34,14 +34,13 @@ mode = 'ADI+SDI'
 # Filelist(s) & Associated Mask(s) & Associated Name(s)
 fileset0 = 'HR8799_cubes/*.fits'
 mask0 = None
-object_name0 = 'HR8799_mod3'
+object_name0 = 'HR8799_1pt'
 
 # Create TestDataset For Each Set of Observations
-td0 = TestDataset(fileset=fileset0, object_name=object_name0, mask_xy=mask0,
-                  fake_fluxes=fake_fluxes, fake_seps=fake_seps, annuli=annuli,
-                  subsections=subsections, movement=movement, numbasis=numbasis,
-                  corr_smooth=corr_smooth, highpass=highpass, spectrum=spectrum, mode=mode,
-                  fake_PAs=fake_PAs, fake_fwhm=fake_fwhm)
+td0 = TestDataset(fileset=fileset0, object_name=object_name0, mask_xy=mask0, fake_fluxes=fake_fluxes,
+                  fake_seps=fake_seps, annuli=annuli, subsections=subsections, movement=movement, numbasis=numbasis,
+                  corr_smooth=corr_smooth, highpass=highpass, spectrum=spectrum, mode=mode, fake_PAs=fake_PAs,
+                  fake_fwhm=fake_fwhm)
 
 # Have TestDataset Run Each Part
 td0.inject_fakes()
@@ -56,5 +55,4 @@ remaining_time = time_elapsed - (hours * 3600)
 minutes = int(floor(remaining_time / 60))
 seconds = round(remaining_time - minutes * 60)
 
-print("##################### TIME ELAPSED: {0} Hours, {1} Minutes, "
-      "{2} Seconds #####################".format(hours, minutes, seconds))
+print(f"##################### TIME ELAPSED: {hours} Hours, {minutes} Minutes, {seconds} Seconds #####################")
