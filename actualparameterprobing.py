@@ -12,17 +12,20 @@ start = time()
 warnings.simplefilter('ignore', category=RuntimeWarning)
 
 # Filelist(s) & Associated Mask(s) & Associated Name(s)
-fileset0 = 'HR8799_cubes/*.fits'
+fileset0 = 'Fresh_HD1160_cubes/*.fits'
 mask0 = None
-object_name0 = 'HR8799_swappedWCS'
-with open(glob(fileset0)[0]) as hdulist:
-    filtname = hdulist[0].header['FILTNAME']
+object_name0 = 'FRESH'
+
 
 # Describe Fake Planets To Be Injected
 fake_fluxes = [1e-4, 1e-5, 1e-6]
 fake_seps = [20, 40, 60]
-fake_fwhm = FWHMIOWA_calculator(speccubefile=None, filtname=filtname)[0]
 fake_PAs=[0, 90, 180, 270]
+
+with fits.open(glob(fileset0)[0]) as hdulist:
+    filtname = hdulist[0].header['FILTNAME']
+fake_fwhm = FWHMIOWA_calculator(speccubefile=None, filtname=filtname)[0]
+
 
 # KLIP Parameters To Be Sampled
 # annuli = [4, 6, 8, 10, 12]
@@ -48,8 +51,8 @@ td0 = TestDataset(fileset=fileset0, object_name=object_name0, mask_xy=mask0, fak
 
 # Have TestDataset Run Each Part
 td0.inject_fakes()
-td0.run_KLIP()
-td0.contrast_and_detection()
+td0.run_KLIP(run_on_nofakes=False)
+td0.contrast_and_detection(calibrate=[True])
 
 # Print Out Time Taken
 end = time()
