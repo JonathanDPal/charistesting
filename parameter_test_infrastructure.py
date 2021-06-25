@@ -334,7 +334,8 @@ class TestDataset:
 
 		# Creating CHARISData Object With UnKLIPped Data
 		self.fileset = glob(fileset)
-		self.dataset_no_fakes = CHARISData(self.fileset)
+		self.dataset_no_fakes = CHARISData(self.fileset, guess_spot_locs=[[91,72], [129, 91], [71, 111], [109, 130]],
+										   guess_center_loc=[100,100])
 		print("####### DONE BUILDING CHARISData OBJECT FOR {0} ########".format(self.object_name))
 		self.dataset_with_fakes = deepcopy(self.dataset_no_fakes)
 		self.length = self.dataset_no_fakes.input.shape[1]
