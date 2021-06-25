@@ -29,7 +29,7 @@ fake_fwhm = FWHMIOWA_calculator(speccubefile=None, filtname=filtname)[0]
 
 # KLIP Parameters To Be Sampled
 # annuli = [4, 6, 8, 10, 12]
-annuli = [6]
+annuli = [7]
 # subsections = [2, 4, 6]
 subsections = [2]
 # movement = [0, 1, 2]
@@ -51,8 +51,8 @@ td0 = TestDataset(fileset=fileset0, object_name=object_name0, mask_xy=mask0, fak
 
 # Have TestDataset Run Each Part
 td0.inject_fakes()
-td0.run_KLIP(run_on_nofakes=False)
-td0.contrast_and_detection(calibrate=[True])
+td0.run_KLIP()
+td0.contrast_and_detection()
 
 # Print Out Time Taken
 end = time()
