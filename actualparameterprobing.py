@@ -23,9 +23,7 @@ fake_seps = [20, 40, 60]
 fake_PAs=[0, 90, 180, 270]
 
 with fits.open(glob(fileset0)[0]) as hdulist:
-    filtname = hdulist[0].header['FILTNAME']
-fake_fwhm = FWHMIOWA_calculator(speccubefile=None, filtname=filtname)[0]
-
+    fake_fwhm = FWHMIOWA_calculator(speccubefile=hdulist)[0]
 
 # KLIP Parameters To Be Sampled
 # annuli = [4, 6, 8, 10, 12]
