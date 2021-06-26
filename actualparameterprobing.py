@@ -14,7 +14,7 @@ warnings.simplefilter('ignore', category=RuntimeWarning)
 # Filelist(s) & Associated Mask(s) & Associated Name(s)
 fileset0 = 'Fresh_HD1160_cubes/*.fits'
 mask0 = None
-object_name0 = 'FRESH'
+object_name0 = 'FRESH_ManualSatSpots'
 
 
 # Describe Fake Planets To Be Injected

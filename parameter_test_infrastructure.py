@@ -366,7 +366,7 @@ class TestDataset:
 	def inject_fakes(self):
 		# Getting Values
 		with fits.open(self.fileset[0]) as hdu:
-			_, spot_to_star = calibrate_ss_contrast(hdu)
+			spot_to_star = calibrate_ss_contrast(hdu)[1]
 
 		# Inject Fake Planets
 		for fake_flux, sep in zip(self.fake_fluxes, self.fake_seps):
@@ -442,8 +442,8 @@ class TestDataset:
 					print("####### {0}/{1} KLIP Runs Complete ({2}%) #######".format(trials + 2, number_of_klip,
 																					 round(float(trials + 2) / float(
 																						 number_of_klip), 3) * 100))
-			else:
-				print("run_KLIP function called, but no KLIP runs conducted. Check arguments.")
+		else:
+			print("run_KLIP function called, but no KLIP runs conducted. Check arguments.")
 
 
 	def contrast_and_detection(self, calibrate=[True, False], detect_planets=True):
