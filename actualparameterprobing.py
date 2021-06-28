@@ -8,9 +8,9 @@ from glob import glob
 #################### USER INPUTS ####################
 
 # Filelist(s) & Associated Mask(s) & Associated Name(s)
-fileset0 = 'Fresh_HD1160_cubes/CRSA00015252_cube.fits'
-mask0 = None
-object_name0 = 'FRESH_ManualSatSpots_SingleFile'
+fileset0 = 'HD1160_cubes/*.fits'
+mask0 = [144, 80]
+object_name0 = 'HD1160_movement_testing'
 
 # KLIP Parameters To Be Sampled
 run_KLIP_on_dataset_with_fakes = True # if no fakes are injected, this will just be a duplicate
@@ -18,13 +18,13 @@ run_KLIP_on_dataset_without_fakes = True
 # annuli = [4, 6, 8, 10, 12]
 annuli = [7]
 # subsections = [2, 4, 6]
-subsections = [2]
-# movement = [0, 1, 2]
-movement = [0]
-# numbasis = [10, 20, 30, 40, 50, 60]
+subsections = [4]
+# movement = [0,1,2]
+movement = [0,1,2,3,4,5]
 numbasis = [20]
-# corr_smooth = [0, 1, 2]
+# numbasis = [10, 20, 30, 40, 50, 60]
 corr_smooth = [1]
+# corr_smooth = [0, 1, 2]
 highpass = [True]
 # highpass = [False, 5.0, True, 15.0] # True yields default (10.0)
 spectrum = [None]
@@ -48,11 +48,12 @@ get_planet_detections = True
 get_contrast_and_detections = (get_uncalibrated_contrast or get_calibrated_contrast or get_planet_detections)
 run_KLIP_on_dataset = (run_KLIP_on_dataset_with_fakes or run_KLIP_on_dataset_with_fakes)
 calibrate = []
-if get_uncalibrated_contrast:
-    calibrate.append(False)
 if get_calibrated_contrast:
     calibrate.append(True)
+if get_uncalibrated_contrast:
+    calibrate.append(False)
 
+#################### STARTING ACTUAL TESTING ####################
 start = time()
 
 # KLIP yields a bunch of RuntimeWarnings that we don't need to worry about
