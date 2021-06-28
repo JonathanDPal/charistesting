@@ -21,7 +21,10 @@ import inspect
 
 @contextmanager
 def log_file_output(directory):
-	with open('{0}/log.txt'.format(directory), 'w') as log_file:
+	"""
+	Has outputs written out to a log file in the specified directory instead of printed in terminal.
+	"""
+	with open('{0}/log.txt'.format(directory), 'a') as log_file:
 		old_stdout = sys.stdout
 		sys.stdout = log_file
 		try:
@@ -79,14 +82,7 @@ def pasep_to_xy(PAs, seps):
 	Takes lists of position angles and seperations and yields a numpy array with x-y coordinates for each combo.
 	"""
 	radians = np.array(PAs) / 180 * np.pi
-	xy = []
-	for sep in seps:
-		for rad in radians:
-			x = -np.sin(rad) * sep
-			y = np.cos(rad) * sep
-			xy.append(np.array([x,y]))
-
-	return np.array(xy)
+	return np.array([np.array([-np.sin(rad) * sep, np.cos(rad) * sep]) for sep in seps for rad in radians])
 
 
 # TestDataset Will Have a List of Trials Associated With It (one for each group of KLIP Parameters)
@@ -362,7 +358,7 @@ class TestDataset:
 
 
 	def write_to_log(self, words):
-		with open('{0}/log.txt'.format(self.object_name), 'w') as log_file:
+		with open('{0}/log.txt'.format(self.object_name), 'a') as log_file:
 			log_file.write(words)
 
 
@@ -407,8 +403,9 @@ class TestDataset:
 				number_of_klip = len(self.trials)
 
 			print("############## BEGINNING KLIP FOR {0} ##############".format(self.object_name))
-			self.write_to_log('### BEGINNING KLIP ###')
+			self.write_to_log('\n### BEGINNING KLIP ###\n')
 			print("####### Total KLIP Runs to Complete: {0} #######".format(number_of_klip))
+			self.write_to_log('\nNumber of KLIP Runs To Complete: {0}'/format(number_of_klip))
 
 			for i, trial in enumerate(self.trials):
 				if running_on_both:
@@ -454,7 +451,7 @@ class TestDataset:
 
 
 	def contrast_and_detection(self, calibrate=[True, False], detect_planets=True):
-		if True in calibrate or False in calibrate or detect_planets == True: # checking arguments
+		if True in calibrate or False in calibrate or detect_planets == True: # checking that we're gonna do something
 			print("############## BEGINNING CONTRAST AND DETECTION FOR {0} ##############".format(self.object_name))
 			for i, trial in enumerate(self.trials):
 				for calib in calibrate:
