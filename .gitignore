@@ -6,3 +6,5 @@ Cookbooks/
 *.txt
 *.gitignore
 *.xml
+*.csv
+*.xlsx
