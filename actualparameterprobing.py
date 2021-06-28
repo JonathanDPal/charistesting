@@ -63,3 +63,6 @@ seconds = round(remaining_time - minutes * 60)
 print("##################### TIME ELAPSED: {0} Hours, {1} Minutes, {2} Seconds #####################".format(hours,
                                                                                                              minutes,
                                                                                                              seconds))
+
+td0.write_to_log("##################### TIME ELAPSED: {0} Hours, {1} Minutes, {2} Seconds #####################".
+                 format(hours, minutes, seconds))
