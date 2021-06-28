@@ -16,7 +16,6 @@ fileset0 = 'Fresh_HD1160_cubes/*.fits'
 mask0 = None
 object_name0 = 'FRESH_ManualSatSpots'
 
-
 # Describe Fake Planets To Be Injected
 fake_fluxes = [1e-4, 1e-5, 1e-6]
 fake_seps = [20, 40, 60]
@@ -47,6 +46,12 @@ td0 = TestDataset(fileset=fileset0, object_name=object_name0, mask_xy=mask0, fak
                   corr_smooth=corr_smooth, highpass=highpass, spectrum=spectrum, mode=mode, fake_PAs=fake_PAs,
                   fake_fwhm=fake_fwhm)
 
+td0.write_to_log('Fileset: {0}'.format(fileset0))
+param_names = ['Annuli', 'Subsections', 'Movement', 'Numbasis', 'Corr_Smooth', 'Highpass', 'Spectrum', 'Mode']
+params = [annuli, subsections, movement, numbasis, corr_smooth, highpass, spectrum, mode]
+for name, param in zip(param_names, params):
+    td0.write_to_log('\n{0}: {1}'.format(name, param))
+
 # Have TestDataset Run Each Part
 td0.inject_fakes()
 td0.run_KLIP()
@@ -64,5 +69,5 @@ print("##################### TIME ELAPSED: {0} Hours, {1} Minutes, {2} Seconds #
                                                                                                              minutes,
                                                                                                              seconds))
 
-td0.write_to_log("##################### TIME ELAPSED: {0} Hours, {1} Minutes, {2} Seconds #####################".
+td0.write_to_log("\n##################### TIME ELAPSED: {0} Hours, {1} Minutes, {2} Seconds #####################".
                  format(hours, minutes, seconds))

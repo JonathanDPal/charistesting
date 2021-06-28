@@ -349,6 +349,24 @@ class TestDataset:
 		self.mode = mode
 		print("############## DONE BUILDING TRIALS FOR {0} ##############".format(self.object_name))
 
+
+	def write_to_log(self, words):
+		with open('{0}/log.txt'.format(self.object_name), 'w') as log_file:
+			log_file.write(words)
+
+
+	@staticmethod
+	@contextmanager
+	def log_file_output(object_name):
+		with open('{0}/log.txt'.format(object_name), 'w') as log_file:
+			old_stdout = sys.stdout
+			sys.stdout = log_file
+			try:
+				yield
+			finally:
+				sys.stdout = old_stdout
+
+
 	def inject_fakes(self):
 		# Getting Values
 		with fits.open(self.fileset[0]) as hdu:
@@ -363,6 +381,7 @@ class TestDataset:
 							  fwhm=self.fake_fwhm)
 
 		print("############## DONE INJECTING FAKES FOR {0} ##############".format(self.object_name))
+		self.write_to_log("\n############## DONE INJECTING FAKES FOR {0} ##############".format(self.object_name))
 
 
 	def run_KLIP(self, run_on_fakes=True, run_on_nofakes=True):
@@ -389,6 +408,7 @@ class TestDataset:
 				number_of_klip = len(self.trials)
 
 			print("############## BEGINNING KLIP FOR {0} ##############".format(self.object_name))
+			self.write_to_log('### BEGINNING KLIP ###')
 			print("####### Total KLIP Runs to Complete: {0} #######".format(number_of_klip))
 
 			for i, trial in enumerate(self.trials):
@@ -399,7 +419,7 @@ class TestDataset:
 
 				if run_on_fakes:
 					# Running KLIP on Data With Fakes
-					with log_file_output():
+					with log_file_output(self.object_name):
 						klip_dataset(self.dataset_with_fakes, outputdir=self.object_name+'/klipped_cubes_Wfakes',
 									 fileprefix=self.object_name + '_withfakes_' + trial.klip_parameters,
 									 annuli=trial.annuli, subsections=trial.subsections, movement=trial.movement,
@@ -414,7 +434,7 @@ class TestDataset:
 
 				if run_on_nofakes:
 					# Running KLIP on Data Without Fakes
-					with log_file_output():
+					with log_file_output(self.object_name):
 						klip_dataset(self.dataset_no_fakes, outputdir=self.object_name+'/klipped_cubes_Nfakes',
 									 fileprefix=self.object_name+ '_withoutfakes_' + trial.klip_parameters,
 									 annuli=trial.annuli, subsections=trial.subsections, movement=trial.movement,
@@ -424,12 +444,14 @@ class TestDataset:
 				# Update Every 5 or When Completely Done
 				if i + 1 == len(self.trials):
 					print("############## DONE WITH KLIP FOR {0} ##############".format(self.object_name))
+					self.write_to_log("\n### DONE WITH KLIP ###")
 				elif (trials + 2) % 10 == 0:
 					print("####### {0}/{1} KLIP Runs Complete ({2}%) #######".format(trials + 2, number_of_klip,
 																					 round(float(trials + 2) / float(
 																						 number_of_klip), 3) * 100))
 		else:
 			print("run_KLIP function called, but no KLIP runs conducted. Check arguments.")
+			self.write_to_log("\nrun_KLIP function called, but no KLIP runs conducted. Check arguments.")
 
 
 	def contrast_and_detection(self, calibrate=[True, False], detect_planets=True):
@@ -449,19 +471,3 @@ class TestDataset:
 		else:
 			print("contrast_and_detection function was called, but no contrast measurements or "
 				  "planet detections were conducted. Check arguments.")
-
-
-	@contextmanager
-	def log_file_output(self):
-		with open('{0}/log.txt'.format(self.object_name), 'w') as log_file:
-			old_stdout = sys.stdout
-			sys.stdout = log_file
-			try:
-				yield
-			finally:
-				sys.stdout = old_stdout
-
-
-	def write_to_log(self, words):
-		with open('{0}/log.txt'.format(self.object_name), 'w') as log_file:
-			log_file.write(words)
