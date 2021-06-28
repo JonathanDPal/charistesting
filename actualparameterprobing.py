@@ -12,17 +12,20 @@ start = time()
 warnings.simplefilter('ignore', category=RuntimeWarning)
 
 # Filelist(s) & Associated Mask(s) & Associated Name(s)
-fileset0 = 'Fresh_HD1160_cubes/*.fits'
+fileset0 = 'Fresh_HD1160_cubes/CRSA00015252_cube.fits'
 mask0 = None
-object_name0 = 'FRESH_ManualSatSpots'
+object_name0 = 'FRESH_ManualSatSpots_SingleFile'
 
 # Describe Fake Planets To Be Injected
 fake_fluxes = [1e-4, 1e-5, 1e-6]
 fake_seps = [20, 40, 60]
 fake_PAs=[0, 90, 180, 270]
 
-with fits.open(glob(fileset0)[0]) as hdulist:
-    fake_fwhm = FWHMIOWA_calculator(speccubefile=hdulist)[0]
+# with fits.open(glob(fileset0)[0]) as hdulist:
+#    fake_fwhm = FWHMIOWA_calculator(speccubefile=hdulist)[0]
+
+with fits.open(fileset0) as hdulist:
+	fake_fwhm = FWHMIOWA_calculator(hdulist)[0]
 
 # KLIP Parameters To Be Sampled
 # annuli = [4, 6, 8, 10, 12]

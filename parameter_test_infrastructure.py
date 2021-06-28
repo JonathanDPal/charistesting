@@ -19,6 +19,17 @@ from contextlib import contextmanager
 import inspect
 
 
+@contextmanager
+def log_file_output(directory):
+	with open('{0}/log.txt'.format(directory), 'w') as log_file:
+		old_stdout = sys.stdout
+		sys.stdout = log_file
+		try:
+			yield
+		finally:
+			sys.stdout = old_stdout
+
+
 def FWHMIOWA_calculator(speccubefile, filtname=None):
 	"""
 	Finds FWHM, IWA, and OWA for a opened CHARIS data cube. Thanks to Dr. Tobin for this.
@@ -353,18 +364,6 @@ class TestDataset:
 	def write_to_log(self, words):
 		with open('{0}/log.txt'.format(self.object_name), 'w') as log_file:
 			log_file.write(words)
-
-
-	@staticmethod
-	@contextmanager
-	def log_file_output(object_name):
-		with open('{0}/log.txt'.format(object_name), 'w') as log_file:
-			old_stdout = sys.stdout
-			sys.stdout = log_file
-			try:
-				yield
-			finally:
-				sys.stdout = old_stdout
 
 
 	def inject_fakes(self):
