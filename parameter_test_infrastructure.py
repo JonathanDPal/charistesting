@@ -18,20 +18,6 @@ import matplotlib.pyplot as plt
 from contextlib import contextmanager
 import inspect
 
-@contextmanager
-def suppress_print():
-	"""
-	Thanks to Dave Smith for this. (https://thesmithfam.org/blog/2012/10/25/temporarily-suppress
-	-console-output-in-python/)
-	"""
-	with open(os.devnull, 'w') as devnull:
-		old_stdout = sys.stdout
-		sys.stdout = devnull
-		try:
-			yield
-		finally:
-			sys.stdout = old_stdout
-
 
 def FWHMIOWA_calculator(speccubefile, filtname=None):
 	"""
@@ -413,7 +399,7 @@ class TestDataset:
 
 				if run_on_fakes:
 					# Running KLIP on Data With Fakes
-					with suppress_print():
+					with log_file_output():
 						klip_dataset(self.dataset_with_fakes, outputdir=self.object_name+'/klipped_cubes_Wfakes',
 									 fileprefix=self.object_name + '_withfakes_' + trial.klip_parameters,
 									 annuli=trial.annuli, subsections=trial.subsections, movement=trial.movement,
@@ -428,7 +414,7 @@ class TestDataset:
 
 				if run_on_nofakes:
 					# Running KLIP on Data Without Fakes
-					with suppress_print():
+					with log_file_output():
 						klip_dataset(self.dataset_no_fakes, outputdir=self.object_name+'/klipped_cubes_Nfakes',
 									 fileprefix=self.object_name+ '_withoutfakes_' + trial.klip_parameters,
 									 annuli=trial.annuli, subsections=trial.subsections, movement=trial.movement,
@@ -463,3 +449,19 @@ class TestDataset:
 		else:
 			print("contrast_and_detection function was called, but no contrast measurements or "
 				  "planet detections were conducted. Check arguments.")
+
+
+	@contextmanager
+	def log_file_output(self):
+		with open('{0}/log.txt'.format(self.object_name), 'w') as log_file:
+			old_stdout = sys.stdout
+			sys.stdout = log_file
+			try:
+				yield
+			finally:
+				sys.stdout = old_stdout
+
+
+	def write_to_log(self, words):
+		with open('{0}/log.txt'.format(self.object_name), 'w') as log_file:
+			log_file.write(words)
