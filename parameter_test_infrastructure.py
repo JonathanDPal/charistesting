@@ -324,7 +324,7 @@ class TestDataset:
 			os.mkdir(self.object_name)
 
 		# Getting Started On Log File
-		self.write_to_log('Object: {0}'.format(object_name))
+		self.write_to_log('Object: {0}'.format(object_name), 'w')
 		self.write_to_log('\nFileset: {0}'.format(fileset))
 		param_names = ['Annuli', 'Subsections', 'Movement', 'Numbasis', 'Corr_Smooth', 'Highpass', 'Spectrum', 'Mode']
 		params = [annuli, subsections, movement, numbasis, spectrum, corr_smooth, highpass]
@@ -377,13 +377,13 @@ class TestDataset:
 		self.write_to_log_and_print("############ DONE BUILDING TRIALS FOR {0} ############".format(self.object_name))
 
 
-	def write_to_log(self, words):
-		with open('{0}/log.txt'.format(self.object_name), 'a') as log_file:
+	def write_to_log(self, words, write_type='a'):
+		with open('{0}/log.txt'.format(self.object_name), write_type) as log_file:
 			log_file.write(words)
 
 
-	def write_to_log_and_print(self, words):
-		with open('{0}/log.txt'.format(self.object_name), 'a') as log_file:
+	def write_to_log_and_print(self, words, write_type='a'):
+		with open('{0}/log.txt'.format(self.object_name), write_type) as log_file:
 			log_file.write('\n'+words)
 		print(words)
 
