@@ -5,22 +5,28 @@ from numpy import floor
 from astropy.io import fits
 from glob import glob
 
+#####################################################
 #################### USER INPUTS ####################
+#####################################################
 
-# Filelist(s) & Associated Mask(s) & Associated Name(s)
-fileset0 = 'HD1160_cubes/*.fits'
+# see https://docs.google.com/document/d/1yX0l96IZs1IxxKCRmriVSAQM3KFGF9U1-FnpJXhcLXo/edit?usp=sharing for help
+
+# General Set-Up
+fileset0 = 'HD1160_cubes_V2/*.fits'
 mask0 = [144, 80]
-object_name0 = 'HD1160_movement_testing'
+object_name0 = 'HD1160_rereduced'
 
-# KLIP Parameters To Be Sampled
-run_KLIP_on_dataset_with_fakes = True # if no fakes are injected, this will just be a duplicate
-run_KLIP_on_dataset_without_fakes = True
+# fileset1 = 'HR8799_cubes_withsatspots/*.fits'
+# mask1 = None
+# object_name1 = 'HR8799_withsatspots'
+
+# Setting Up For KLIP
 # annuli = [4, 6, 8, 10, 12]
 annuli = [7]
 # subsections = [2, 4, 6]
 subsections = [4]
 # movement = [0,1,2]
-movement = [0,1,2,3,4,5]
+movement = [4]
 numbasis = [20]
 # numbasis = [10, 20, 30, 40, 50, 60]
 corr_smooth = [1]
@@ -30,19 +36,22 @@ highpass = [True]
 spectrum = [None]
 mode = 'ADI+SDI'
 
-# Describe Fake Planets To Be Injected
-put_in_fakes = True
+# Setting Up For Fake Planets
 fake_fluxes = [1e-4, 1e-5, 1e-6]
 fake_seps = [20, 40, 60]
 fake_PAs=[0, 90, 180, 270]
 
-# Contrast & Detection
+# Specifying Particular Things To (Not) Do
+put_in_fakes = True
+run_KLIP_on_dataset_with_fakes = True # if no fakes are injected, this will just be a duplicate
+run_KLIP_on_dataset_without_fakes = True
 get_uncalibrated_contrast = True # this contrast still calibrated with respect to everything except KLIP attenuation
 get_calibrated_contrast = True # won't do anything if no fake planets were injected
 get_planet_detections = True
 
+############################################################
 #################### END OF USER INPUTS ####################
-
+############################################################
 
 # Synthesizing User Inputs Into a Couple Additional Booleans
 get_contrast_and_detections = (get_uncalibrated_contrast or get_calibrated_contrast or get_planet_detections)
@@ -53,7 +62,7 @@ if get_calibrated_contrast:
 if get_uncalibrated_contrast:
     calibrate.append(False)
 
-#################### STARTING ACTUAL TESTING ####################
+################## STARTING ACTUAL TESTING #################
 start = time()
 
 # KLIP yields a bunch of RuntimeWarnings that we don't need to worry about

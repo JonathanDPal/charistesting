@@ -132,8 +132,6 @@ class Trial:
 		# Setting Up Filepath
 		if not os.path.exists(self.object_name):
 			os.mkdir(self.object_name)
-		if not os.path.exists(self.object_name + '/detections'):
-			os.mkdir(self.object_name + '/detections')
 
 		# Data To Be Added Later
 		self.calib_cube = None
@@ -166,7 +164,7 @@ class Trial:
 
 			frame = calib_cube[wavelength_index]
 
-			if self.mask_xy is not None:
+			if isinstance(self.mask_xy, (list, tuple)):
 				x_pos = self.mask_xy[0]
 				y_pos = self.mask_xy[1]
 
@@ -194,15 +192,6 @@ class Trial:
 					closest_throughput_index = np.argmin(np.abs(sep - self.fake_seps))
 					correct_contrast[j] /= algo_throughput[closest_throughput_index]
 
-			# Making Sure That Directories Exist For Saving Data
-			if not os.path.exists(self.object_name):
-				os.mkdir(self.object_name)
-			if contains_fakes:
-				if not os.path.exists(self.object_name + '/calibrated_contrast'):
-					os.mkdir(self.object_name + '/calibrated_contrast')
-			else:
-				if not os.path.exists(self.object_name + '/uncalibrated_contrast'):
-					os.mkdir(self.object_name + '/uncalibrated_contrast')
 
 			# Saving Data to Object and to CSV File
 			if contains_fakes:
@@ -235,7 +224,7 @@ class Trial:
 				df.to_csv(data_output_filepath)
 
 
-	def detect_planets(self, SNR_threshold=3):
+	def detect_planets(self, SNR_threshold=3, datasetwithfakes=True):
 		"""
 		Looks at a KLIPped dataset with fakes and indicates potential planets.
 		---
@@ -244,8 +233,14 @@ class Trial:
 			generating ROC curves, the code will automatically look at subsets of the detections
 			at different SNR thresholds, but it can only look at SNR thresholds greater than or
 			equal to the one specifie here.
+			datasetwithfakes (Bool): Whether or not you want to look at
 		"""
-		for i, filepath in enumerate(self.filepaths_Wfakes):
+		if datasetwithfakes:
+			filepaths = self.filepaths_Wfakes
+		else:
+			filepaths = self.filepaths_Nfakes
+
+		for i, filepath in enumerate(filepaths):
 			with fits.open(filepath) as hdulist:
 				image = hdulist[1].data
 				center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
@@ -452,6 +447,14 @@ class TestDataset:
 
 	def contrast_and_detection(self, calibrate=[True, False], detect_planets=True):
 		if True in calibrate or False in calibrate or detect_planets == True: # checking that we're gonna do something
+			# Making Sure Directories Exist
+			if not os.path.exists(self.object_name + '/detections') and detect_planets:
+				os.mkdir(self.object_name + '/detections')
+			if not os.path.exists(self.object_name + '/calibrated_contrast') and True in calibrate:
+				os.mkdir(self.object_name + '/calibrated_contrast')
+			if not os.path.exists(self.object_name + '/uncalibrated_contrast') and False in calibrate:
+				os.mkdir(self.object_name + '/uncalibrated_contrast')
+
 			print("############## BEGINNING CONTRAST AND DETECTION FOR {0} ##############".format(self.object_name))
 			for i, trial in enumerate(self.trials):
 				for calib in calibrate:
