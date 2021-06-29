@@ -430,8 +430,8 @@ class TestDataset:
 			else:
 				number_of_klip = len(self.trials)
 
-			self.write_to_log_and_print('\n### BEGINNING KLIP ###\n####### Number of KLIP Runs To Complete: {0} '
-										'#######\n'.format(number_of_klip))
+			self.write_to_log_and_print('####### BEGINNING KLIP #######\n####### Number of KLIP Runs To Complete: '
+										'{0} #######\n'.format(number_of_klip))
 
 			for i, trial in enumerate(self.trials):
 				if running_on_both:
