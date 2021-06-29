@@ -17,6 +17,7 @@ import sys, os
 import matplotlib.pyplot as plt
 from contextlib import contextmanager
 import inspect
+import warnings
 
 
 @contextmanager
@@ -365,6 +366,13 @@ class TestDataset:
 															 object_name=object_name,fake_fwhm=fake_fwhm,
 															 fake_seps=fake_seps, corr_smooth=cs,
 															 highpass=hp, length=self.length))
+		if not isinstance(mode, str):
+			warnings.warn("WARNING: Inputted mode is not a string. If inputted mode is a list or tuple, then code "
+						  "will proceed using index 0 value as the mode.")
+			try:
+				self.mode = mode[0]
+			except Exception:
+				raise TypeError("Mode needs to be a string. Check input")
 		self.mode = mode
 		self.write_to_log_and_print("############ DONE BUILDING TRIALS FOR {0} ############".format(self.object_name))
 
