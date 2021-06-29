@@ -12,13 +12,9 @@ from glob import glob
 # see https://docs.google.com/document/d/1yX0l96IZs1IxxKCRmriVSAQM3KFGF9U1-FnpJXhcLXo/edit?usp=sharing for help
 
 # General Set-Up
-fileset0 = 'HD1160_cubes_V2/*.fits'
-mask0 = [144, 80]
-object_name0 = 'HD1160_rereduced'
-
-# fileset1 = 'HR8799_cubes_withsatspots/*.fits'
-# mask1 = None
-# object_name1 = 'HR8799_withsatspots'
+fileset0 = 'HR8799_cubes_withsatspots/*.fits'
+mask0 = None
+object_name0 = 'HR8799_withsatspots'
 
 # Setting Up For KLIP
 # annuli = [4, 6, 8, 10, 12]
@@ -93,9 +89,7 @@ remaining_time = time_elapsed - (hours * 3600)
 minutes = int(floor(remaining_time / 60))
 seconds = round(remaining_time - minutes * 60)
 
-print("##################### TIME ELAPSED: {0} Hours, {1} Minutes, {2} Seconds #####################".format(hours,
-                                                                                                             minutes,
-                                                                                                             seconds))
+td0.write_to_log_and_print("##################### TIME ELAPSED: {0} Hours, {1} Minutes, {2} Seconds "
+                            "#####################".format(hours, minutes, seconds))
 
-td0.write_to_log("\n##################### TIME ELAPSED: {0} Hours, {1} Minutes, {2} Seconds #####################".
-                 format(hours, minutes, seconds))
+

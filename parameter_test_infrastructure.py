@@ -329,17 +329,14 @@ class TestDataset:
 		for name, param in zip(param_names, params):
 			self.write_to_log('\n{0}: {1}'.format(name, param))
 
-		print("##################### STARTING WORK ON {0} #####################".format(self.object_name))
-		self.write_to_log('\n################################################')
-		self.write_to_log("\n########### STARTING WORK ON {0} ###########".format(self.object_name))
-
+		self.write_to_log_and_print("############### STARTING WORK ON {0} ################".format(self.object_name))
 
 		# Creating CHARISData Object With UnKLIPped Data
 		self.fileset = glob(fileset)
 		with log_file_output(self.object_name):
 			self.dataset_no_fakes = CHARISData(self.fileset, guess_spot_locs=[[91,72], [129,91], [71,111], [109,130]],
 											   guess_center_loc=[100,100])
-		print("####### DONE BUILDING CHARISData OBJECT FOR {0} ########".format(self.object_name))
+		self.write_to_log_and_print("###### DONE BUILDING CHARISData OBJECT FOR {0} #######".format(self.object_name))
 
 		self.dataset_with_fakes = deepcopy(self.dataset_no_fakes)
 		self.length = self.dataset_no_fakes.input.shape[1]
@@ -365,12 +362,18 @@ class TestDataset:
 															 fake_seps=fake_seps, corr_smooth=cs,
 															 highpass=hp, length=self.length))
 		self.mode = mode
-		print("############## DONE BUILDING TRIALS FOR {0} ##############".format(self.object_name))
+		self.write_to_log_and_print("############ DONE BUILDING TRIALS FOR {0} ############".format(self.object_name))
 
 
 	def write_to_log(self, words):
 		with open('{0}/log.txt'.format(self.object_name), 'a') as log_file:
 			log_file.write(words)
+
+
+	def write_to_log_and_print(self, words):
+		with open('{0}/log.txt'.format(self.object_name), 'a') as log_file:
+			log_file.write('\n'+words)
+		print(words)
 
 
 	def inject_fakes(self):
@@ -386,8 +389,7 @@ class TestDataset:
 							  inputflux=flux_to_inject, astr_hdrs=self.dataset_with_fakes.wcs, radius=sep, pa=pa,
 							  fwhm=self.fake_fwhm)
 
-		print("############## DONE INJECTING FAKES FOR {0} ##############".format(self.object_name))
-		self.write_to_log("\n############## DONE INJECTING FAKES FOR {0} ##############".format(self.object_name))
+		self.write_to_log_and_print("############ DONE INJECTING FAKES FOR {0} ############".format(self.object_name))
 
 
 	def run_KLIP(self, run_on_fakes=True, run_on_nofakes=True):
@@ -413,10 +415,8 @@ class TestDataset:
 			else:
 				number_of_klip = len(self.trials)
 
-			print("############## BEGINNING KLIP FOR {0} ##############".format(self.object_name))
-			self.write_to_log('\n### BEGINNING KLIP ###\n')
-			print("####### Total KLIP Runs to Complete: {0} #######".format(number_of_klip))
-			self.write_to_log('\nNumber of KLIP Runs To Complete: {0}'.format(number_of_klip))
+			self.write_to_log_and_print('\n### BEGINNING KLIP ###\n####### Number of KLIP Runs To Complete: {0} '
+										'#######\n'.format(number_of_klip))
 
 			for i, trial in enumerate(self.trials):
 				if running_on_both:
@@ -435,9 +435,9 @@ class TestDataset:
 
 				# Update Every 5
 				if (trials + 1) % 5 == 0:
-					print("####### {0}/{1} KLIP Runs Complete ({2}%) #######".format(trials + 1, number_of_klip,
-																					 round(float(trials + 1) / float(
-																						 number_of_klip), 3) * 100))
+					self.write_to_log_and_print("####### {0}/{1} KLIP Runs Complete ({2}%) #######".
+												format(trials + 2, number_of_klip, round(float(trials + 1) /
+																						 float(number_of_klip),3)*100))
 
 				if run_on_nofakes:
 					# Running KLIP on Data Without Fakes
@@ -450,15 +450,13 @@ class TestDataset:
 
 				# Update Every 5 or When Completely Done
 				if i + 1 == len(self.trials):
-					print("############## DONE WITH KLIP FOR {0} ##############".format(self.object_name))
-					self.write_to_log("\n### DONE WITH KLIP ###")
+					self.write_to_log_and_print("\n### DONE WITH KLIP ###")
 				elif (trials + 2) % 10 == 0:
-					print("####### {0}/{1} KLIP Runs Complete ({2}%) #######".format(trials + 2, number_of_klip,
-																					 round(float(trials + 2) / float(
-																						 number_of_klip), 3) * 100))
+					self.write_to_log_and_print("####### {0}/{1} KLIP Runs Complete ({2}%) #######".
+												format(trials + 2, number_of_klip, round(float(trials + 2) /
+																						 float(number_of_klip),3)*100))
 		else:
-			print("run_KLIP function called, but no KLIP runs conducted. Check arguments.")
-			self.write_to_log("\nrun_KLIP function called, but no KLIP runs conducted. Check arguments.")
+			self.write_to_log_and_print("\nrun_KLIP function called, but no KLIP runs conducted. Check arguments.")
 
 
 	def contrast_and_detection(self, calibrate=[True, False], detect_planets=True):
@@ -485,4 +483,6 @@ class TestDataset:
 							2, len(self.trials) * 2, round(float(i+1) / float(len(self.trials)), 3) * 100))
 		else:
 			print("contrast_and_detection function was called, but no contrast measurements or "
+				  "planet detections were conducted. Check arguments.")
+			self.write_to_log("contrast_and_detection function was called, but no contrast measurements or "
 				  "planet detections were conducted. Check arguments.")
