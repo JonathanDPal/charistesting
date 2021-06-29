@@ -14,7 +14,7 @@ from glob import glob
 # General Set-Up
 fileset0 = 'HR8799_cubes_withsatspots/*.fits'
 mask0 = None
-object_name0 = 'HR8799_withsatspots'
+object_name0 = 'HR8799_withsatspots_largerflux'
 
 # Setting Up For KLIP
 # annuli = [4, 6, 8, 10, 12]
@@ -33,7 +33,8 @@ highpass = [True]
 mode = 'ADI+SDI'
 
 # Setting Up For Fake Planets
-fake_fluxes = [1e-4, 1e-5, 1e-6]
+# fake_fluxes = [1e-4, 1e-5, 1e-6]
+fake_fluxes = [0.08, 0.038, 0.01]
 fake_seps = [20, 40, 60]
 fake_PAs=[0, 90, 180, 270]
 
