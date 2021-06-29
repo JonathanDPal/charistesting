@@ -416,7 +416,7 @@ class TestDataset:
 			print("############## BEGINNING KLIP FOR {0} ##############".format(self.object_name))
 			self.write_to_log('\n### BEGINNING KLIP ###\n')
 			print("####### Total KLIP Runs to Complete: {0} #######".format(number_of_klip))
-			self.write_to_log('\nNumber of KLIP Runs To Complete: {0}'/format(number_of_klip))
+			self.write_to_log('\nNumber of KLIP Runs To Complete: {0}'.format(number_of_klip))
 
 			for i, trial in enumerate(self.trials):
 				if running_on_both:
