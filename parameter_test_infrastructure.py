@@ -318,6 +318,10 @@ class TestDataset:
 		self.object_name = object_name
 		self.mask_xy = mask_xy
 
+		# Making Necessary Directory
+		if not os.path.exists(self.object_name):
+			os.mkdir(self.object_name)
+
 		# Getting Started On Log File
 		self.write_to_log('Object: {0}'.format(object_name))
 		self.write_to_log('\nFileset: {0}'.format(fileset))
