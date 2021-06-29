@@ -318,13 +318,29 @@ class TestDataset:
 		self.object_name = object_name
 		self.mask_xy = mask_xy
 
+		# Getting Started On Log File
+		self.write_to_log('Object: {0}'.format(object_name))
+		self.write_to_log('\nFileset: {0}'.format(fileset))
+		param_names = ['Annuli', 'Subsections', 'Movement', 'Numbasis', 'Corr_Smooth', 'Highpass', 'Spectrum', 'Mode']
+		params = [annuli, subsections, movement, numbasis, spectrum, corr_smooth, highpass]
+		number_of_trials = np.prod([len(p) for p in params])
+		params.append(mode)
+		self.write_to_log('\nNumber of Trials: {0}'.format(number_of_trials))
+		for name, param in zip(param_names, params):
+			self.write_to_log('\n{0}: {1}'.format(name, param))
+
 		print("##################### STARTING WORK ON {0} #####################".format(self.object_name))
+		self.write_to_log('\n################################################')
+		self.write_to_log("\n########### STARTING WORK ON {0} ###########".format(self.object_name))
+
 
 		# Creating CHARISData Object With UnKLIPped Data
 		self.fileset = glob(fileset)
-		self.dataset_no_fakes = CHARISData(self.fileset, guess_spot_locs=[[91,72], [129, 91], [71, 111], [109, 130]],
-										   guess_center_loc=[100,100])
+		with log_file_output(self.object_name):
+			self.dataset_no_fakes = CHARISData(self.fileset, guess_spot_locs=[[91,72], [129,91], [71,111], [109,130]],
+											   guess_center_loc=[100,100])
 		print("####### DONE BUILDING CHARISData OBJECT FOR {0} ########".format(self.object_name))
+
 		self.dataset_with_fakes = deepcopy(self.dataset_no_fakes)
 		self.length = self.dataset_no_fakes.input.shape[1]
 

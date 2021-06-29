@@ -27,14 +27,14 @@ annuli = [7]
 subsections = [4]
 # movement = [0,1,2]
 movement = [4]
+spectrum = [None]
 numbasis = [20]
 # numbasis = [10, 20, 30, 40, 50, 60]
 corr_smooth = [1]
 # corr_smooth = [0, 1, 2]
 highpass = [True]
 # highpass = [False, 5.0, True, 15.0] # True yields default (10.0)
-spectrum = [None]
-mode = 'ADI+SDI'
+mode = ['ADI+SDI']
 
 # Setting Up For Fake Planets
 fake_fluxes = [1e-4, 1e-5, 1e-6]
@@ -76,13 +76,6 @@ td0 = TestDataset(fileset=fileset0, object_name=object_name0, mask_xy=mask0, fak
                   fake_seps=fake_seps, annuli=annuli, subsections=subsections, movement=movement, numbasis=numbasis,
                   corr_smooth=corr_smooth, highpass=highpass, spectrum=spectrum, mode=mode, fake_PAs=fake_PAs,
                   fake_fwhm=fake_fwhm)
-
-td0.write_to_log('Fileset: {0}'.format(fileset0))
-td0.write_to_log('\nNumber of Trials: {0}'.format(len(td0.trials)))
-param_names = ['Annuli', 'Subsections', 'Movement', 'Numbasis', 'Corr_Smooth', 'Highpass', 'Spectrum', 'Mode']
-params = [annuli, subsections, movement, numbasis, corr_smooth, highpass, spectrum, mode]
-for name, param in zip(param_names, params):
-    td0.write_to_log('\n{0}: {1}'.format(name, param))
 
 # Have TestDataset Run Each Part
 if put_in_fakes:
