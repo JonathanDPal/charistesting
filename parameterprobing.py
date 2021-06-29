@@ -30,7 +30,7 @@ corr_smooth = [1]
 # corr_smooth = [0, 1, 2]
 highpass = [True]
 # highpass = [False, 5.0, True, 15.0] # True yields default (10.0)
-mode = ['ADI+SDI']
+mode = 'ADI+SDI'
 
 # Setting Up For Fake Planets
 fake_fluxes = [1e-4, 1e-5, 1e-6]
