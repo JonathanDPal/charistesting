@@ -383,11 +383,14 @@ class TestDataset:
 	def inject_fakes(self):
 		# Getting Values
 		with fits.open(self.fileset[0]) as hdu:
-			spot_to_star = calibrate_ss_contrast(hdu)[1]
+			wln_um, spot_to_star = calibrate_ss_contrast(hdu)
+
+		num_images = self.dataset_with_fakes.input.shape[0] / len(wln_um)
+		full_length_spot_to_star = np.array(list(spot_to_star) * num_images)
 
 		# Inject Fake Planets
 		for fake_flux, sep in zip(self.fake_fluxes, self.fake_seps):
-			flux_to_inject = fake_flux / spot_to_star # UNcalibrating it, NOT calibrating
+			flux_to_inject = fake_flux / full_length_spot_to_star # UNcalibrating it, NOT calibrating
 			for pa in self.fake_PAs:
 				inject_planet(frames=self.dataset_with_fakes.input, centers=self.dataset_with_fakes.centers,
 							  inputflux=flux_to_inject, astr_hdrs=self.dataset_with_fakes.wcs, radius=sep, pa=pa,
