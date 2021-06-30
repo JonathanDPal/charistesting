@@ -445,7 +445,7 @@ class TestDataset:
 						klip_dataset(self.dataset_with_fakes, outputdir=self.object_name+'/klipped_cubes_Wfakes',
 									 fileprefix=self.object_name + '_withfakes_' + trial.klip_parameters,
 									 annuli=trial.annuli, subsections=trial.subsections, movement=trial.movement,
-									 numbasis=trial.numbasis, spectrum=trial.spectrum, verbose=False,
+									 numbasis=trial.numbasis, spectrum=trial.spectrum, verbose=True,
 									 corr_smooth=trial.corr_smooth, highpass=trial.highpass, mode=self.mode)
 
 				# Update Every 5
@@ -460,7 +460,7 @@ class TestDataset:
 						klip_dataset(self.dataset_no_fakes, outputdir=self.object_name+'/klipped_cubes_Nfakes',
 									 fileprefix=self.object_name+ '_withoutfakes_' + trial.klip_parameters,
 									 annuli=trial.annuli, subsections=trial.subsections, movement=trial.movement,
-									 numbasis=trial.numbasis, spectrum=trial.spectrum, verbose=False,
+									 numbasis=trial.numbasis, spectrum=trial.spectrum, verbose=True,
 									 corr_smooth=trial.corr_smooth, highpass=trial.highpass, mode=self.mode)
 
 				# Update Every 5 or When Completely Done
