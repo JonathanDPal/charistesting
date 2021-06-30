@@ -32,7 +32,7 @@ highpass = [True]
 mode = 'ADI+SDI'
 
 # Setting Up For Fake Planets
-fake_fluxes = [1e-2, 1e-3, 1e-4]
+fake_fluxes = [1e-3, 1e-4, 1e-5, 1e-6]
 fake_seps = [15, 30, 45, 60]
 fake_PAs=[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330]
 
