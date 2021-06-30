@@ -70,7 +70,7 @@ with fits.open(glob(fileset0)[0]) as hdulist:
 td0 = TestDataset(fileset=fileset0, object_name=object_name0, mask_xy=mask0, fake_fluxes=fake_fluxes,
                   fake_seps=fake_seps, annuli=annuli, subsections=subsections, movement=movement, numbasis=numbasis,
                   corr_smooth=corr_smooth, highpass=highpass, spectrum=spectrum, mode=mode, fake_PAs=fake_PAs,
-                  fake_fwhm=fake_fwhm, nofakes=False)
+                  fake_fwhm=fake_fwhm, nofakes=run_KLIP_on_dataset_without_fakes)
 
 # Have TestDataset Run Each Part
 if put_in_fakes:
