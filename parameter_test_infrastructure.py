@@ -330,7 +330,7 @@ class TestDataset:
 	pyklip.instruments.CHARIS) and then create an instance of Trial for each set of KLIP parameters to be looked at.
 	"""
 	def __init__(self, fileset, object_name, mask_xy, fake_fluxes, fake_seps, annuli, subsections, movement,
-				 numbasis, corr_smooth, highpass, spectrum, fake_fwhm, fake_PAs, mode):
+				 numbasis, corr_smooth, highpass, spectrum, fake_fwhm, fake_PAs, mode, nofakes):
 		"""
 		Args:
 			fileset: Something probably going like 'directory/*.fits' to let glob find files.
@@ -372,12 +372,14 @@ class TestDataset:
 		# Creating CHARISData Object With UnKLIPped Data
 		self.fileset = glob(fileset)
 		with log_file_output(self.object_name):
-			self.dataset_no_fakes = make_dn_per_contrast(CHARISData(self.fileset))
+			self.dataset_with_fakes = make_dn_per_contrast(CHARISData(self.fileset))
 
 		self.write_to_log_and_print("###### DONE BUILDING CHARISData OBJECT FOR {0} #######".format(self.object_name))
 
-		self.dataset_with_fakes = deepcopy(self.dataset_no_fakes)
-		self.length = self.dataset_no_fakes.input.shape[1]
+		if nofakes:
+			self.dataset_no_fakes = deepcopy(self.dataset_no_fakes)
+
+		self.length = self.dataset_with_fakes.input.shape[1]
 
 		# Info For Injecting (and later identifying) Fake Planets
 		self.fake_fluxes = fake_fluxes
@@ -398,7 +400,7 @@ class TestDataset:
 															 fake_PAs=fake_PAs,fake_fluxes=fake_fluxes,
 															 object_name=object_name,fake_fwhm=fake_fwhm,
 															 fake_seps=fake_seps, corr_smooth=cs,
-															 dn_per_contrast=self.dn_per_contrast,
+															 dn_per_contrast=self.dataset_with_fakes.dn_per_contrast,
 															 highpass=hp, length=self.length))
 		if not isinstance(mode, str):
 			warnings.warn("WARNING: Inputted mode is not a string. If inputted mode is a list or tuple, then code "
