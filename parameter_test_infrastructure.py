@@ -324,7 +324,7 @@ class TestDataset:
 			os.mkdir(self.object_name)
 
 		# Getting Started On Log File
-		self.write_to_log('Object: {0}'.format(object_name), 'w')
+		self.write_to_log('Title for Set: {0}'.format(object_name), 'w')
 		self.write_to_log('\nFileset: {0}'.format(fileset))
 		param_names = ['Annuli', 'Subsections', 'Movement', 'Numbasis', 'Corr_Smooth', 'Highpass', 'Spectrum', 'Mode']
 		params = [annuli, subsections, movement, numbasis, spectrum, corr_smooth, highpass]
@@ -450,7 +450,7 @@ class TestDataset:
 
 				# Update Every 5
 				if (trials + 1) % 5 == 0:
-					self.write_to_log_and_print("####### {0}/{1} KLIP Runs Complete ({2}%) #######".
+					self.write_to_log_and_print("####### {0}/{1} KLIP Runs Complete ({2}%) #######\n".
 												format(trials + 1, number_of_klip, round(float(trials + 1) /
 																						 float(number_of_klip),3)*100))
 
