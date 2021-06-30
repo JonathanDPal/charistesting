@@ -78,6 +78,37 @@ def calibrate_ss_contrast(speccubefile):
 	return wln_um, spot_to_star
 
 
+def make_dn_per_contrast(dataset):
+	"""
+    Calculates and sets spot_ratio and dn_per_contrast attributes for an initialized CHARISData dataset.
+
+    Returns modified CHARISData dataset object.
+    """
+
+	# Gets number of input fits files (Ncubes) and number of wavelengths (Nwln)
+	Nframes = dataset.input.shape[0]  # This dimension is Ncubes*Nwln
+	Ncubes = np.size(np.unique(dataset.filenums))
+	Nwln = int(Nframes / Ncubes)
+
+	# Gets wavelength in microns; 1D array with shape (Nfiles * Nwlns,)
+	wln_um = dataset.wvs
+
+	# Calculates the spot/star ratio for each wavelength, in um; 1D array with shape (Nfiles * Nwlns,)
+	dataset.spot_ratio = 2.72e-3 * (wln_um / 1.55) ** -2
+
+	# Finds the mean spot flux across all files at each wavelength; 1D array with shape (Nwlns,)
+	mean_spot_flux = np.nanmean(dataset.spot_flux.reshape(Ncubes, Nwln), axis=0)
+
+	# Tiles the mean spot flux array to repeat Ncubes times; 1D array with shape (Nfiles * Nwlns,)
+	mean_spot_fluxes = np.tile(mean_spot_flux, Ncubes)
+
+	# Calculates and sets the dn_per_contrast
+	dataset.dn_per_contrast = mean_spot_fluxes / dataset.spot_ratio
+
+	# Returns modified dataset object
+	return dataset
+
+
 def pasep_to_xy(PAs, seps):
 	"""
 	Takes lists of position angles and seperations and yields a numpy array with x-y coordinates for each combo.
@@ -96,7 +127,7 @@ class Trial:
 	from KLIP for the KLIP output with that particular set of parameters.
 	"""
 	def __init__(self, annuli, subsections, movement, numbasis, spectrum, mask_xy, fake_PAs, fake_fluxes,
-				 object_name, fake_fwhm, fake_seps, corr_smooth, highpass, length):
+				 object_name, fake_fwhm, fake_seps, corr_smooth, dn_per_contrast, highpass, length):
 		self.annuli = annuli
 		self.subsections = subsections
 		self.movement = movement
@@ -109,6 +140,7 @@ class Trial:
 		self.fake_fwhm = fake_fwhm
 		self.fake_seps = np.array(fake_seps)
 		self.corr_smooth = corr_smooth
+		self.dn_per_contrast = dn_per_contrast
 
 		# Switching Highpass From Fourier to Pixels If Necessary
 		if isinstance(highpass, (int, float)) and not isinstance(highpass, bool):
@@ -157,13 +189,14 @@ class Trial:
 
 		for i, filepath in enumerate(filepaths):
 			with fits.open(filepath) as hdulist:
-				wln_um, spot_to_star = calibrate_ss_contrast(hdulist)
-				calib_cube = deepcopy(hdulist[1].data) * spot_to_star[:, np.newaxis, np.newaxis]
+				# wln_um, spot_to_star = calibrate_ss_contrast(hdulist)
+				calib_cube = copy(hdulist[1].data)
 				dataset_center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
 				dataset_fwhm, dataset_iwa, dataset_owa = FWHMIOWA_calculator(hdulist)
 				output_wcs = WCS(header=hdulist[0].header, naxis=[1, 2])
 
 			frame = calib_cube[wavelength_index]
+			frame /= self.dn_per_contrast[wavelength_index]
 
 			if isinstance(self.mask_xy, (list, tuple)):
 				x_pos = self.mask_xy[0]
@@ -339,8 +372,8 @@ class TestDataset:
 		# Creating CHARISData Object With UnKLIPped Data
 		self.fileset = glob(fileset)
 		with log_file_output(self.object_name):
-			self.dataset_no_fakes = CHARISData(self.fileset, guess_spot_locs=[[91,72], [129,91], [71,111], [109,130]],
-											   guess_center_loc=[100,100])
+			self.dataset_no_fakes = make_dn_per_contrast(CHARISData(self.fileset))
+
 		self.write_to_log_and_print("###### DONE BUILDING CHARISData OBJECT FOR {0} #######".format(self.object_name))
 
 		self.dataset_with_fakes = deepcopy(self.dataset_no_fakes)
@@ -365,6 +398,7 @@ class TestDataset:
 															 fake_PAs=fake_PAs,fake_fluxes=fake_fluxes,
 															 object_name=object_name,fake_fwhm=fake_fwhm,
 															 fake_seps=fake_seps, corr_smooth=cs,
+															 dn_per_contrast=self.dn_per_contrast,
 															 highpass=hp, length=self.length))
 		if not isinstance(mode, str):
 			warnings.warn("WARNING: Inputted mode is not a string. If inputted mode is a list or tuple, then code "
@@ -390,15 +424,15 @@ class TestDataset:
 
 	def inject_fakes(self):
 		# Getting Values
-		with fits.open(self.fileset[0]) as hdu:
-			wln_um, spot_to_star = calibrate_ss_contrast(hdu)
+		# with fits.open(self.fileset[0]) as hdu:
+		# 	wln_um, spot_to_star = calibrate_ss_contrast(hdu)
 
-		num_images = self.dataset_with_fakes.input.shape[0] / len(wln_um)
-		full_length_spot_to_star = np.array(list(spot_to_star) * num_images)
+		# num_images = self.dataset_with_fakes.input.shape[0] / len(wln_um)
+		# full_length_spot_to_star = np.array(list(spot_to_star) * num_images)
 
 		# Inject Fake Planets
 		for fake_flux, sep in zip(self.fake_fluxes, self.fake_seps):
-			flux_to_inject = fake_flux / full_length_spot_to_star # UNcalibrating it, NOT calibrating
+			flux_to_inject = fake_flux * dataset.dn_per_contrast # UNcalibrating it, NOT calibrating
 			for pa in self.fake_PAs:
 				inject_planet(frames=self.dataset_with_fakes.input, centers=self.dataset_with_fakes.centers,
 							  inputflux=flux_to_inject, astr_hdrs=self.dataset_with_fakes.wcs, radius=sep, pa=pa,
