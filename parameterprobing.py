@@ -14,21 +14,19 @@ from glob import glob
 # General Set-Up
 fileset0 = 'HR8799_cubes_withsatspots/*.fits'
 mask0 = None
-object_name0 = 'HR8799_movementtesting'
+object_name0 = 'HR8799_minor_param_testing'
 
 # Setting Up For KLIP
 # annuli = [4, 6, 8, 10, 12]
-annuli = [6, 7, 8, 9, 10, 11, 12]
+annuli = [9]
 # subsections = [2, 4, 6]
 subsections = [4]
-movement = [0,1,2,3,4,5]
+movement = [1]
 spectrum = [None]
 numbasis = [20]
 # numbasis = [10, 20, 30, 40, 50, 60]
-corr_smooth = [1]
-# corr_smooth = [0, 1, 2]
-highpass = [True]
-# highpass = [False, 5.0, True, 15.0] # True yields default (10.0)
+corr_smooth = [0, 1, 2]
+highpass = [False, 5.0, True, 15.0] # True yields default (10.0)
 mode = 'ADI+SDI'
 
 # Setting Up For Fake Planets
