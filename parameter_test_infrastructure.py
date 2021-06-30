@@ -434,7 +434,7 @@ class TestDataset:
 
 		# Inject Fake Planets
 		for fake_flux, sep in zip(self.fake_fluxes, self.fake_seps):
-			flux_to_inject = fake_flux * dataset.dn_per_contrast # UNcalibrating it, NOT calibrating
+			flux_to_inject = fake_flux * self.dataset_with_fakes.dn_per_contrast # UNcalibrating it, NOT calibrating
 			for pa in self.fake_PAs:
 				inject_planet(frames=self.dataset_with_fakes.input, centers=self.dataset_with_fakes.centers,
 							  inputflux=flux_to_inject, astr_hdrs=self.dataset_with_fakes.wcs, radius=sep, pa=pa,
