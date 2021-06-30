@@ -451,7 +451,7 @@ class TestDataset:
 				# Update Every 5
 				if (trials + 1) % 5 == 0:
 					self.write_to_log_and_print("####### {0}/{1} KLIP Runs Complete ({2}%) #######".
-												format(trials + 2, number_of_klip, round(float(trials + 1) /
+												format(trials + 1, number_of_klip, round(float(trials + 1) /
 																						 float(number_of_klip),3)*100))
 
 				if run_on_nofakes:
