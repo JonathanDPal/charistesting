@@ -12,9 +12,9 @@ from glob import glob
 # see https://docs.google.com/document/d/1yX0l96IZs1IxxKCRmriVSAQM3KFGF9U1-FnpJXhcLXo/edit?usp=sharing for help
 
 # General Set-Up
-fileset0 = 'HR8799_cubes_withsatspots/*.fits'
+fileset0 = 'HD1160_cubes_V2/*.fits'
 mask0 = None
-object_name0 = 'HR8799_minor_param_testing'
+object_name0 = 'HD1160_new_dn_per_contrast'
 
 # Setting Up For KLIP
 # annuli = [4, 6, 8, 10, 12]
@@ -25,21 +25,23 @@ movement = [1]
 spectrum = [None]
 numbasis = [20]
 # numbasis = [10, 20, 30, 40, 50, 60]
-corr_smooth = [0, 1, 2]
-highpass = [False, 5.0, True, 15.0] # True yields default (10.0)
+# corr_smooth = [0, 1, 2]
+corr_smooth = [1]
+highpass = [True]
+# highpass = [False, 5.0, True, 15.0] # True yields default (10.0)
 mode = 'ADI+SDI'
 
 # Setting Up For Fake Planets
 fake_fluxes = [1e-2, 1e-3, 1e-4]
-fake_seps = [20, 40, 60]
-fake_PAs=[0, 45, 90, 135, 180, 225, 270, 315]
+fake_seps = [15, 30, 45, 60]
+fake_PAs=[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330]
 
 # Specifying Particular Things To (Not) Do
 put_in_fakes = True
 run_KLIP_on_dataset_with_fakes = True # if no fakes are injected, this will just be a duplicate
-run_KLIP_on_dataset_without_fakes = True
-get_uncalibrated_contrast = True # this contrast still calibrated with respect to everything except KLIP attenuation
-get_calibrated_contrast = True # won't do anything if no fake planets were injected
+run_KLIP_on_dataset_without_fakes = False
+get_uncalibrated_contrast = False
+get_calibrated_contrast = True # won't be calibrated if no fake planets were injected
 get_planet_detections = True
 
 ############################################################
