@@ -97,7 +97,7 @@ def make_dn_per_contrast(dataset):
 	dataset.spot_ratio = 2.72e-3 * (wln_um / 1.55) ** -2
 
 	# Finds the mean spot flux across all files at each wavelength; 1D array with shape (Nwlns,)
-	mean_spot_flux = np.nanmean(dataset.spot_flux.reshape(Ncubes, Nwln), axis=0)
+	mean_spot_flux = np.nanmean(dataset.spot_fluxes.reshape(Ncubes, Nwln), axis=0)
 
 	# Tiles the mean spot flux array to repeat Ncubes times; 1D array with shape (Nfiles * Nwlns,)
 	mean_spot_fluxes = np.tile(mean_spot_flux, Ncubes)
