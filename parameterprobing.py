@@ -102,9 +102,10 @@ if get_uncalibrated_contrast:
 ############################################################
 start = time()
 
-# KLIP yields a bunch of RuntimeWarnings that we don't want to spam our log file
+# KLIP creates a bunch of RuntimeWarnings that we don't want to spam our log file
 warnings.simplefilter('ignore', category=RuntimeWarning)
 
+# FWHM Is Based on Central Wavelength of Filter Used During Obsveration.
 with fits.open(glob(fileset0)[0]) as hdulist:
    fake_fwhm = FWHMIOWA_calculator(hdulist)[0]
 

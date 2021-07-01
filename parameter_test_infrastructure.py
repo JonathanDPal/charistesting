@@ -21,11 +21,11 @@ import warnings
 
 
 @contextmanager
-def log_file_output(directory):
+def log_file_output(directory, write_type='a'):
 	"""
 	Has outputs written out to a log file in the specified directory instead of printed in terminal.
 	"""
-	with open('{0}/log.txt'.format(directory), 'a') as log_file:
+	with open('{0}/log.txt'.format(directory), write_type) as log_file:
 		old_stdout = sys.stdout
 		sys.stdout = log_file
 		try:
@@ -87,17 +87,19 @@ def make_dn_per_contrast(dataset):
 
 def pasep_to_xy(PAs, seps):
 	"""
-	Takes lists of position angles and seperations and yields a numpy array with x-y coordinates for each combo.
+	Takes lists of position angles and seperations and yields a numpy array with x-y coordinates for each combo, using
+	the convention used in the table of values outputted by the planet detection software. The origin used in their
+	convention is x=100, y=100 with respect to the bottom left corner of the image.
 	"""
 	radians = np.array(PAs) / 180 * np.pi
-	xy = []
+	locs = []
 	for sep in seps:
 		for rad in radians:
 			x = -np.sin(rad) * sep
 			y = np.cos(rad) * sep
-			xy.append(np.array([x, y]))
-
-	return np.array(xy)
+			loc = [x, y]
+			locs.append(loc)
+	return locs
 
 
 # TestDataset Will Have a List of Trials Associated With It (one for each group of KLIP Parameters)
@@ -129,14 +131,14 @@ class Trial:
 		self.dn_per_contrast = dn_per_contrast
 		self.wln_um = wln_um
 
-		# Switching Highpass From Fourier to Pixels If Necessary
+		# Switching Highpass To Original Form If Necessary
 		if isinstance(highpass, (int, float)) and not isinstance(highpass, bool):
 			highpass = float(highpass)
 			self.highpass = length / (highpass * 2 * np.sqrt(2 * np.log(2)))
 		else:
 			self.highpass = highpass
 
-		# String Identifying Parameters Used
+		# String Identifying Parameters Used (Used Later For Saving Contrast Info)
 		self.klip_parameters = str(annuli)+'Annuli_'+str(subsections)+'Subsections_'+str(movement)+'Movement_'+str(
 								spectrum)+'Spectrum_'+str(corr_smooth)+'Smooth_'+str(highpass)+'Highpass_'
 
@@ -146,20 +148,9 @@ class Trial:
 		self.filepaths_Nfakes = [self.object_name + '/klipped_cubes_Nfakes/' + self.object_name + '_withoutfakes_' +
 								 self.klip_parameters +'-KL{0}-speccube.fits'.format(nb) for nb in self.numbasis]
 
-		# Filepath to Save
+		# Filepath to Save Planet Detection Output To
 		self.filepath_detections_prefixes = [self.object_name + '/detections/{0}_KL{1}_SNR-'.format(
 												self.klip_parameters, nb) for nb in self.numbasis]
-
-		# Setting Up Filepath
-		if not os.path.exists(self.object_name):
-			os.mkdir(self.object_name)
-
-		# Data To Be Added Later
-		self.calib_cube = None
-		self.uncalib_contrast = None
-		self.calib_contrast = None
-		self.detections = None
-		self.classified_detections = None
 
 
 	def get_contrast(self, contains_fakes, wavelength_index=10):
@@ -167,24 +158,27 @@ class Trial:
 		Measures contrast, then saves a contrast curve as a PNG and the contrast data as a CSV.
 		---
 		Args:
-			contains_fakes (bool): Set to True if fakes present.
-			wavelength_index (int): Index of wavelength to use (subsets calibrated cube along wavelength axis).
+			contains_fakes (bool): Set to True if looking to make measurements on data with fakes, vice versa.
+			wavelength_index (int): Index of wavelength to look at for contrast information. Default: 1.63 um
 		"""
 		if contains_fakes:
 			filepaths = self.filepaths_Wfakes
 		else:
 			filepaths = self.filepaths_Nfakes
 
-		for i, filepath in enumerate(filepaths):
+		# Measuring Contrast For Each Set of KL Modes
+		for filepath_index, filepath in enumerate(filepaths): # filepath_index used to identify number of KL modes
 			with fits.open(filepath) as hdulist:
 				cube = copy(hdulist[1].data)
 				dataset_center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
 				dataset_fwhm, dataset_iwa, dataset_owa = FWHMIOWA_calculator(hdulist)
-				output_wcs = WCS(header=hdulist[0].header, naxis=[1, 2])
+				output_wcs = WCS(header=hdulist[0].header, naxis=[1, 2]) # used for injected planet flux retrieval
 
+			# Taking Slice of Cube and then Calibrating It
 			frame = cube[wavelength_index]
 			frame /= self.dn_per_contrast[wavelength_index]
 
+			# Applying Mask to Primary Target If Location Specified
 			if isinstance(self.mask_xy, (list, tuple)):
 				x_pos = self.mask_xy[0]
 				y_pos = self.mask_xy[1]
@@ -193,6 +187,7 @@ class Trial:
 				distance_from_planet = np.sqrt((xdat - x_pos) ** 2 + (ydat - y_pos) ** 2)
 				frame[np.where(distance_from_planet <= 2 * dataset_fwhm)] = np.nan
 
+			# Measuring Contrast
 			contrast_seps, contrast = meas_contrast(frame, dataset_iwa, dataset_owa, dataset_fwhm,
 													center=dataset_center, low_pass_filter=True)
 
@@ -213,10 +208,10 @@ class Trial:
 					closest_throughput_index = np.argmin(np.abs(sep - self.fake_seps))
 					correct_contrast[j] /= algo_throughput[closest_throughput_index]
 
-			# Saving Data to CSV File and Saving a Graph of Data
+			# Saving Data to CSV File and Saving a Contrast Curve (PNG)
 			if contains_fakes:
 				data_output_filepath = self.object_name + '/calibrated_contrast/{0}_KL{1}_contrast.csv'.format(
-										   self.klip_parameters, self.numbasis[i])
+										   self.klip_parameters, self.numbasis[filepath_index])
 				df = pd.DataFrame()
 				df['Seperation'] = contrast_seps
 				df['Calibrated Contrast'] = contrast
@@ -230,7 +225,7 @@ class Trial:
 				df.to_csv(data_output_filepath)
 			else:
 				data_output_filepath = self.object_name + '/uncalibrated_contrast/{0}_KL{1}_contrast.csv'.format(
-										   self.klip_parameters, self.numbasis[i])
+										   self.klip_parameters, self.numbasis[filepath_index])
 				df = pd.DataFrame()
 				df['Seperation'] = contrast_seps
 				df['Uncalibrated Contrast'] = contrast
@@ -249,18 +244,18 @@ class Trial:
 		Looks at a KLIPped dataset with fakes and indicates potential planets.
 		---
 		Args:
-			SNR_threshold: Default: 3. Set this to the lowest value to be looked at; when
-			generating ROC curves, the code will automatically look at subsets of the detections
-			at different SNR thresholds, but it can only look at SNR thresholds greater than or
-			equal to the one specifie here.
-			datasetwithfakes (Bool): Whether or not you want to look at
+			SNR_threshold: Default: 2. Set this to the lowest value to be looked at. Later on, the subsets of
+										detections can be created for other SNR_thresholds.
+			datasetwithfakes (Bool): Default: True. If True, then run planet detection on dataset containing injected
+										planets; if False, then run planet detection on dataset not containing
+										injected planets.
 		"""
 		if datasetwithfakes:
 			filepaths = self.filepaths_Wfakes
 		else:
 			filepaths = self.filepaths_Nfakes
 
-		for i, filepath in enumerate(filepaths):
+		for filepath_index, filepath in enumerate(filepaths): # filepath_index used to identify number of KL modes
 			with fits.open(filepath) as hdulist:
 				image = copy(hdulist[1].data)
 				center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
@@ -268,8 +263,8 @@ class Trial:
 			x_grid, y_grid = np.meshgrid(np.arange(-10,10), np.arange(-10,10))
 			kernel_gauss = gauss2d(x_grid, y_grid)
 
-			# flat spectrum given so that it collapses it into one image, instead of giving
-			# seperate images for each wavelength
+			# flat spectrum given here for generating cross-coorelated image so that pyKLIP collapses it into one
+			# image, instead of giving seperate images for each wavelength
 			image_cc = calculate_cc(image, kernel_gauss, spectrum=np.ones(len(image[0])), nans2zero=True)
 
 			SNR_map = get_image_stat_map_perPixMasking(image_cc, centroid=center, mask_radius=5, Dr=2, type='SNR')
@@ -279,19 +274,29 @@ class Trial:
 
 			candidates = pd.DataFrame(candidates_table, columns=['Index', 'SNR Value', 'PA', 'Sep (pix)',
 																 'Sep (as)', 'x', 'y', 'row', 'col'])
+			injected = [] # going to be an additional column of candidates DataFrame
+			fakelocs = pasep_to_xy(self.fake_PAs, self.fake_seps) # where planets were injected
 
-			injected = []
-			fakelocs = pasep_to_xy(self.fake_PAs, self.fake_seps)
+			# Determining Whether Candidates Are Planets or Not
 			for _, row in candidates.iterrows():
+				# Distances From Injection Sites
 				distances = [np.sqrt((row['x'] - fl[0]) ** 2 + (row['y'] - fl[1]) ** 2) for fl in fakelocs]
-				distance_from_target = np.sqrt((row['column'] - self.mask_xy[0]) ** 2 + (row['row'] - self.mask_xy[
-					1]) ** 2)
-				if np.min(distances) > self.fake_fwhm and distance_from_target > self.fake_fwhm:
-						injected.append(False)
-				else:
+				# Distance From Actual Target
+				distances.append(np.sqrt((row['column'] - self.mask_xy[0]) ** 2 +
+											   (row['row'] - self.mask_xy[1]) ** 2))
+
+				# If Detection Within 1 FWHM of Injection Site or Actual Target, Considered "Injected"
+				if np.min(distances) < self.fake_fwhm:
 						injected.append(True)
+				else:
+						injected.append(False)
+
+			# Appending Information to Previous candidates DataTable
 			candidates['Injected'] = injected
-			candidates.to_csv('{0}{1}.csv'.format(self.filepath_detections_prefixes[i], str(SNR_threshold)))
+
+			# Saving Information
+			candidates.to_csv('{0}{1}.csv'.format(self.filepath_detections_prefixes[filepath_index],
+												  str(SNR_threshold)))
 
 
 	def __eq__(self, other):
@@ -422,6 +427,11 @@ class TestDataset:
 
 
 	def run_KLIP(self, run_on_fakes=True, run_on_nofakes=True):
+		"""
+		Args:
+			run_on_fakes (bool): Whether or not to run KLIP on dataset containing fake planets.
+			run_on_nofakes (bool): Whether or not to run KLIP on dataset not containing fake planets.
+		"""
 		if run_on_fakes or run_on_nofakes: # making sure at least set of KLIP runs will happen
 			# Making Sure Output Directories Exist
 			if not os.path.exists(self.object_name):
@@ -433,13 +443,8 @@ class TestDataset:
 				if not os.path.exists(self.object_name+'/klipped_cubes_Nfakes'):
 					os.mkdir(self.object_name+'/klipped_cubes_Nfakes')
 
-			# Determining Number of KLIP Runs That Will Be Conducted
+			# Determinng Number of KLIP Runs That Will Be Run
 			if run_on_fakes and run_on_nofakes:
-				running_on_both = True
-			else:
-				running_on_both = False
-
-			if running_on_both:
 				number_of_klip = len(self.trials) * 2
 			else:
 				number_of_klip = len(self.trials)
@@ -447,11 +452,12 @@ class TestDataset:
 			self.write_to_log_and_print('####### BEGINNING KLIP #######\n####### Number of KLIP Runs To Complete: '
 										'{0} #######\n'.format(number_of_klip))
 
-			for i, trial in enumerate(self.trials):
-				if running_on_both:
-					trials = i * 2
+			for i, trial in enumerate(self.trials): # i only used for measuring progress
+				# Get Number of KLIP Runs Conducted Already
+				if run_on_fakes and run_on_nofakes:
+					klip_runs = i * 2
 				else:
-					trials = i
+					klip_runs = i
 
 				if run_on_fakes:
 					# Running KLIP on Data With Fakes
@@ -463,9 +469,9 @@ class TestDataset:
 									 corr_smooth=trial.corr_smooth, highpass=trial.highpass, mode=self.mode)
 
 				# Update Every 5
-				if (trials + 1) % 5 == 0:
+				if (klip_runs + 1) % 5 == 0:
 					self.write_to_log_and_print("####### {0}/{1} KLIP Runs Complete ({2}%) #######\n".
-												format(trials + 1, number_of_klip, round(float(trials + 1) /
+												format(klip_runs + 1, number_of_klip, round(float(klip_runs + 1) /
 																						 float(number_of_klip),3)*100))
 
 				if run_on_nofakes:
@@ -480,9 +486,9 @@ class TestDataset:
 				# Update Every 5 or When Completely Done
 				if i + 1 == len(self.trials):
 					self.write_to_log_and_print("\n### DONE WITH KLIP ###")
-				elif (trials + 2) % 10 == 0:
+				elif (klip_runs + 2) % 10 == 0:
 					self.write_to_log_and_print("####### {0}/{1} KLIP Runs Complete ({2}%) #######".
-												format(trials + 2, number_of_klip, round(float(trials + 2) /
+												format(klip_runs + 2, number_of_klip, round(float(klip_runs + 2) /
 																						 float(number_of_klip),3)*100))
 		else:
 			self.write_to_log_and_print("\nrun_KLIP function called, but no KLIP runs conducted. Check arguments.")
@@ -501,12 +507,16 @@ class TestDataset:
 			self.write_to_log_and_print("\n############## BEGINNING CONTRAST AND DETECTION FOR {0} "
 										 "##############".format(self.object_name))
 
-			for i, trial in enumerate(self.trials):
+			for i, trial in enumerate(self.trials): # i only used for progress updates
+				# if calib=True and fake planets injected, contrast will be calibrated w/ respect to KLIP subtraction
 				for calib in calibrate:
 					trial.get_contrast(calib)
 				if detect_planets:
+					# if withfakes=True, detections will use KLIP output w/ fakes, else will use KLIP output w/o fakes
 					for withfakes in datasetwithfakes:
 						trial.detect_planets(datasetwithfakes=withfakes)
+
+				# Update Every 10 or When Completely Done
 				if i + 1 == len(self.trials):
 					self.write_to_log_and_print('\n############## DONE WITH CONTRAST AND DETECTION FOR {0} '
 												 '##############'.format(self.object_name))
