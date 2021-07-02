@@ -41,7 +41,7 @@ highpass = [True]
 mode = 'ADI+SDI' # Exactly ONE (not a list or tuple) or the following: 'ADI', 'SDI', 'ADI+SDI'
 
 # Setting Up For Fake Planets
-fake_fluxes = [5e-4, 5e-5, 5e-6, 1e-4, 1e-5, 1e-6] # List of Float(s)
+fake_fluxes = [1e-3, 1e-4, 1e-5, 5e-4, 5e-5, 5e-6] # List of Float(s)
 fake_seps = [20, 40, 60] # List of Integer(s) and/or Float(s)
 fake_PAs=[19, 79, 139, 199, 259, 319] # List of Integer(s) and/or Float(s)
 

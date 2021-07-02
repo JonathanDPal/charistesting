@@ -91,6 +91,8 @@ def pasep_to_xy(PAs, seps):
 	the convention used in the table of values outputted by the planet detection software. The origin used in their
 	convention is the center of the star's PSF.
 	"""
+	PAs = [float(pa) for pa in PAs]
+	seps = [float(sep) for sep in seps]
 	radians = np.array(PAs) / 180 * np.pi
 	locs = []
 	for sep in seps:
@@ -315,12 +317,8 @@ class Trial:
 			fakelocs = pasep_to_xy(self.fake_PAs, self.fake_seps) # where planets were injected
 
 			# Determining Whether Candidates Are Planets or Not
-			xpos = []
-			ypos = []
-			for x in candidates['x']:
-				xpos.append(x)
-			for y in candidates['y']:
-				ypos.append(y)
+			xpos = candidates['x']
+			ypos = candidates['y']''
 			candidate_locations = zip(xpos, ypos)
 
 			def distance(xy1, xy2):
@@ -338,6 +336,7 @@ class Trial:
 				distances_from_fakes.append(np.min(distances))
 				distances2 = []
 				for mask in self.mask_xy:
+					mask = np.array(mask) - 100 # aligning coordinate systems
 					distances2.append(distance(c, mask))
 				distances_from_targets.append(np.min(distances2))
 
@@ -351,6 +350,8 @@ class Trial:
 					injected.append(False)
 
 			# Appending Information to Previous candidates DataTable
+			candidates['Distance From Fakes'] = distances_from_fakes
+			candidates['Distance From Targets'] = distances_from_targets
 			candidates['Injected'] = injected
 
 			# Saving Information
@@ -503,76 +504,81 @@ class TestDataset:
 		self.write_to_log_and_print("############ DONE INJECTING FAKES FOR {0} ############".format(self.object_name))
 
 
-	def run_KLIP(self, run_on_fakes=True, run_on_nofakes=True):
-		"""
-		Args:
-			run_on_fakes (bool): Whether or not to run KLIP on dataset containing fake planets.
-			run_on_nofakes (bool): Whether or not to run KLIP on dataset not containing fake planets.
-		"""
-		if run_on_fakes or run_on_nofakes: # making sure at least set of KLIP runs will happen
-			# Making Sure Output Directories Exist
-			if not os.path.exists(self.object_name):
-				os.mkdir(self.object_name)
-			if run_on_fakes:
-				if not os.path.exists(self.object_name+'/klipped_cubes_Wfakes'):
-					os.mkdir(self.object_name+'/klipped_cubes_Wfakes')
+	def run_KLIP_on_data_without_fakes(self):
+		# Making Sure Output Directories Exist
+		if not os.path.exists(self.object_name):
+			os.mkdir(self.object_name)
+		if not os.path.exists(self.object_name+'/klipped_cubes_Nfakes'):
+			os.mkdir(self.object_name+'/klipped_cubes_Nfakes')
+
+		# Determinng Number of KLIP Runs That Will Be Run
+		number_of_klip = len(self.trials)
+
+		self.write_to_log_and_print('####### BEGINNING KLIP ON DATA WITHOUT FAKES #######\n####### Number of KLIP Runs '
+									'To Complete: {0} #######\n'.format(number_of_klip))
+
+		for i, trial in enumerate(self.trials): # i only used for measuring progress
+			# Get Number of KLIP Runs Conducted Already
+			klip_runs = i
+
+			# Update Every 5
+			if (klip_runs + 1) % 5 == 0:
+				self.write_to_log_and_print("####### {0}/{1} KLIP Runs Complete ({2}%) #######\n".
+											format(klip_runs + 1, number_of_klip, round(float(klip_runs + 1) /
+																					 float(number_of_klip),3)*100))
+
 			if run_on_nofakes:
-				if not os.path.exists(self.object_name+'/klipped_cubes_Nfakes'):
-					os.mkdir(self.object_name+'/klipped_cubes_Nfakes')
+				# Running KLIP on Data Without Fakes
+				with log_file_output(self.object_name):
+					klip_dataset(self.dataset, outputdir=self.object_name+'/klipped_cubes_Nfakes',
+								 fileprefix=self.object_name+ '_withoutfakes_' + trial.klip_parameters,
+								 annuli=trial.annuli, subsections=trial.subsections, movement=trial.movement,
+								 numbasis=trial.numbasis, spectrum=trial.spectrum, verbose=True,
+								 corr_smooth=trial.corr_smooth, highpass=trial.highpass, mode=self.mode,
+								 numthreads=65)
 
-			# Determinng Number of KLIP Runs That Will Be Run
-			if run_on_fakes and run_on_nofakes:
-				number_of_klip = len(self.trials) * 2
-			else:
-				number_of_klip = len(self.trials)
+			# Update Every 5 or When Completely Done
+			if i + 1 == len(self.trials):
+				self.write_to_log_and_print("\n### DONE WITH KLIP ON DATA WITHOUT FAKES###")
+			elif (klip_runs + 2) % 10 == 0:
+				self.write_to_log_and_print("####### {0}/{1} KLIP Runs Complete ({2}%) #######".
+											format(klip_runs + 2, number_of_klip, round(float(klip_runs + 2) /
+																					 float(number_of_klip),3)*100))
 
-			self.write_to_log_and_print('####### BEGINNING KLIP #######\n####### Number of KLIP Runs To Complete: '
-										'{0} #######\n'.format(number_of_klip))
 
-			for i, trial in enumerate(self.trials): # i only used for measuring progress
-				# Get Number of KLIP Runs Conducted Already
-				if run_on_fakes and run_on_nofakes:
-					klip_runs = i * 2
-				else:
-					klip_runs = i
+	def run_KLIP_on_data_with_fakes(self):
+		# Making Sure Output Directories Exist
+		if not os.path.exists(self.object_name):
+			os.mkdir(self.object_name)
+		if not os.path.exists(self.object_name+'/klipped_cubes_Wfakes'):
+			os.mkdir(self.object_name+'/klipped_cubes_Wfakes')
 
-				if run_on_fakes:
-					# Running KLIP on Data With Fakes
-					with log_file_output(self.object_name):
-						klip_dataset(self.dataset, outputdir=self.object_name + '/klipped_cubes_Wfakes',
-									 fileprefix=self.object_name + '_withfakes_' + trial.klip_parameters,
-									 annuli=trial.annuli, subsections=trial.subsections, movement=trial.movement,
-									 numbasis=trial.numbasis, spectrum=trial.spectrum, verbose=True,
-									 corr_smooth=trial.corr_smooth, highpass=trial.highpass, mode=self.mode,
-									 numthreads=65)
-						trial.output_wcs = self.dataset.output_wcs[0] # need this for calibrating contrast curve
+		number_of_klip = len(self.trials)
 
-				# Update Every 5
-				if (klip_runs + 1) % 5 == 0:
-					self.write_to_log_and_print("####### {0}/{1} KLIP Runs Complete ({2}%) #######\n".
-												format(klip_runs + 1, number_of_klip, round(float(klip_runs + 1) /
-																						 float(number_of_klip),3)*100))
+		self.write_to_log_and_print('####### BEGINNING KLIP ON DATA WITH FAKES #######\n####### Number of KLIP Runs To '
+									'Complete: {0} #######\n'.format(number_of_klip))
 
-				if run_on_nofakes:
-					# Running KLIP on Data Without Fakes
-					with log_file_output(self.object_name):
-						klip_dataset(self.dataset, outputdir=self.object_name+'/klipped_cubes_Nfakes',
-									 fileprefix=self.object_name+ '_withoutfakes_' + trial.klip_parameters,
-									 annuli=trial.annuli, subsections=trial.subsections, movement=trial.movement,
-									 numbasis=trial.numbasis, spectrum=trial.spectrum, verbose=True,
-									 corr_smooth=trial.corr_smooth, highpass=trial.highpass, mode=self.mode,
-									 numthreads=65)
-						trial.output_wcs = self.dataset.output_wcs[0] # need this for calibrating contrast curve
+		for i, trial in enumerate(self.trials): # i only used for measuring progress
+			# Get Number of KLIP Runs Conducted Already
+			klip_runs = i
 
-				# Update Every 5 or When Completely Done
-				if i + 1 == len(self.trials):
-					self.write_to_log_and_print("\n### DONE WITH KLIP ###")
-				elif (klip_runs + 2) % 10 == 0:
-					self.write_to_log_and_print("####### {0}/{1} KLIP Runs Complete ({2}%) #######".
-												format(klip_runs + 2, number_of_klip, round(float(klip_runs + 2) /
-																						 float(number_of_klip),3)*100))
-		else:
-			self.write_to_log_and_print("\nrun_KLIP function called, but no KLIP runs conducted. Check arguments.")
+			# Running KLIP
+			with log_file_output(self.object_name):
+				klip_dataset(self.dataset, outputdir=self.object_name + '/klipped_cubes_Wfakes',
+							 fileprefix=self.object_name + '_withfakes_' + trial.klip_parameters,
+							 annuli=trial.annuli, subsections=trial.subsections, movement=trial.movement,
+							 numbasis=trial.numbasis, spectrum=trial.spectrum, verbose=True,
+							 corr_smooth=trial.corr_smooth, highpass=trial.highpass, mode=self.mode,
+							 numthreads=65)
+				trial.output_wcs = self.dataset.output_wcs[0] # need this for calibrating contrast curve
+
+			# Update Every 5 or When Completely Done
+			if i + 1 == len(self.trials):
+				self.write_to_log_and_print("\n### DONE WITH KLIP ON DATA WITH FAKES ###")
+			elif (klip_runs + 1) % 5 == 0:
+				self.write_to_log_and_print("####### {0}/{1} KLIP Runs Complete ({2}%) #######".
+											format(klip_runs + 2, number_of_klip, round(float(klip_runs + 2) /
+																					 float(number_of_klip),3)*100))
 
 
 	def contrast_and_detection(self, detect_planets=True, datasetwithfakes=[True]):
