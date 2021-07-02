@@ -52,3 +52,25 @@ for i in range(40):
 			distances.append(distance(loc, mask))
 
 	print(i, " : ", np.min(distances))
+
+def FWHMIOWA_calculator(speccubefile, filtname=None):
+	"""
+	Finds FWHM, IWA, and OWA for a opened CHARIS data cube. Thanks to Dr. Tobin for this.
+	(https://docs.google.com/document/d/1S1Oo9QweKwnOfmv6fu28bb75lYeQXGzn/edit)
+	"""
+	wavelengths = {'j': 1200e-9, 'h': 1550e-9, 'k': 2346e-9, 'broadband': 1550e-9}
+	if filtname is None:
+		wavelength = wavelengths[str.lower(speccubefile[1].header['FILTNAME'])]
+	else:
+		wavelength = wavelengths[str.lower(filtname)]
+	D = 8
+	lenslet_scale = 0.0162
+	field_radius = 1.035
+	FWHM = 2 * 1.22 * wavelength / D * 206265 / lenslet_scale
+	IWA = 5
+	OWA = (field_radius / lenslet_scale) - FWHM
+
+	return FWHM, IWA, OWA
+
+print(FWHMIOWA_calculator(speccubefile=None, filtname='Broadbandr')[0] * 2)
+print(FWHMIOWA_calculator(speccubefile=None, filtname='K')[0] * 2)
