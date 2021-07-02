@@ -15,11 +15,11 @@ import os
 # General Set-Up
 fileset0 = 'HD1160_cubes/*.fits' # will be passed into glob.glob() to identify extracted cubes
 mask0 = [144, 80] # [X-coor, Y-coor] of object in KLIP output
-object_name0 = 'HD1160' # Name of Directory Where All Outputs Will Be Placed
+object_name0 = 'HD1160_2' # Name of Directory Where All Outputs Will Be Placed
 
 fileset1 = 'HR8799_cubes/*.fits'
 mask1 = [[128, 152], [157, 137], [129, 70]]
-object_name1 = 'HR8799'
+object_name1 = 'HR8799_2'
 
 # Setting Up Lists/Tuples For KLIP
 # annuli = [4, 6, 8, 10, 12] # List of Integer(s)
