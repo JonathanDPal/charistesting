@@ -210,8 +210,8 @@ class Trial:
 			if contains_fakes:
 				fakelocs = pasep_to_xy(self.fake_PAs, self.fake_seps)
 				for fl in fakelocs:
-					x_pos = fl[0]
-					y_pos = fl[1]
+					x_pos = fl[0] + dataset_center[0] # moving it into correct coordinate system
+					y_pos = fl[1] + dataset_center[1]
 
 					ydat, xdat = np.indices(frame.shape)
 					distance_from_planet = np.sqrt((xdat - x_pos) ** 2 + (ydat - y_pos) ** 2)
@@ -233,7 +233,7 @@ class Trial:
 
 				numgroups = len(self.fake_seps)
 				groupsize = int(len(self.fake_fluxes) / len(self.fake_seps))
-				fluxgroups = [[self.fake_fluxes[i * numgroups + j] for i in range(groupsize)] for j in range(numgroups)]
+				fluxgroups = [[self.fake_fluxes[i*numgroups + j] for i in range(groupsize)] for j in range(numgroups)]
 				fluxes = [np.mean(fluxgroups[i]) for i in range(numgroups)]
 
 				algo_throughput = np.array(retrieved_fluxes) / np.array(fluxes)
