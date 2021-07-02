@@ -103,6 +103,13 @@ def pasep_to_xy(PAs, seps):
 	return locs
 
 
+def distance(xy1, xy2):
+	"""
+	Inputs should be of form [x-coor, y-coor] (list, numpy array, or tuple)
+	"""
+	return np.sqrt((xy1[0] - xy2[0]) ** 2 + (xy1[1] - xy2[1]) ** 2)
+
+
 # TestDataset Will Have a List of Trials Associated With It (one for each group of KLIP Parameters)
 class Trial:
 	"""
@@ -261,7 +268,7 @@ class Trial:
 										   self.klip_parameters, self.numbasis[filepath_index])
 				df = pd.DataFrame()
 				df['Seperation'] = contrast_seps
-				df['Calibrated Contrast'] = contrast
+				df['Calibrated Contrast'] = correct_contrast
 				wavelength = round(self.wln_um[wavelength_index], 2)
 				title = 'Calibrated Contrast at {0}um'.format(wavelength)
 				df.plot(x='Seperation', y='Calibrated Contrast', legend=False, title=title)
@@ -311,12 +318,7 @@ class Trial:
 			fakelocs = pasep_to_xy(self.fake_PAs, self.fake_seps) # where planets were injected
 
 			# Determining Whether Candidates Are Planets or Not
-			xpos = candidates['x']
-			ypos = candidates['y']
-			candidate_locations = zip(xpos, ypos)
-
-			def distance(xy1, xy2):
-				return np.sqrt((xy1[0] - xy2[0]) ** 2 + (xy1[1] - xy2[1]) ** 2)
+			candidate_locations = zip(candidates['x'], candidates['y'])
 
 			if not isinstance(self.mask_xy[0], (list, tuple)):
 				self.mask_xy = [self.mask_xy]
@@ -330,7 +332,7 @@ class Trial:
 				distances_from_fakes.append(np.min(distances))
 				distances2 = []
 				for mask in self.mask_xy:
-					mask = np.array(mask) - 100 # aligning coordinate systems
+					mask = np.array(mask) - np.array(center) # aligning coordinate systems
 					distances2.append(distance(c, mask))
 				distances_from_targets.append(np.min(distances2))
 
@@ -361,23 +363,6 @@ class TestDataset:
 	"""
 	def __init__(self, fileset, object_name, mask_xy, fake_fluxes, fake_seps, annuli, subsections, movement,
 				 numbasis, corr_smooth, highpass, spectrum, fake_fwhm, fake_PAs, mode):
-		"""
-		Args:
-			fileset: Something probably going like 'directory/*.fits' to let glob find files.
-			object_name: String
-			mask_xy: [X-coor, Y-coor]
-			fake_fluxes: Integer or List of Integers. Must be same length as fake_seps.
-			fake_seps: Integer or List of Integers. Must be same length as fake_fluxes.
-			annuli: Integer or List of Integers
-			subsections: Integer or List of Integers
-			movement: Integer or List of Integers
-			numbasis: Integer or List of Integers
-			corr_smooth:
-			highpass:
-			spectrum: Either 'methane' or None_
-			fake_fwhm: The FWHM for the injected PSF for fake planets
-			fake_PAs: Integer or List of Integers.
-		"""
 		# Setting Object Name and Location
 		self.object_name = object_name
 		self.mask_xy = mask_xy
@@ -407,7 +392,7 @@ class TestDataset:
 		# Creating CHARISData Object With UnKLIPped Data
 		self.fileset = glob(fileset)
 		with log_file_output(self.object_name):
-			self.dataset = make_dn_per_contrast(CHARISData(self.fileset))
+			self.dataset = make_dn_per_contrast(CHARISData(self.fileset)) # function adds dn_per_contrast attribute
 
 		self.write_to_log_and_print("###### DONE BUILDING CHARISData OBJECT FOR {0} #######".format(self.object_name))
 
@@ -496,21 +481,14 @@ class TestDataset:
 			# Get Number of KLIP Runs Conducted Already
 			klip_runs = i
 
-			# Update Every 5
-			if (klip_runs + 1) % 5 == 0:
-				self.write_to_log_and_print("####### {0}/{1} KLIP Runs Complete ({2}%) #######\n".
-											format(klip_runs + 1, number_of_klip, round(float(klip_runs + 1) /
-																					 float(number_of_klip),3)*100))
-
-			if run_on_nofakes:
-				# Running KLIP on Data Without Fakes
-				with log_file_output(self.object_name):
-					klip_dataset(self.dataset, outputdir=self.object_name+'/klipped_cubes_Nfakes',
-								 fileprefix=self.object_name+ '_withoutfakes_' + trial.klip_parameters,
-								 annuli=trial.annuli, subsections=trial.subsections, movement=trial.movement,
-								 numbasis=trial.numbasis, spectrum=trial.spectrum, verbose=True,
-								 corr_smooth=trial.corr_smooth, highpass=trial.highpass, mode=self.mode,
-								 numthreads=65)
+			# Running KLIP on Data Without Fakes
+			with log_file_output(self.object_name):
+				klip_dataset(self.dataset, outputdir=self.object_name+'/klipped_cubes_Nfakes',
+							 fileprefix=self.object_name+ '_withoutfakes_' + trial.klip_parameters,
+							 annuli=trial.annuli, subsections=trial.subsections, movement=trial.movement,
+							 numbasis=trial.numbasis, spectrum=trial.spectrum, verbose=True,
+							 corr_smooth=trial.corr_smooth, highpass=trial.highpass, mode=self.mode,
+							 numthreads=65)
 
 			# Update Every 5 or When Completely Done
 			if i + 1 == len(self.trials):
