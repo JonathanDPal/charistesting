@@ -270,7 +270,7 @@ class Trial:
 				df['Seperation'] = contrast_seps
 				df['Calibrated Contrast'] = correct_contrast
 				wavelength = round(self.wln_um[wavelength_index], 2)
-				title = 'Calibrated Contrast at {0}um'.format(wavelength)
+				title = 'Calibrated Contrast at {0}um ({1})'.format(wavelength, self.object_name)
 				df.plot(x='Seperation', y='Calibrated Contrast', legend=False, title=title)
 				plt.ylabel('Calibrated Contrast')
 				plt.xlabel('Seperation')

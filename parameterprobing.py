@@ -15,11 +15,11 @@ import os
 # General Set-Up
 fileset0 = 'HD1160_cubes/*.fits' # will be passed into glob.glob() to identify extracted cubes
 mask0 = [144, 80] # [X-coor, Y-coor] of object in KLIP output
-object_name0 = 'HD1160_3' # Name of Directory Where All Outputs Will Be Placed
+object_name0 = 'HD1160_4' # Name of Directory Where All Outputs Will Be Placed
 
 fileset1 = 'HR8799_cubes/*.fits'
 mask1 = [[128, 152], [157, 137], [129, 70]]
-object_name1 = 'HR8799_3'
+object_name1 = 'HR8799_4'
 
 # Setting Up Lists/Tuples For KLIP
 # annuli = [4, 6, 8, 10, 12] # List of Integer(s)
@@ -119,6 +119,7 @@ td0 = TestDataset(fileset=fileset0, object_name=object_name0, mask_xy=mask0, fak
                   fake_fwhm=fake_fwhm0)
 
 # Have TestDataset 0 Run Each Part
+# if we want KLIP output of data without fakes, we need to run KLIP before injecting planets
 if run_KLIP_on_dataset_without_fakes:
     td0.run_KLIP_on_data_without_fakes()
 if put_in_fakes:
