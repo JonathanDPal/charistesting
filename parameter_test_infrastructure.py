@@ -226,14 +226,9 @@ class Trial:
 
 				numgroups = len(self.fake_seps)
 				groupsize = int(len(self.fake_fluxes) / len(self.fake_seps))
-				fluxgroups = [[self.fake_fluxes[i * (groupsize + 1) + j] for i in range(groupsize)] for j in range(
-					numgroups)]
-				fluxes = []
-				for i in range(numgroups):
-					fxs = []
-					for j in range(groupsize):
-						fxs.append(fluxgroups[i][j])
-					fluxes.append(np.mean(fxs))
+				fluxgroups = [[self.fake_fluxes[i * numgroups + j] for i in range(groupsize)] for j in range(numgroups)]
+				fluxes = [np.mean(fluxgroups[i]) for i in range(numgroups)]
+
 				algo_throughput = np.array(retrieved_fluxes) / np.array(fluxes)
 
 				correct_contrast = np.copy(contrast)
@@ -466,12 +461,10 @@ class TestDataset:
 								  inputflux=flux_to_inject, astr_hdrs=self.dataset.wcs, radius=sep, pa=pa,
 								  fwhm=self.fake_fwhm)
 		elif len(self.fake_fluxes) % len(self.fake_seps) == 0:
-			numgroups = len(self.fake_seps)
-			groupsize = int(len(self.fake_fluxes) / len(self.fake_seps))
-			fluxes = [[self.fake_fluxes[i * (groupsize + 1) + j] for i in range(groupsize)] for j in range(
-				numgroups)]
-			pas = [[self.fake_PAs[i * (groupsize + 1) + j] for i in range(groupsize)] for j in range(
-				numgroups)]
+			groupsize = len(self.fake_seps)
+			numgroups = int(len(self.fake_fluxes) / groupsize)
+			fluxes = [self.fake_fluxes[i * groupsize: (i + 1) * groupsize] for i in range(numgroups)]
+			pas = [[self.fake_PAs[i * (groupsize - 1) + j] for i in range(groupsize)] for j in range(numgroups)]
 			for i in range(numgroups):
 				for fake_flux, sep in zip(fluxes[i], self.fake_seps):
 					flux_to_inject = fake_flux * self.dataset.dn_per_contrast  # UNcalibrating it
