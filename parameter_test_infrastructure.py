@@ -223,14 +223,15 @@ class Trial:
 						fake_planet_fluxes.append(fake_flux)
 					retrieved_fluxes.append(np.mean(fake_planet_fluxes))
 
-				numgroups = len(fake_seps)
-				groupsize = int(len(fake_fluxes) / len(fake_seps))
-				groups = [[fake_fluxes[i * (groupsize + 1) + j] for i in range(groupsize)] for j in range(numgroups)]
+				numgroups = len(self.fake_seps)
+				groupsize = int(len(self.fake_fluxes) / len(self.fake_seps))
+				fluxgroups = [[self.fake_fluxes[i * (groupsize + 1) + j] for i in range(groupsize)] for j in range(
+					numgroups)]
 				fluxes = []
 				for i in range(numgroups):
 					fxs = []
 					for j in range(groupsize):
-						fxs.append(groups[i][j])
+						fxs.append(fluxgroups[i][j])
 					fluxes.append(np.mean(fxs))
 				algo_throughput = np.array(retrieved_fluxes) / np.array(fluxes)
 
@@ -316,9 +317,9 @@ class Trial:
 			# Determining Whether Candidates Are Planets or Not
 			xpos = []
 			ypos = []
-			for x in df['x']:
+			for x in candidates['x']:
 				xpos.append(x)
-			for y in df['y']:
+			for y in candidates['y']:
 				ypos.append(y)
 			candidate_locations = zip(xpos, ypos)
 
