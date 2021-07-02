@@ -15,11 +15,11 @@ import os
 # General Set-Up
 fileset0 = 'HD1160_cubes/*.fits' # will be passed into glob.glob() to identify extracted cubes
 mask0 = [144, 80] # [X-coor, Y-coor] of object in KLIP output
-object_name0 = 'HD1160_2' # Name of Directory Where All Outputs Will Be Placed
+object_name0 = 'HD1160_3' # Name of Directory Where All Outputs Will Be Placed
 
 fileset1 = 'HR8799_cubes/*.fits'
 mask1 = [[128, 152], [157, 137], [129, 70]]
-object_name1 = 'HR8799_2'
+object_name1 = 'HR8799_3'
 
 # Setting Up Lists/Tuples For KLIP
 # annuli = [4, 6, 8, 10, 12] # List of Integer(s)
@@ -120,11 +120,11 @@ td0 = TestDataset(fileset=fileset0, object_name=object_name0, mask_xy=mask0, fak
 
 # Have TestDataset 0 Run Each Part
 if run_KLIP_on_dataset_without_fakes:
-    td0.run_KLIP(run_on_fakes=False, run_on_nofakes=True)
+    td0.run_KLIP_on_data_without_fakes()
 if put_in_fakes:
     td0.inject_fakes()
 if run_KLIP_on_dataset_with_fakes:
-    td0.run_KLIP(run_on_fakes=True, run_on_nofakes=False)
+    td0.run_KLIP_on_data_with_fakes()
 if get_contrast_and_detections:
     td0.contrast_and_detection(detect_planets=detect_planets, datasetwithfakes=datasetwithfakes)
 
@@ -145,11 +145,11 @@ td1 = TestDataset(fileset=fileset1, object_name=object_name1, mask_xy=mask1, fak
 
 # Have TestDataset 1 Run Each Part
 if run_KLIP_on_dataset_without_fakes:
-    td1.run_KLIP(run_on_fakes=False, run_on_nofakes=True)
+    td1.run_KLIP_on_data_without_fakes()
 if put_in_fakes:
     td1.inject_fakes()
 if run_KLIP_on_dataset_with_fakes:
-    td1.run_KLIP(run_on_fakes=True, run_on_nofakes=False)
+    td1.run_KLIP_on_data_with_fakes()
 if get_contrast_and_detections:
     td1.contrast_and_detection(detect_planets=detect_planets, datasetwithfakes=datasetwithfakes)
 
