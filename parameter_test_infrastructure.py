@@ -36,8 +36,7 @@ def log_file_output(directory, write_type='a'):
 
 def FWHMIOWA_calculator(speccubefile, filtname=None):
 	"""
-	Finds FWHM, IWA, and OWA for a opened CHARIS data cube. Thanks to Dr. Tobin for this.
-	(https://docs.google.com/document/d/1S1Oo9QweKwnOfmv6fu28bb75lYeQXGzn/edit)
+	Finds FWHM, IWA, and OWA for a opened CHARIS data cube.
 	"""
 	wavelengths = {'j': 1200e-9, 'h': 1550e-9, 'k': 2346e-9, 'broadband': 1550e-9}
 	if filtname is None:
@@ -357,23 +356,6 @@ class Trial:
 			# Saving Information
 			candidates.to_csv('{0}{1}.csv'.format(self.filepath_detections_prefixes[filepath_index],
 												  str(SNR_threshold)))
-
-
-	def __eq__(self, other):
-		"""
-		Checks to see if two Trials have the same KLIP parameters. Intended for testing out code functionality.
-		Thanks to akritigoswami for some of this code.
-		(https://www.geeksforgeeks.org/how-to-get-a-list-of-class-attributes-in-python/)
-		"""
-		equal_attributes = list()
-		for i, j in zip(inspect.getmembers(self), inspect.getmembers(other)):
-			if i[0].startswith('_') or inspect.ismethod(i[1]):
-				continue
-			else:
-				equal_attributes.append(i[1] == j[1])
-				if i[1] != j[1]:
-					break
-		return np.sum(equal_attributes) == len(equal_attributes)
 
 
 # Each Object (eg. HD1160, BetaPic) Will Have An Instance of TestDataset Associated With It
