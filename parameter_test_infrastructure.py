@@ -482,8 +482,8 @@ class TestDataset:
 								  inputflux=flux_to_inject, astr_hdrs=self.dataset.wcs, radius=sep, pa=pa,
 								  fwhm=self.fake_fwhm)
 		elif len(self.fake_fluxes) % len(self.fake_seps) == 0:
-			numgroups = int(len(self.fake_fluxes) / len(self.fake_seps))
-			groupsize = len(self.fake_seps)
+			numgroups = len(self.fake_seps)
+			groupsize = int(len(self.fake_fluxes) / len(self.fake_seps))
 			fluxes = [[self.fake_fluxes[i * (groupsize + 1) + j] for i in range(groupsize)] for j in range(
 				numgroups)]
 			pas = [[self.fake_PAs[i * (groupsize + 1) + j] for i in range(groupsize)] for j in range(
