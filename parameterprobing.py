@@ -15,27 +15,20 @@ import os
 # General Set-Up
 fileset0 = 'HD1160_cubes/*.fits' # will be passed into glob.glob() to identify extracted cubes
 mask0 = [144, 80] # [X-coor, Y-coor] of object in KLIP output
-object_name0 = 'HD1160_4' # Name of Directory Where All Outputs Will Be Placed
+object_name0 = 'HD1160' # Name of Directory Where All Outputs Will Be Placed
 
 fileset1 = 'HR8799_cubes/*.fits'
 mask1 = [[128, 152], [157, 137], [129, 70]]
-object_name1 = 'HR8799_4'
+object_name1 = 'HR8799'
 
 # Setting Up Lists/Tuples For KLIP
-# annuli = [4, 6, 8, 10, 12] # List of Integer(s)
-# subsections = [2, 4, 6] # List of Integer(s)
-# movement = [0, 1, 2] # List or Tuple of Integer(s)
-# spectrum = [None] # List or Tuple of None and/or 'methane'
-# numbasis = [10, 20, 30, 40, 50, 60] # List or Tuple of Integer(s)
-# corr_smooth = [0, 1, 2] # List or Tuple of Float(s) and/or Integer(s)
-# highpass = [False, 5.0, True, 15.0] # List or Tuple of Float(s), Integer(s), and/or Bool(s)
-annuli = [8]
-subsections = [4]
-movement = [1]
-spectrum = [None]
-numbasis = [20]
-corr_smooth = [1]
-highpass = [True]
+annuli = [4, 6, 8, 10, 12] # List of Integer(s)
+subsections = [2, 4, 6] # List of Integer(s)
+movement = [0, 1, 2] # List or Tuple of Integer(s)
+spectrum = [None] # List or Tuple of None and/or 'methane'
+numbasis = [10, 20, 30, 40, 50, 60] # List or Tuple of Integer(s)
+corr_smooth = [0, 1, 2] # List or Tuple of Float(s) and/or Integer(s)
+highpass = [False, 5.0, True, 15.0] # List or Tuple of Float(s), Integer(s), and/or Bool(s)
 
 # Setting Mode For KLIP
 mode = 'ADI+SDI' # Exactly ONE (not a list or tuple) or the following: 'ADI', 'SDI', 'ADI+SDI'
@@ -103,7 +96,7 @@ get_contrast_and_detections = get_contrast or detect_planets
 ############################################################
 ################ ACTUALLY STARTING TESTING #################
 ############################################################
-start = time()
+start0 = time()
 
 # KLIP creates a bunch of RuntimeWarnings that we don't want to spam our log file
 warnings.simplefilter('ignore', category=RuntimeWarning)
@@ -129,10 +122,24 @@ if run_KLIP_on_dataset_with_fakes:
 if get_contrast_and_detections:
     td0.contrast_and_detection(detect_planets=detect_planets, datasetwithfakes=datasetwithfakes)
 
+# Print Out Time Taken
+end0 = time()
+time_elapsed = end0 - start0
+hours = int(floor(time_elapsed / 3600))
+remaining_time = time_elapsed - (hours * 3600)
+minutes = int(floor(remaining_time / 60))
+seconds = round(remaining_time - minutes * 60)
+
+td0.write_to_log_and_print("##################### TIME ELAPSED: {0} Hours, {1} Minutes, {2} Seconds "
+                            "#####################".format(hours, minutes, seconds))
+
 td0.dataset = None # taking HD1160 data out of memory
 for t in td0.trials:
     t = None
 td0 = None
+
+#### SECOND TESTDATASET ####
+start1 = time()
 
 # FWHM Is Based on Central Wavelength of Filter Used During Obsveration.
 with fits.open(glob(fileset1)[0]) as hdulist:
@@ -154,10 +161,9 @@ if run_KLIP_on_dataset_with_fakes:
 if get_contrast_and_detections:
     td1.contrast_and_detection(detect_planets=detect_planets, datasetwithfakes=datasetwithfakes)
 
-
 # Print Out Time Taken
-end = time()
-time_elapsed = end - start
+end1 = time()
+time_elapsed = end1 - start1
 hours = int(floor(time_elapsed / 3600))
 remaining_time = time_elapsed - (hours * 3600)
 minutes = int(floor(remaining_time / 60))
@@ -165,5 +171,7 @@ seconds = round(remaining_time - minutes * 60)
 
 td1.write_to_log_and_print("##################### TIME ELAPSED: {0} Hours, {1} Minutes, {2} Seconds "
                             "#####################".format(hours, minutes, seconds))
+
+
 
 
