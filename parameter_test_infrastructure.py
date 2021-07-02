@@ -318,7 +318,7 @@ class Trial:
 
 			# Determining Whether Candidates Are Planets or Not
 			xpos = candidates['x']
-			ypos = candidates['y']''
+			ypos = candidates['y']
 			candidate_locations = zip(xpos, ypos)
 
 			def distance(xy1, xy2):
