@@ -72,7 +72,7 @@ if not isinstance(mode, str):
                   "will proceed using index 0 value as the mode. Any other values will not be used.")
     try:
         mode = mode[0]
-    except Exception:
+    except:
         raise TypeError("Mode needs to be a string. Check input")
 
 # Checking Fake Planet Stuff
