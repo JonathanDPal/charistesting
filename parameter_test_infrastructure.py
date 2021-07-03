@@ -135,7 +135,7 @@ class Trial:
 		self.dn_per_contrast = dn_per_contrast
 		self.wln_um = wln_um
 
-		# Switching Highpass To Original Form If Necessary
+		# Switching Highpass To Image Space If Necessary
 		if isinstance(highpass, (int, float)) and not isinstance(highpass, bool):
 			highpass = float(highpass)
 			self.highpass = length / (highpass * 2 * np.sqrt(2 * np.log(2)))
@@ -316,7 +316,7 @@ class Trial:
 			candidate_locations = zip(candidates['x'], candidates['y']) # where stuff was detected
 
 			if not isinstance(self.mask_xy[0], (list, tuple)):
-				self.mask_xy = [self.mask_xy] # making it a list of lists so that it can get iterated over properly
+				self.mask_xy = [self.mask_xy] # making it a list of a list so that it can get iterated over properly
 
 			distances_from_fakes = []
 			distances_from_targets = []
@@ -421,14 +421,14 @@ class TestDataset:
 
 
 	def inject_fakes(self):
-		if len(self.fake_fluxes) == len(self.fake_seps):
+		if len(self.fake_fluxes) == len(self.fake_seps): # regular like tutorial
 			for fake_flux, sep in zip(self.fake_fluxes, self.fake_seps):
 				flux_to_inject = fake_flux * self.dataset.dn_per_contrast # UNcalibrating it
 				for pa in self.fake_PAs:
 					inject_planet(frames=self.dataset.input, centers=self.dataset.centers,
 								  inputflux=flux_to_inject, astr_hdrs=self.dataset.wcs, radius=sep, pa=pa,
 								  fwhm=self.fake_fwhm)
-		elif len(self.fake_fluxes) % len(self.fake_seps) == 0:
+		elif len(self.fake_fluxes) % len(self.fake_seps) == 0: # multiple tiers of planets
 			groupsize = len(self.fake_seps)
 			numgroups = int(len(self.fake_fluxes) / groupsize)
 			fluxes = [self.fake_fluxes[i * groupsize: (i + 1) * groupsize] for i in range(numgroups)]
@@ -523,7 +523,7 @@ class TestDataset:
 
 		for i, trial in enumerate(self.trials): # i only used for progress updates
 			# if calib=True and fake planets injected, contrast will be calibrated w/ respect to KLIP subtraction
-			trial.get_contrast(datasetwithfakes)
+			trial.get_contrast(contains_fakes=datasetwithfakes)
 			if detect_planets:
 				# if withfakes=True, detections will use KLIP output w/ fakes; else will use KLIP output w/o fakes
 				trial.detect_planets(datasetwithfakes=datasetwithfakes)
