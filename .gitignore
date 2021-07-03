@@ -1,5 +1,6 @@
 detections/
 Cookbooks/
+Reference Papers/
 *.pdf
 *.png
 *.fits
