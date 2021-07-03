@@ -3,22 +3,18 @@ from astropy.wcs import WCS
 import numpy as np
 from glob import glob
 from pyklip.instruments.CHARIS import CHARISData
-from copy import copy, deepcopy
+from copy import copy
 from pyklip.parallelized import klip_dataset
 from pyklip.klip import meas_contrast
-from csv import writer
 from pyklip.fakes import inject_planet, retrieve_planet_flux
 from pyklip.kpp.utils.mathfunc import gauss2d
 from pyklip.kpp.metrics.crossCorr import calculate_cc
 from pyklip.kpp.stat.statPerPix_utils import get_image_stat_map_perPixMasking
 from pyklip.kpp.detection.detection import point_source_detection
 import pandas as pd
-import sys, os
+import sys, os, warnings
 import matplotlib.pyplot as plt
 from contextlib import contextmanager
-import inspect
-import warnings
-
 
 @contextmanager
 def log_file_output(directory, write_type='a'):
@@ -90,7 +86,7 @@ def pasep_to_xy(PAs, seps):
 	the convention used in the table of values outputted by the planet detection software. The origin used in their
 	convention is the center of the star's PSF.
 	"""
-	PAs = [float(pa) for pa in PAs]
+	PAs = [float(pa) for pa in PAs] # if not a float, then pa / 180 will yield zero in many cases
 	seps = [float(sep) for sep in seps]
 	radians = np.array(PAs) / 180 * np.pi
 	locs = []
@@ -166,7 +162,7 @@ class Trial:
 
 	def get_contrast(self, contains_fakes, wavelength_index=10):
 		"""
-		Measures contrast, then saves a contrast curve as a PNG and the contrast data as a CSV.
+		Measures contrast at a particular wavelength, then saves contrast curve as a PNG and contrast data as a CSV.
 		---
 		Args:
 			contains_fakes (bool): Set to True if looking to make measurements on data with fakes, vice versa.
@@ -317,11 +313,10 @@ class Trial:
 			injected = [] # going to be an additional column of candidates DataFrame
 			fakelocs = pasep_to_xy(self.fake_PAs, self.fake_seps) # where planets were injected
 
-			# Determining Whether Candidates Are Planets or Not
-			candidate_locations = zip(candidates['x'], candidates['y'])
+			candidate_locations = zip(candidates['x'], candidates['y']) # where stuff was detected
 
 			if not isinstance(self.mask_xy[0], (list, tuple)):
-				self.mask_xy = [self.mask_xy]
+				self.mask_xy = [self.mask_xy] # making it a list of lists so that it can get iterated over properly
 
 			distances_from_fakes = []
 			distances_from_targets = []
@@ -363,48 +358,37 @@ class TestDataset:
 	"""
 	def __init__(self, fileset, object_name, mask_xy, fake_fluxes, fake_seps, annuli, subsections, movement,
 				 numbasis, corr_smooth, highpass, spectrum, fake_fwhm, fake_PAs, mode):
-		# Setting Object Name and Location
 		self.object_name = object_name
 		self.mask_xy = mask_xy
 
-		# Making Necessary Directory
 		if not os.path.exists(self.object_name):
 			os.mkdir(self.object_name)
 
-		# Getting Started On Log File
 		self.write_to_log('Title for Set: {0}'.format(object_name), 'w')
 		self.write_to_log('\nFileset: {0}'.format(fileset))
 		param_names = ['Annuli', 'Subsections', 'Movement', 'Numbasis', 'Corr_Smooth', 'Highpass', 'Spectrum',
 					   'Mode', 'Fake Fluxes', 'Fake Seps', 'Fake PAs', 'Fake FWHM']
 		params = [annuli, subsections, movement, numbasis, spectrum, corr_smooth, highpass]
 		number_of_trials = np.prod([len(p) for p in params])
-		params.append(mode)
-		params.append(fake_fluxes)
-		params.append(fake_seps)
-		params.append(fake_PAs)
-		params.append(fake_fwhm)
 		self.write_to_log('\nNumber of Trials: {0}'.format(number_of_trials))
+
+		for param in [mode, fake_fluxes, fake_seps, fake_PAs, fake_fwhm]:
+			params.append(param)
 		for name, param in zip(param_names, params):
 			self.write_to_log('\n{0}: {1}'.format(name, param))
 
 		self.write_to_log_and_print("############### STARTING WORK ON {0} ################\n".format(self.object_name))
 
-		# Creating CHARISData Object With UnKLIPped Data
-		self.fileset = glob(fileset)
 		with log_file_output(self.object_name):
-			self.dataset = make_dn_per_contrast(CHARISData(self.fileset)) # function adds dn_per_contrast attribute
+			self.dataset = make_dn_per_contrast(CHARISData(glob(fileset))) # function adds dn_per_contrast attribute
 
 		self.write_to_log_and_print("###### DONE BUILDING CHARISData OBJECT FOR {0} #######".format(self.object_name))
 
-		self.length = self.dataset.input.shape[1]
-
-		# Info For Injecting (and later identifying) Fake Planets
 		self.fake_fluxes = fake_fluxes
 		self.fake_seps = fake_seps
 		self.fake_fwhm = fake_fwhm
 		self.fake_PAs = fake_PAs
 
-		# Building Trials
 		self.trials = []
 		for ani in annuli:
 			for subsec in subsections:
@@ -419,7 +403,7 @@ class TestDataset:
 															 fake_fwhm=self.fake_fwhm, fake_seps=self.fake_seps,
 															 dn_per_contrast=self.dataset.dn_per_contrast,
 															 wln_um=self.dataset.wvs, highpass=hp,
-															 length=self.length))
+															 length=self.dataset.input.shape[1]))
 
 		self.mode = mode
 		self.write_to_log_and_print("############ DONE BUILDING TRIALS FOR {0} ############".format(self.object_name))
@@ -437,7 +421,6 @@ class TestDataset:
 
 
 	def inject_fakes(self):
-		# Inject Fake Planets
 		if len(self.fake_fluxes) == len(self.fake_seps):
 			for fake_flux, sep in zip(self.fake_fluxes, self.fake_seps):
 				flux_to_inject = fake_flux * self.dataset.dn_per_contrast # UNcalibrating it
@@ -465,23 +448,19 @@ class TestDataset:
 
 
 	def run_KLIP_on_data_without_fakes(self):
-		# Making Sure Output Directories Exist
 		if not os.path.exists(self.object_name):
 			os.mkdir(self.object_name)
 		if not os.path.exists(self.object_name+'/klipped_cubes_Nfakes'):
 			os.mkdir(self.object_name+'/klipped_cubes_Nfakes')
 
-		# Determinng Number of KLIP Runs That Will Be Run
 		number_of_klip = len(self.trials)
 
-		self.write_to_log_and_print('####### BEGINNING KLIP ON DATA WITHOUT FAKES #######\n####### Number of KLIP Runs '
-									'To Complete: {0} #######\n'.format(number_of_klip))
+		self.write_to_log_and_print('####### BEGINNING KLIP ON DATA WITHOUT FAKES #######\n'
+									'####### Number of KLIP Runs To Complete: {0} #######\n'.format(number_of_klip))
 
 		for i, trial in enumerate(self.trials): # i only used for measuring progress
-			# Get Number of KLIP Runs Conducted Already
-			klip_runs = i
+			klip_runs = i # get number of KLIP run conducted already
 
-			# Running KLIP on Data Without Fakes
 			with log_file_output(self.object_name):
 				klip_dataset(self.dataset, outputdir=self.object_name+'/klipped_cubes_Nfakes',
 							 fileprefix=self.object_name+ '_withoutfakes_' + trial.klip_parameters,
@@ -493,14 +472,13 @@ class TestDataset:
 			# Update Every 5 or When Completely Done
 			if i + 1 == len(self.trials):
 				self.write_to_log_and_print("\n### DONE WITH KLIP ON DATA WITHOUT FAKES###")
-			elif (klip_runs + 2) % 10 == 0:
+			elif (klip_runs + 2) % 5 == 0:
 				self.write_to_log_and_print("####### {0}/{1} KLIP Runs Complete ({2}%) #######".
-											format(klip_runs + 2, number_of_klip, round(float(klip_runs + 2) /
+											format(klip_runs + 2, number_of_klip, round(float(klip_runs + 1) /
 																					 float(number_of_klip),3)*100))
 
 
 	def run_KLIP_on_data_with_fakes(self):
-		# Making Sure Output Directories Exist
 		if not os.path.exists(self.object_name):
 			os.mkdir(self.object_name)
 		if not os.path.exists(self.object_name+'/klipped_cubes_Wfakes'):
@@ -508,14 +486,12 @@ class TestDataset:
 
 		number_of_klip = len(self.trials)
 
-		self.write_to_log_and_print('####### BEGINNING KLIP ON DATA WITH FAKES #######\n####### Number of KLIP Runs To '
-									'Complete: {0} #######\n'.format(number_of_klip))
+		self.write_to_log_and_print('####### BEGINNING KLIP ON DATA WITH FAKES #######\n'
+									'####### Number of KLIP Runs To Complete: {0} #######\n'.format(number_of_klip))
 
 		for i, trial in enumerate(self.trials): # i only used for measuring progress
-			# Get Number of KLIP Runs Conducted Already
-			klip_runs = i
+			klip_runs = i # get number of KLIP runs conducted already
 
-			# Running KLIP
 			with log_file_output(self.object_name):
 				klip_dataset(self.dataset, outputdir=self.object_name + '/klipped_cubes_Wfakes',
 							 fileprefix=self.object_name + '_withfakes_' + trial.klip_parameters,
@@ -530,40 +506,33 @@ class TestDataset:
 				self.write_to_log_and_print("\n### DONE WITH KLIP ON DATA WITH FAKES ###")
 			elif (klip_runs + 1) % 5 == 0:
 				self.write_to_log_and_print("####### {0}/{1} KLIP Runs Complete ({2}%) #######".
-											format(klip_runs + 2, number_of_klip, round(float(klip_runs + 2) /
+											format(klip_runs + 2, number_of_klip, round(float(klip_runs + 1) /
 																					 float(number_of_klip),3)*100))
 
 
-	def contrast_and_detection(self, detect_planets=True, datasetwithfakes=[True]):
-		if True in datasetwithfakes or False in datasetwithfakes or detect_planets == True:
-			# Making Sure Directories Exist
-			if not os.path.exists(self.object_name + '/detections') and detect_planets:
-				os.mkdir(self.object_name + '/detections')
-			if not os.path.exists(self.object_name + '/calibrated_contrast') and True in datasetwithfakes:
-				os.mkdir(self.object_name + '/calibrated_contrast')
-			if not os.path.exists(self.object_name + '/uncalibrated_contrast') and False in datasetwithfakes:
-				os.mkdir(self.object_name + '/uncalibrated_contrast')
+	def contrast_and_detection(self, detect_planets=True, datasetwithfakes=True):
+		if not os.path.exists(self.object_name + '/detections') and detect_planets:
+			os.mkdir(self.object_name + '/detections')
+		if not os.path.exists(self.object_name + '/calibrated_contrast') and True in datasetwithfakes:
+			os.mkdir(self.object_name + '/calibrated_contrast')
+		if not os.path.exists(self.object_name + '/uncalibrated_contrast'):
+			os.mkdir(self.object_name + '/uncalibrated_contrast')
 
-			self.write_to_log_and_print("\n############## BEGINNING CONTRAST AND DETECTION FOR {0} "
-										 "##############".format(self.object_name))
+		self.write_to_log_and_print("\n############## BEGINNING CONTRAST AND DETECTION FOR {0} "
+									 "##############".format(self.object_name))
 
-			for i, trial in enumerate(self.trials): # i only used for progress updates
-				# if calib=True and fake planets injected, contrast will be calibrated w/ respect to KLIP subtraction
-				for calib in datasetwithfakes:
-					trial.get_contrast(calib)
-				if detect_planets:
-					# if withfakes=True, detections will use KLIP output w/ fakes, else will use KLIP output w/o fakes
-					for withfakes in datasetwithfakes:
-						trial.detect_planets(datasetwithfakes=withfakes)
+		for i, trial in enumerate(self.trials): # i only used for progress updates
+			# if calib=True and fake planets injected, contrast will be calibrated w/ respect to KLIP subtraction
+			trial.get_contrast(datasetwithfakes)
+			if detect_planets:
+				# if withfakes=True, detections will use KLIP output w/ fakes; else will use KLIP output w/o fakes
+				trial.detect_planets(datasetwithfakes=datasetwithfakes)
 
-				# Update Every 10 or When Completely Done
-				if i + 1 == len(self.trials):
-					self.write_to_log_and_print('\n############## DONE WITH CONTRAST AND DETECTION FOR {0} '
-												 '##############'.format(self.object_name))
-				elif ((i+1) * 2) % 10 == 0:
-					self.write_to_log_and_print("\n####### Detection and contrast complete for {0}/{1} Trials ({2}%) "
-												 "#######".format((i+1) * 2, len(self.trials) * 2,
-																  round(float(i+1) / float(len(self.trials)),3)*100))
-		else:
-			self.write_to_log_and_print("\ncontrast_and_detection function was called, but no contrast measurements or "
-				  "planet detections were conducted. Check arguments.")
+			# Update Every 10 or When Completely Done
+			if i + 1 == len(self.trials):
+				self.write_to_log_and_print('\n############## DONE WITH CONTRAST AND DETECTION FOR {0} '
+											 '##############'.format(self.object_name))
+			elif ((i+1) * 2) % 10 == 0:
+				self.write_to_log_and_print("\n####### Detection and contrast complete for {0}/{1} Trials ({2}%) "
+											 "#######".format((i+1) * 2, len(self.trials) * 2,
+															  round(float(i+1) / float(len(self.trials)),3)*100))

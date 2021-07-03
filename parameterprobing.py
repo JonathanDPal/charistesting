@@ -86,11 +86,10 @@ for param in [[fake_fluxes, 'fake_fluxes'], [fake_seps, 'fake_seps'], [fake_PAs,
 
 ##### SYNTHESIZING USER INPUTS INTO A COUPLE ADDITIONAL BOOLEANS ######
 detect_planets = get_planet_detections_from_dataset_with_fakes or get_planet_detections_from_dataset_without_fakes
-datasetwithfakes = []
-if get_planet_detections_from_dataset_with_fakes:
-    datasetwithfakes.append(True)
-if get_planet_detections_from_dataset_without_fakes:
-    datasetwithfakes.append(False)
+if put_in_fakes:
+    datasetwithfakes = True
+else:
+    datasetwithfakes = False
 get_contrast_and_detections = get_contrast or detect_planets
 
 ############################################################
