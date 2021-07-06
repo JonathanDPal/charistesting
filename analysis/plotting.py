@@ -5,6 +5,23 @@ import numpy as np
 from glob import glob
 import os
 
+def valuefinder(filename, param):
+    param = str.lower(param)
+    paramlengths = {'annuli': 6, 'subsections': 11, 'movement': 8, 'spectrum': 8, 'smooth': 6, 'highpass': 8, 'KL': 4}
+    paramlength = paramlengths[param][0]
+    startingindex = None # will be defined soon
+    for i in range(len(filename)):
+        if str.lower(filename[i:i+paramlength]) == param:
+            startingindex = i - 1
+
+    valuelength = 0
+    while startingindex >= 0 and filename[startingindex] != '_':
+        startingindex -= 1
+        valuelength += 1
+    value = filename[startingindex:startingindex+valuelength]
+
+    return value
+
 
 def roc_generator(snr_values, vals_and_finders, filepath_to_save):
     """
@@ -62,94 +79,70 @@ def contrast_curve(vals_and_files, filepath_to_save):
 
 def max_value_heatmap(param1, param2, directory_switcher, filepath_to_save, file_finder='*.csv'):
     """
-    For now, just shows the maximum SNR value found (i.e. SNR of HD1160)
+    Just shows the maximum SNR value found (i.e. SNR of HD1160)
+    Args:
+        param1: Should be tuple of form (str: name of parameter, list: values used for parameter)
+        param2: Should be tuple of form (str: name of parameter, list: values used for parameter)
+        directory_switcher: string that can get passed in to change working directory to "detections"
+        filepath_to_save: string
+        file_finder: str -- passed into glob to get all relevant (CSV) files.
     """
     os.chdir(directory_switcher)
     fileset = glob(file_finder)
-    full_data = {str(a): {str(m):[] for m in param2} for a in param1}
+    full_data = {str(a): {str(m):[] for m in param2[1]} for a in param1[1]}
     for file in fileset:
         df = pd.read_csv(file)
         snr = df['SNR Value'].max()
-        ani = file[0]
-        mov = file[21]
-        full_data[ani][mov].append(snr)
-    for ani in param1:
-        for mov in param2:
-            full_data[ani][mov] = np.mean(full_data[ani][mov])
+        p1 = valuefinder(file, param1[0])
+        p2 = valuefinder(file, param2[0])
+        full_data[p1][p2].append(snr)
+    for p1 in param1[1]:
+        for p2 in param2[1]:
+            full_data[p1][p2] = np.mean(full_data[p1][p2])
     plot_snr = []
-    for mov in param2:
-        plot_snr.append([full_data[ani][mov] for ani in param1])
-    data_to_plot = pd.DataFrame(plot_snr, index=param2, columns=param1)
+    for p2 in param2[1]:
+        plot_snr.append([full_data[p1][p2] for p1 in param1[1]])
+    data_to_plot = pd.DataFrame(plot_snr, index=param2, columns=param1[1])
     sns.heatmap(data_to_plot, annot=True, linewidths=0.2, fmt='d')
     plt.savefig(filepath_to_save)
 
 
-def max_value_heatmap(annuli, movement, directory_switcher, filepath_to_save, file_finder='*.csv'):
+def mean_value_heatmap(param1, param2, num_injections, directory_switcher, filepath_to_save, file_finder='*.csv'):
     """
-    For now, just shows the maximum SNR value found (i.e. SNR of HD1160)
+    Shows mean SNR of injected planets.
+
+    Args:
+        param1: Should be tuple of form (str: name of parameter, list: values used for parameter)
+        param2: Should be tuple of form (str: name of parameter, list: values used for parameter)
+        num_injections: Number of fake planets injected.
+        directory_switcher: string that can get passed in to change working directory to "detections"
+        filepath_to_save: string
+        file_finder: str -- passed into glob to get all relevant (CSV) files.
     """
     os.chdir(directory_switcher)
     fileset = glob(file_finder)
-    full_data = {str(a): {str(m):[] for m in movement} for a in annuli}
-    for file in fileset:
-        df = pd.read_csv(file)
-        science_target = df[df["Injected"] == "Science Target"]
-        snr = science_target['SNR Value'].max()
-        ani = file[0]
-        mov = file[21]
-        full_data[ani][mov].append(snr)
-    for ani in annuli:
-        for mov in movement:
-            full_data[ani][mov] = np.mean(full_data[ani][mov])
-    plot_snr = []
-    for mov in movement:
-        plot_snr.append([full_data[ani][mov] for ani in annuli])
-    data_to_plot = pd.DataFrame(plot_snr, index=movement, columns=annuli)
-    sns.heatmap(data_to_plot, annot=True, linewidths=0.2, fmt='d')
-    plt.savefig(filepath_to_save)
-
-
-def mean_injection_value_heatmap(annuli, movement, directory_switcher, filepath_to_save, file_finder='*.csv'):
-    """
-    For now, just shows the maximum SNR value found (i.e. SNR of HD1160)
-    """
-    os.chdir(directory_switcher)
-    fileset = glob(file_finder)
-    full_data = {str(a): {str(m):[] for m in movement} for a in annuli}
+    full_data = {str(a): {str(m):[] for m in param2[1]} for a in param1[1]}
     for file in fileset:
         df = pd.read_csv(file)
         injected = df[df["Injected"] == "True"]
         snr = injected['SNR Value'].mean()
-        ani = file[0]
-        mov = file[21]
-        full_data[ani][mov].append(snr)
-    for ani in annuli:
-        for mov in movement:
-            full_data[ani][mov] = np.mean(full_data[ani][mov])
+        p1 = valuefinder(file, param1[0])
+        p2 = valuefinder(file, param2[0])
+        full_data[p1][p2].append(snr)
+    for p1 in param1[1]:
+        for p2 in param2[1]:
+            if not len(full_data[p1][p2]) == num_injections:
+                missing = [1] * (len(full_data[p1][p2]) - num_injections)
+                full_data[p1][p2].append(missing)
+            full_data[p1][p2] = np.mean(full_data[p1][p2])
     plot_snr = []
-    for mov in movement:
-        plot_snr.append([full_data[ani][mov] for ani in annuli])
-    data_to_plot = pd.DataFrame(plot_snr, index=movement, columns=annuli)
+    for p2 in param2[1]:
+        plot_snr.append([full_data[p1][p2] for p1 in param1[1]])
+    data_to_plot = pd.DataFrame(plot_snr, index=param2, columns=param1[1])
     sns.heatmap(data_to_plot, annot=True, linewidths=0.2, fmt='d')
     plt.savefig(filepath_to_save)
 
 
-def valuefinder(filename, param):
-    param = str.lower(param)
-    paramlengths = {'annuli': 6, 'subsections': (11, int), 'movement': (8, int), 'spectrum': (8, NoneType),
-                    'smooth': 6, 'highpass': 8, 'KL': 4}
-    paramlength = paramlengths[param][0]
-    startingindex = None # will be defined soon
-    for i in range(len(filename)):
-        if str.lower(filename[i:i+paramlength]) == param:
-            startingindex = i - 1
 
-    valuelength = 0
-    while startingindex >= 0 and filename[startingindex] != '_':
-        startingindex -= 1
-        valuelength += 1
-    value = filename[startingindex:startingindex+valuelength]
-
-    return value
 
 
