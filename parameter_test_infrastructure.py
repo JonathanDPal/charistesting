@@ -15,7 +15,7 @@ import pandas as pd
 import sys, os, warnings
 import matplotlib.pyplot as plt
 from contextlib import contextmanager
-# from multiprocessing.pool import Pool
+from multiprocessing.pool import Pool
 
 @contextmanager
 def log_file_output(directory, write_type='a'):
@@ -107,33 +107,22 @@ def make_dn_per_contrast(dataset):
 	return dataset
 
 
-def get_contrast(trial, contains_fakes):
+def get_contrast(trial_dict, contains_fakes):
 	"""
 	Measures contrast at a particular wavelength, then saves contrast curve as a PNG and contrast data as a CSV.
 	---
 	Args:
-		trial (instance of Trial)
+		trial_dict (instance of Trial)
 		contains_fakes (bool): Set to True if looking to make measurements on data with fakes, vice versa.
 	"""
 	if contains_fakes:
-		filepaths = trial.filepaths_Wfakes
+		filepaths = trial_dict['filepaths_Wfakes']
 	else:
-		filepaths = trial.filepaths_Nfakes
+		filepaths = trial_dict['filepaths_Nfakes']
 
 	# Measuring Contrast For Each Set of KL Modes
 	for filepath_index, filepath in enumerate(filepaths):  # filepath_index used to identify number of KL modes
-		# for wavelength_index in range(len(trial.wln_um)): ## STUFF BELOW IS TEMPORARY ##
-		for wavelength_index in [10]:
-			data_output_filepath01 = trial.object_name + '/uncalibrated_contrast/{0}_KL{1}_contrast.csv'.format(
-				trial.klip_parameters, trial.numbasis[filepath_index])
-			data_output_filepath02 = trial.object_name + '/calibrated_contrast/{0}_KL{1}_contrast.csv'.format(
-				trial.klip_parameters, trial.numbasis[filepath_index])
-
-			if os.path.exists(data_output_filepath01) or os.path.exists(data_output_filepath02):
-				continue
-
-			#### END OF TEMPORARY STUFF ###
-
+		for wavelength_index in range(len(trial.wln_um)):
 			with fits.open(filepath) as hdulist:
 				cube = copy(hdulist[1].data)
 				dataset_center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
@@ -142,20 +131,20 @@ def get_contrast(trial, contains_fakes):
 
 			# Taking Slice of Cube and then Calibrating It
 			frame = cube[wavelength_index]
-			frame /= trial.dn_per_contrast[wavelength_index]
-			wavelength = round(trial.wln_um[wavelength_index], 2)
+			frame /= trial_dict['dn_per_contrast'][wavelength_index]
+			wavelength = round(trial_dict['wln_um'][wavelength_index], 2)
 
 			# Applying Mask to Science Target If Location Specified
-			if isinstance(trial.mask_xy, (list, tuple)):
-				if not isinstance(trial.mask_xy[0], (list, tuple)):
-					x_pos = trial.mask_xy[0]
-					y_pos = trial.mask_xy[1]
+			if isinstance(trial_dict['mask_xy'], (list, tuple)):
+				if not isinstance(trial_dict['mask_xy'][0], (list, tuple)):
+					x_pos = trial_dict['mask_xy'][0]
+					y_pos = trial_dict['mask_xy'][1]
 
 					ydat, xdat = np.indices(frame.shape)
 					distance_from_planet = np.sqrt((xdat - x_pos) ** 2 + (ydat - y_pos) ** 2)
 					frame[np.where(distance_from_planet <= 2 * dataset_fwhm)] = np.nan
 				else:
-					for position in trial.mask_xy:
+					for position in trial_dict['mask_xy']:
 						x_pos = position[0]
 						y_pos = position[1]
 
@@ -165,7 +154,7 @@ def get_contrast(trial, contains_fakes):
 
 			# Applying Mask to Fake Planets
 			if contains_fakes:
-				fakelocs = pasep_to_xy(trial.fake_PAs, trial.fake_seps)
+				fakelocs = pasep_to_xy(trial_dict['fake_PAs'], trial_dict['fake_seps'])
 				for fl in fakelocs:
 					x_pos = fl[0] + dataset_center[0]  # moving it into correct coordinate system
 					y_pos = fl[1] + dataset_center[1]
@@ -181,34 +170,36 @@ def get_contrast(trial, contains_fakes):
 			# Calibrating For KLIP Subtraction If Fakes Present
 			if contains_fakes:
 				retrieved_fluxes = []
-				for sep in trial.fake_seps:
+				for sep in trial_dict['fake_seps']:
 					fake_planet_fluxes = []
-					for pa in trial.fake_PAs:
+					for pa in trial_dict['fake_PAs']:
 						fake_flux = retrieve_planet_flux(frame, dataset_center, output_wcs, sep, pa, searchrad=7)
 						fake_planet_fluxes.append(fake_flux)
 					retrieved_fluxes.append(np.mean(fake_planet_fluxes))
 
-				numgroups = len(trial.fake_seps)
-				groupsize = int(len(trial.fake_fluxes) / len(trial.fake_seps))
-				fluxgroups = [[trial.fake_fluxes[i * numgroups + j] for i in range(groupsize)] for j in range(numgroups)]
+				numgroups = len(trial_dict['fake_seps'])
+				groupsize = int(len(trial_dict['fake_fluxes']) / len(trial_dict['fake_seps']))
+				fluxgroups = [[trial_dict['fake_fluxes'][i * numgroups + j] for i in range(groupsize)] for j in range(
+						numgroups)]
 				fluxes = [np.mean(fluxgroups[i]) for i in range(numgroups)]
 
 				algo_throughput = np.array(retrieved_fluxes) / np.array(fluxes)
 
 				correct_contrast = np.copy(contrast)
 				for j, sep in enumerate(contrast_seps):
-					closest_throughput_index = np.argmin(np.abs(sep - trial.fake_seps))
+					closest_throughput_index = np.argmin(np.abs(sep - trial_dict['fake_seps']))
 					correct_contrast[j] /= algo_throughput[closest_throughput_index]
 
 			# Always Going to Save Uncalibrated Contrast
-			if not os.path.exists(trial.object_name + '/uncalibrated_contrast'):
-				os.mkdir(trial.object_name + '/uncalibrated_contrast')
-			data_output_filepath1 = trial.object_name + '/uncalibrated_contrast/{0}_KL{1}_{2}um_contrast.csv'.format(
-				trial.klip_parameters, trial.numbasis[filepath_index], wavelength)
+			if not os.path.exists(trial_dict['object_name'] + '/uncalibrated_contrast'):
+				os.mkdir(trial_dict['object_name'] + '/uncalibrated_contrast')
+			data_output_filepath1 = trial_dict['object_name'] + '/uncalibrated_contrast/{0}_KL{1}_{2}um_' \
+																'contrast.csv'.format(
+				trial_dict['klip_parameters'], trial_dict['numbasis'][filepath_index], wavelength)
 			df = pd.DataFrame()
 			df['Seperation'] = contrast_seps
 			df['Uncalibrated Contrast'] = contrast
-			title = 'Uncalibrated Contrast at {0}um ({1})'.format(wavelength, trial.object_name)
+			title = 'Uncalibrated Contrast at {0}um ({1})'.format(wavelength, trial_dict['object_name'])
 			df.plot(x='Seperation', y='Uncalibrated Contrast', legend=False, title=title)
 			plt.ylabel('Uncalibrated Contrast')
 			plt.xlabel('Seperation')
@@ -218,14 +209,15 @@ def get_contrast(trial, contains_fakes):
 
 			# If Fakes Present, Then Use Them To Calibrate Contrast
 			if contains_fakes:
-				if not os.path.exists(trial.object_name + '/calibrated_contrast'):
-					os.mkdir(trial.object_name + '/calibrated_contrast')
-				data_output_filepath2 = trial.object_name + '/calibrated_contrast/{0}_KL{1}_{2}um_contrast.csv'.format(
-					trial.klip_parameters, trial.numbasis[filepath_index], wavelength)
+				if not os.path.exists(trial_dict['object_name'] + '/calibrated_contrast'):
+					os.mkdir(trial_dict['object_name'] + '/calibrated_contrast')
+				data_output_filepath2 = trial_dict['object_name'] + '/calibrated_contrast/{0}_KL{1}_{2}um_' \
+																	'contrast.csv'.format(
+					trial_dict['klip_parameters'], trial_dict['numbasis'][filepath_index], wavelength)
 				df = pd.DataFrame()
 				df['Seperation'] = contrast_seps
 				df['Calibrated Contrast'] = correct_contrast
-				title = 'Calibrated Contrast at {0}um ({1})'.format(wavelength, trial.object_name)
+				title = 'Calibrated Contrast at {0}um ({1})'.format(wavelength, trial_dict['object_name'])
 				df.plot(x='Seperation', y='Calibrated Contrast', legend=False, title=title)
 				plt.ylabel('Calibrated Contrast')
 				plt.xlabel('Seperation')
@@ -234,85 +226,80 @@ def get_contrast(trial, contains_fakes):
 				df.to_csv(data_output_filepath2)
 
 
-def detect_planets(trial, SNR_threshold=2, datasetwithfakes=True):
+def detect_planets(trial_dict, SNR_threshold=2, datasetwithfakes=True):
 	"""
 	Looks at a KLIPped dataset with fakes and indicates potential planets.
 	---
 	Args:
-		trial (instance of Trial)
+		trial_dict (instance of Trial)
 		SNR_threshold: Default: 2. Set this to the lowest value to be looked at. Later on, the subsets of
 									detections can be created for other SNR_thresholds.
 		datasetwithfakes (Bool): Default: True. If True, then run planet detection on dataset containing injected
 									planets; if False, then run planet detection on dataset not containing
 									injected planets.
 	"""
-	#TEMPORARY
-	output_filepath = '{0}{1}.csv'.format(trial.filepath_detections_prefixes[filepath_index],
-											  str(SNR_threshold))
+	if datasetwithfakes:
+		filepaths = trial.filepaths_Wfakes
+	else:
+		filepaths = trial.filepaths_Nfakes
 
-	if not os.path.exists(output_filepath): # TEMPORARY
-		if datasetwithfakes:
-			filepaths = trial.filepaths_Wfakes
-		else:
-			filepaths = trial.filepaths_Nfakes
+	for filepath_index, filepath in enumerate(filepaths):  # filepath_index used to identify number of KL modes
+		with fits.open(filepath) as hdulist:
+			image = copy(hdulist[1].data)
+			center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
 
-		for filepath_index, filepath in enumerate(filepaths):  # filepath_index used to identify number of KL modes
-			with fits.open(filepath) as hdulist:
-				image = copy(hdulist[1].data)
-				center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
+		x_grid, y_grid = np.meshgrid(np.arange(-10, 10), np.arange(-10, 10))
+		kernel_gauss = gauss2d(x_grid, y_grid)
 
-			x_grid, y_grid = np.meshgrid(np.arange(-10, 10), np.arange(-10, 10))
-			kernel_gauss = gauss2d(x_grid, y_grid)
+		# flat spectrum given here for generating cross-coorelated image so that pyKLIP collapses it into one
+		# image, instead of giving seperate images for each wavelength
+		image_cc = calculate_cc(image, kernel_gauss, spectrum=np.ones(len(image[0])), nans2zero=True)
 
-			# flat spectrum given here for generating cross-coorelated image so that pyKLIP collapses it into one
-			# image, instead of giving seperate images for each wavelength
-			image_cc = calculate_cc(image, kernel_gauss, spectrum=np.ones(len(image[0])), nans2zero=True)
+		SNR_map = get_image_stat_map_perPixMasking(image_cc, centroid=center, mask_radius=5, Dr=2, type='SNR')
 
-			SNR_map = get_image_stat_map_perPixMasking(image_cc, centroid=center, mask_radius=5, Dr=2, type='SNR')
+		candidates_table = point_source_detection(SNR_map, center, SNR_threshold, pix2as=1, mask_radius=15,
+												  maskout_edge=10, IWA=None, OWA=None)
 
-			candidates_table = point_source_detection(SNR_map, center, SNR_threshold, pix2as=1, mask_radius=15,
-													  maskout_edge=10, IWA=None, OWA=None)
+		candidates = pd.DataFrame(candidates_table, columns=['Index', 'SNR Value', 'PA', 'Sep (pix)',
+															 'Sep (as)', 'x', 'y', 'row', 'col'])
+		injected = []  # going to be an additional column of candidates DataFrame
+		fakelocs = pasep_to_xy(trial_dict['fake_PAs'], trial_dict['fake_seps'])  # where planets were injected
 
-			candidates = pd.DataFrame(candidates_table, columns=['Index', 'SNR Value', 'PA', 'Sep (pix)',
-																 'Sep (as)', 'x', 'y', 'row', 'col'])
-			injected = []  # going to be an additional column of candidates DataFrame
-			fakelocs = pasep_to_xy(trial.fake_PAs, trial.fake_seps)  # where planets were injected
+		candidate_locations = zip(candidates['x'], candidates['y'])  # where stuff was detected
 
-			candidate_locations = zip(candidates['x'], candidates['y'])  # where stuff was detected
+		if not isinstance(trial_dict['mask_xy'][0], (list, tuple)):
+			trial_dict['mask_xy'] = [trial_dict['mask_xy']] # going to be iterated over; needs to be a list of lists
 
-			if not isinstance(trial.mask_xy[0], (list, tuple)):
-				trial.mask_xy = [trial.mask_xy]  # making it a list of a list so that it can get iterated over properly
+		distances_from_fakes = []
+		distances_from_targets = []
+		for c in candidate_locations:
+			distances = []
+			for fl in fakelocs:
+				distances.append(distance(c, fl))
+			distances_from_fakes.append(np.min(distances))
+			distances2 = []
+			for mask in trial_dict['mask_xy']:
+				mask = np.array(mask) - np.array(center)  # aligning coordinate systems
+				distances2.append(distance(c, mask))
+			distances_from_targets.append(np.min(distances2))
 
-			distances_from_fakes = []
-			distances_from_targets = []
-			for c in candidate_locations:
-				distances = []
-				for fl in fakelocs:
-					distances.append(distance(c, fl))
-				distances_from_fakes.append(np.min(distances))
-				distances2 = []
-				for mask in trial.mask_xy:
-					mask = np.array(mask) - np.array(center)  # aligning coordinate systems
-					distances2.append(distance(c, mask))
-				distances_from_targets.append(np.min(distances2))
+		for d1, d2 in zip(distances_from_targets, distances_from_fakes):
+			# If Detection Within 1 FWHM of Location, Considered Legit
+			if d1 < trial_dict['fake_fwhm']:
+				injected.append("Science Target")
+			elif d2 < trial_dict['fake_fwhm']:
+				injected.append(True)
+			else:
+				injected.append(False)
 
-			for d1, d2 in zip(distances_from_targets, distances_from_fakes):
-				# If Detection Within 1 FWHM of Location, Considered Legit
-				if d1 < trial.fake_fwhm:
-					injected.append("Science Target")
-				elif d2 < trial.fake_fwhm:
-					injected.append(True)
-				else:
-					injected.append(False)
+		# Appending Information to Previous candidates DataTable
+		candidates['Distance From Fakes'] = distances_from_fakes
+		candidates['Distance From Targets'] = distances_from_targets
+		candidates['Injected'] = injected
 
-			# Appending Information to Previous candidates DataTable
-			candidates['Distance From Fakes'] = distances_from_fakes
-			candidates['Distance From Targets'] = distances_from_targets
-			candidates['Injected'] = injected
-
-			# Saving Information
-			candidates.to_csv('{0}{1}.csv'.format(trial.filepath_detections_prefixes[filepath_index],
-												  str(SNR_threshold)))
+		# Saving Information
+		candidates.to_csv('{0}{1}.csv'.format(trial_dict['filepath_detections_prefixes'][filepath_index],
+											  str(SNR_threshold)))
 
 
 # TestDataset Will Have a List of Trials Associated With It (one for each group of KLIP Parameters)
@@ -536,33 +523,30 @@ class TestDataset:
 		self.write_to_log_and_print("\n############## BEGINNING CONTRAST AND DETECTION FOR {0} "
 									 "##############".format(self.object_name))
 
-		ts1 = []
-		dwf1 = []
+		trials_dicts = []
 		for trial in self.trials:
-			ts1.append(trial)
-			dwf1.append(datasetwithfakes)
-		get_contrast_args = zip(ts1, dwf1)
+			trial_dict = {'object_name':trial.object_name, 'mask_xy':trial.mask_xy, 'annuli':trial.annuli,
+						  'subsections':trial.subsections, 'movement':trial.movement, 'numbasis':trial.numbasis,
+						  'spectrum':trial.spectrum, 'corr_smooth':trial.corr_smooth, 'fake_PAs':trial.fake_PAs,
+						  'fake_fwhm':trial.fake_fwhm, 'fake_seps':trial.fake_seps,
+						  'dn_per_contrast':trial.dn_per_contrast, 'wln_um':trial.wln_um, 'highpass':trial.highpass,
+						  'klip_parameters':trial.klip_parameters, 'filepaths_Wfakes':trial.filepaths_Wfakes,
+						 'filepaths_Nfakes':trial.filepaths_Nfakes,
+						  'filepath_detections_prefixes':trial.filepath_detections_prefixes}
+			trials_dicts.append(trial_dict)
 
-		ts2 = []
-		snr = []
-		dwf2 = []
-		for trial in self.trials:
-			ts2.append(trial)
-			snr.append(snr_threshold)
-			dwf2.append(datasetwithfakes)
-		detect_planet_args = zip(ts2, snr, dwf2)
+		dwf1 = [datasetwithfakes for _ in range(len(trials_dicts))]
+		get_contrast_args = zip(trials_dicts, dwf1)
 
-		# if __name__ == '__main__':
-		# 	p = Pool(numthreads)
-		# 	p.starmap(func=get_contrast, iterable=get_contrast_args)
-		# 	p.close()
-		# 	p.join()
-		#
-		# if __name__ == '__main__' and run_planet_detection:
-		# 	p = Pool(numthreads)
-		# 	p.starmap(func=detect_planets, iterable=detect_planet_args)
-		# 	p.close()
-		# 	p.join()
+		snr = [snr_threshold for _ in range(len(trials_dicts))]
+		dwf2 = [datasetwithfakes for _ in range(len(trials_dicts))]
+		detect_planet_args = zip(trials_dicts, snr, dwf2)
+
+		if __name__ == '__main__':
+			with Pool(numthreads) as p:
+				p.starmap(func=get_contrast, iterable=get_contrast_args)
+				if run_planet_detection:
+					p.starmap(func=detect_planets, iterable=detect_planet_args)
 
 		self.write_to_log_and_print('\n############## DONE WITH CONTRAST AND DETECTION FOR {0} '
 									 '##############'.format(self.object_name))
