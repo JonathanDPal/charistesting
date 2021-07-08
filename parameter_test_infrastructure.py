@@ -146,8 +146,8 @@ class Trial:
 		self.fake_fwhm = fake_fwhm
 		self.fake_seps = np.array(fake_seps)
 
-		self.dn_per_contrast = dn_per_contrast
-		self.wln_um = wln_um
+		self.dn_per_contrast = np.array(dn_per_contrast)
+		self.wln_um = np.array(wln_um)
 
 		# Switching Highpass To Image Space If Necessary
 		if isinstance(highpass, (int, float)) and not isinstance(highpass, bool):
@@ -175,6 +175,10 @@ class Trial:
 				 fake_PAs, fake_fluxes, fake_fwhm, fake_seps, dn_per_contrast, wln_um, highpass, length]
 		modifiedparams = []
 		for i in range(len(params)):
+			array = False
+			if type(params[i]) == np.ndarray:
+				params[i] = list(params[i])
+				array = True
 			if type(params[i]) == list:
 				list_in_list = []
 				for j in range(len(params[i])):
@@ -189,6 +193,8 @@ class Trial:
 				modifiedparams.append(list_in_list)
 			else:
 				modifiedparams.append(params[i])
+			if array:
+				params[i] = np.array(params[i])
 		self.rebuild_string = '|'.join([str(modifiedparam) for modifiedparam in modifiedparams])
 
 
@@ -280,14 +286,14 @@ class Trial:
 		for filepath_index, filepath in enumerate(filepaths): # filepath_index used to identify number of KL modes
 			with fits.open(filepath) as hdulist:
 				cube = copy(hdulist[1].data)
+				cube /= self.dn_per_contrast[:cube.shape[0], np.newaxis, np.newaxis]
 				dataset_center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
 				dataset_fwhm, dataset_iwa, dataset_owa = FWHMIOWA_calculator(hdulist)
 				output_wcs = WCS(hdulist[0].header, naxis=[1,2])
 
-			for wavelength_index in range(len(self.wln_um)):
+			for wavelength_index in range(cube.shape[0]):
 				# Taking Slice of Cube and then Calibrating It
 				frame = cube[wavelength_index]
-				frame /= self.dn_per_contrast[wavelength_index]
 				wavelength = round(self.wln_um[wavelength_index], 2)
 
 				# Applying Mask to Science Target If Location Specified
@@ -350,7 +356,7 @@ class Trial:
 				if not os.path.exists(self.object_name + '/uncalibrated_contrast'):
 					os.mkdir(self.object_name + '/uncalibrated_contrast')
 				data_output_filepath = self.object_name + f'/uncalibrated_contrast/{self.klip_parameters}_KL' \
-										f'{self.numbasis[filepath_index]}_{wavelength}um_contrast.csv'
+										f'{self.numbasis[filepath_index]}_{wavelength}um_contrastC.csv'
 				df = pd.DataFrame()
 				df['Seperation'] = contrast_seps
 				df['Uncalibrated Contrast'] = contrast
@@ -367,7 +373,7 @@ class Trial:
 					if not os.path.exists(self.object_name + '/calibrated_contrast'):
 						os.mkdir(self.object_name + '/calibrated_contrast')
 					data_output_filepath = self.object_name + f'/calibrated_contrast/{self.klip_parameters}_KL' \
-										f'{self.numbasis[filepath_index]}_{wavelength}um_contrast.csv'
+										f'{self.numbasis[filepath_index]}_{wavelength}um_contrastC.csv'
 					df = pd.DataFrame()
 					df['Seperation'] = contrast_seps
 					df['Calibrated Contrast'] = correct_contrast
@@ -451,7 +457,7 @@ class Trial:
 			candidates['Injected'] = injected
 
 			# Saving Information
-			candidates.to_csv('{0}{1}.csv'.format(self.filepath_detections_prefixes[filepath_index],
+			candidates.to_csv('{0}{1}C.csv'.format(self.filepath_detections_prefixes[filepath_index],
 												  str(SNR_threshold)))
 
 
@@ -659,10 +665,17 @@ class TestDataset:
 
 		trial_strings = [t.rebuild_string for t in self.trials]
 
-		with Pool(numthreads) as p:
-			p.map(func=contrast_measurement, iterable=trial_strings)
-			if run_planet_detection:
-				p.map(func=planet_detection, iterable=trial_strings)
+		p0 = Pool(numthreads)
+		p0.map(func=contrast_measurement, iterable=trial_strings)
+		p0.close()
+		p0.join()
+		p0.terminate()
+
+		self.write_to_log_and_print(f'### DONE WITH CONTRAST FOR {self.object_name}. BEGINNING DETECTION ###')
+
+		if run_planet_detection:
+			for trial in self.trials:
+				trial.detect_planets()
 
 		self.write_to_log_and_print(f"\n############## DONE WITH CONTRAST AND DETECTION FOR {self.object_name} "
 									"##############")
