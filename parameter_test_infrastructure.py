@@ -15,6 +15,7 @@ import pandas as pd
 import sys, os, warnings
 import matplotlib.pyplot as plt
 from contextlib import contextmanager
+import inspect
 
 @contextmanager
 def log_file_output(directory, write_type='a'):
@@ -158,6 +159,99 @@ class Trial:
 		# Filepath to Save Planet Detection Output To
 		self.filepath_detections_prefixes = [self.object_name + '/detections/{0}_KL{1}_SNR-'.format(
 												self.klip_parameters, nb) for nb in self.numbasis]
+
+		# Can Rebuild Class From This String
+		params = [object_name, mask_xy, annuli, subsections, movement, numbasis, spectrum, corr_smooth,
+				 fake_PAs, fake_fluxes, fake_fwhm, fake_seps, dn_per_contrast, wln_um, highpass, length]
+		modifiedparams = []
+		for i in range(len(params)):
+			if type(params[i]) == list:
+				list_in_list = []
+				for j in range(len(params[i])):
+					if type(params[i][j]) == list:
+						m = '[!'
+						for p in params[i][j]:
+							m += f'{p}!'
+						m += ']'
+						list_in_list.append(m)
+					else:
+						list_in_list.append(params[i][j])
+				modifiedparams.append(list_in_list)
+			else:
+				modifiedparams.append(params[i])
+		self.rebuild_string = '|'.join([str(modifiedparam) for modifiedparam in modifiedparams])
+
+
+	@staticmethod
+	def list_rebuilder(s):
+		s = s.replace(' ', '')
+		original_params = s.split('|')
+		for i in range(len(original_params)):
+			pt = original_params[i]
+			if pt[0] == '[':
+				sub_pts = pt.split(',')
+				sub_pts[0] = sub_pts[0][1:]
+				sub_pts[-1] = sub_pts[-1][:-1]
+				for j in range(len(sub_pts)):
+					sub_pt = sub_pts[j]
+					if sub_pt[0] == "'":
+						sub_sub_pts = sub_pt.split('!')
+						sub_sub_pts = sub_sub_pts[1:-1]
+						for k in range(len(sub_sub_pts)):
+							sspt = sub_sub_pts[k]
+							try:
+								sspt = float(sspt)
+								if int(sspt) == sspt:
+									sspt = int(sspt)
+							except ValueError:
+								if str.lower(sspt) == 'none':
+									sspt = None
+								elif str.lower(sspt) == 'true':
+									sspt = True
+								elif str.lower(sspt) == 'false':
+									sspt = False
+							finally:
+								sub_sub_pts[k] = sspt
+						sub_pts[j] = sub_sub_pts
+					else:
+						try:
+							sub_pt = float(sub_pt)
+							if int(sub_pt) == sub_pt:
+								sub_pt = int(sub_pt)
+						except ValueError:
+							if str.lower(sub_pt) == 'none':
+								sub_pt = None
+							elif str.lower(sub_pt) == 'true':
+								sub_pt = True
+							elif str.lower(sub_pt) == 'false':
+								sub_pt = False
+						finally:
+							sub_pts[j] = sub_pt
+					original_params[i] = sub_pts
+			else:
+				try:
+					pt = float(pt)
+					if int(pt) == pt:
+						pt = int(pt)
+				except ValueError:
+					if str.lower(pt) == 'none':
+						pt = None
+					elif str.lower(pt) == 'true':
+						pt = True
+					elif str.lower(pt) == 'false':
+						pt = False
+				finally:
+					original_params[i] = pt
+
+		return original_params
+
+
+	@classmethod
+	def from_string(cls, rebuild_string):
+		p = cls.list_rebuilder(rebuild_string)
+		if len(p) != 16:
+			raise ValueError("Incorrect number of arguments.")
+		return cls(p[0],p[1],p[2],p[3],p[4],p[5],p[6],p[7],p[8],p[9],p[10],p[11],p[12],p[13],p[14],p[15])
 
 
 	def get_contrast(self, contains_fakes, wavelength_index=10):
@@ -348,6 +442,30 @@ class Trial:
 			# Saving Information
 			candidates.to_csv('{0}{1}.csv'.format(self.filepath_detections_prefixes[filepath_index],
 												  str(SNR_threshold)))
+
+
+	def __eq__(self, other):
+		"""
+		Checks to see if two Trials have the same KLIP parameters. Intended for testing out code functionality.
+		"""
+		equal_attributes = list()
+		for i, j in zip(inspect.getmembers(self), inspect.getmembers(other)):
+			if i[0].startswith('_') or inspect.ismethod(i[1]) or i[0] == 'rebuild_string':
+				continue
+			else:
+				try:
+					equal_attributes.append(i[1] == j[1])
+					if i[1] != j[1]:
+						print(i[0], "\nself: ", i[1], "\nother: ", j[1])
+				except ValueError:
+					same = all(i[1]) == all(j[1])
+					equal_attributes.append(same)
+					if not same:
+						print(i[0], "\nself: ", i[1], "\nother: ", j[1])
+		for i in range(len(equal_attributes)):
+			if isinstance(equal_attributes[i], (list, np.ndarray)):
+				equal_attributes[i] = np.sum(equal_attributes[i]) == len(equal_attributes[i])
+		return np.sum(equal_attributes) == len(equal_attributes)
 
 
 # Each Object (eg. HD1160, BetaPic) Will Have An Instance of TestDataset Associated With It
