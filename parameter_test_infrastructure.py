@@ -16,6 +16,7 @@ import sys, os, warnings
 import matplotlib.pyplot as plt
 from contextlib import contextmanager
 import inspect
+from multiprocessing import Pool
 
 
 @contextmanager
@@ -640,18 +641,12 @@ class TestDataset:
 		self.write_to_log_and_print("\n############## BEGINNING CONTRAST AND DETECTION FOR {0} "
 									 "##############".format(self.object_name))
 
+		def contrast(trial_string):
+			t = Trial.from_string(trial_string)
+			t.get_contrast()
 		for i, trial in enumerate(self.trials): # i only used for progress updates
 			# if calib=True and fake planets injected, contrast will be calibrated w/ respect to KLIP subtraction
 			trial.get_contrast(contains_fakes=datasetwithfakes)
 			if detect_planets:
 				# if withfakes=True, detections will use KLIP output w/ fakes; else will use KLIP output w/o fakes
 				trial.detect_planets(datasetwithfakes=datasetwithfakes)
-
-			# Update Every 10 or When Completely Done
-			if i + 1 == len(self.trials):
-				self.write_to_log_and_print('\n############## DONE WITH CONTRAST AND DETECTION FOR {0} '
-											 '##############'.format(self.object_name))
-			elif ((i+1) * 2) % 10 == 0:
-				self.write_to_log_and_print("\n####### Detection and contrast complete for {0}/{1} Trials ({2}%) "
-											 "#######".format((i+1) * 2, len(self.trials) * 2,
-															  round(float(i+1) / float(len(self.trials)),3)*100))
