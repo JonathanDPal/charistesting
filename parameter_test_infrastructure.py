@@ -256,13 +256,12 @@ class Trial:
 		return cls(p[0],p[1],p[2],p[3],p[4],p[5],p[6],p[7],p[8],p[9],p[10],p[11],p[12],p[13],p[14],p[15])
 
 
-	def get_contrast(self, contains_fakes, wavelength_index=10):
+	def get_contrast(self, contains_fakes):
 		"""
 		Measures contrast at a particular wavelength, then saves contrast curve as a PNG and contrast data as a CSV.
 		---
 		Args:
 			contains_fakes (bool): Set to True if looking to make measurements on data with fakes, vice versa.
-			wavelength_index (int): Index of wavelength to look at for contrast information. Default: 1.63 um
 		"""
 		if contains_fakes:
 			filepaths = self.filepaths_Wfakes
@@ -275,100 +274,102 @@ class Trial:
 				cube = copy(hdulist[1].data)
 				dataset_center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
 				dataset_fwhm, dataset_iwa, dataset_owa = FWHMIOWA_calculator(hdulist)
+				output_wcs = WCS(hdulist[0].header, naxis=[1,2])
 
-			# Taking Slice of Cube and then Calibrating It
-			frame = cube[wavelength_index]
-			frame /= self.dn_per_contrast[wavelength_index]
+			for wavelength_index in range(self.wln_um):
+				# Taking Slice of Cube and then Calibrating It
+				frame = cube[wavelength_index]
+				frame /= self.dn_per_contrast[wavelength_index]
+				wavelength = round(self.wln_um[wavelength_index], 2)
 
-			# Applying Mask to Science Target If Location Specified
-			if isinstance(self.mask_xy, (list, tuple)):
-				if not isinstance(self.mask_xy[0], (list, tuple)):
-					x_pos = self.mask_xy[0]
-					y_pos = self.mask_xy[1]
+				# Applying Mask to Science Target If Location Specified
+				if isinstance(self.mask_xy, (list, tuple)):
+					if not isinstance(self.mask_xy[0], (list, tuple)):
+						x_pos = self.mask_xy[0]
+						y_pos = self.mask_xy[1]
 
-					ydat, xdat = np.indices(frame.shape)
-					distance_from_planet = np.sqrt((xdat - x_pos) ** 2 + (ydat - y_pos) ** 2)
-					frame[np.where(distance_from_planet <= 2 * dataset_fwhm)] = np.nan
-				else:
-					for position in self.mask_xy:
-						x_pos = position[0]
-						y_pos = position[1]
+						ydat, xdat = np.indices(frame.shape)
+						distance_from_planet = np.sqrt((xdat - x_pos) ** 2 + (ydat - y_pos) ** 2)
+						frame[np.where(distance_from_planet <= 2 * dataset_fwhm)] = np.nan
+					else:
+						for position in self.mask_xy:
+							x_pos = position[0]
+							y_pos = position[1]
+
+							ydat, xdat = np.indices(frame.shape)
+							distance_from_planet = np.sqrt((xdat - x_pos) ** 2 + (ydat - y_pos) ** 2)
+							frame[np.where(distance_from_planet <= 2 * dataset_fwhm)] = np.nan
+
+				# Applying Mask to Fake Planets
+				if contains_fakes:
+					fakelocs = pasep_to_xy(self.fake_PAs, self.fake_seps)
+					for fl in fakelocs:
+						x_pos = fl[0] + dataset_center[0] # moving it into correct coordinate system
+						y_pos = fl[1] + dataset_center[1]
 
 						ydat, xdat = np.indices(frame.shape)
 						distance_from_planet = np.sqrt((xdat - x_pos) ** 2 + (ydat - y_pos) ** 2)
 						frame[np.where(distance_from_planet <= 2 * dataset_fwhm)] = np.nan
 
-			# Applying Mask to Fake Planets
-			if contains_fakes:
-				fakelocs = pasep_to_xy(self.fake_PAs, self.fake_seps)
-				for fl in fakelocs:
-					x_pos = fl[0] + dataset_center[0] # moving it into correct coordinate system
-					y_pos = fl[1] + dataset_center[1]
+				# Measuring Contrast
+				contrast_seps, contrast = meas_contrast(frame, dataset_iwa, dataset_owa, dataset_fwhm,
+														center=dataset_center, low_pass_filter=True)
 
-					ydat, xdat = np.indices(frame.shape)
-					distance_from_planet = np.sqrt((xdat - x_pos) ** 2 + (ydat - y_pos) ** 2)
-					frame[np.where(distance_from_planet <= 2 * dataset_fwhm)] = np.nan
+				# Calibrating For KLIP Subtraction If Fakes Present
+				if contains_fakes:
+					retrieved_fluxes = []
+					for sep in self.fake_seps:
+						fake_planet_fluxes = []
+						for pa in self.fake_PAs:
+							fake_flux = retrieve_planet_flux(frame, dataset_center, output_wcs, sep, pa, searchrad=7)
+							fake_planet_fluxes.append(fake_flux)
+						retrieved_fluxes.append(np.mean(fake_planet_fluxes))
 
-			# Measuring Contrast
-			contrast_seps, contrast = meas_contrast(frame, dataset_iwa, dataset_owa, dataset_fwhm,
-													center=dataset_center, low_pass_filter=True)
+					numgroups = len(self.fake_seps)
+					groupsize = int(len(self.fake_fluxes) / len(self.fake_seps))
+					fluxgroups = [[self.fake_fluxes[i*numgroups + j] for i in range(groupsize)] for j in range(
+						 numgroups)]
+					fluxes = [np.mean(fluxgroups[i]) for i in range(numgroups)]
 
-			# Calibrating For KLIP Subtraction If Fakes Present
-			if contains_fakes:
-				retrieved_fluxes = []
-				for sep in self.fake_seps:
-					fake_planet_fluxes = []
-					for pa in self.fake_PAs:
-						fake_flux = retrieve_planet_flux(frame, dataset_center, self.output_wcs, sep, pa, searchrad=7)
-						fake_planet_fluxes.append(fake_flux)
-					retrieved_fluxes.append(np.mean(fake_planet_fluxes))
+					algo_throughput = np.array(retrieved_fluxes) / np.array(fluxes)
 
-				numgroups = len(self.fake_seps)
-				groupsize = int(len(self.fake_fluxes) / len(self.fake_seps))
-				fluxgroups = [[self.fake_fluxes[i*numgroups + j] for i in range(groupsize)] for j in range(numgroups)]
-				fluxes = [np.mean(fluxgroups[i]) for i in range(numgroups)]
+					correct_contrast = np.copy(contrast)
+					for j, sep in enumerate(contrast_seps):
+						closest_throughput_index = np.argmin(np.abs(sep - self.fake_seps))
+						correct_contrast[j] /= algo_throughput[closest_throughput_index]
 
-				algo_throughput = np.array(retrieved_fluxes) / np.array(fluxes)
-
-				correct_contrast = np.copy(contrast)
-				for j, sep in enumerate(contrast_seps):
-					closest_throughput_index = np.argmin(np.abs(sep - self.fake_seps))
-					correct_contrast[j] /= algo_throughput[closest_throughput_index]
-
-			# Always Going to Save Uncalibrated Contrast
-			if not os.path.exists(self.object_name + '/uncalibrated_contrast'):
-				os.mkdir(self.object_name + '/uncalibrated_contrast')
-			data_output_filepath = self.object_name + '/uncalibrated_contrast/{0}_KL{1}_contrast.csv'.format(
-				self.klip_parameters, self.numbasis[filepath_index])
-			df = pd.DataFrame()
-			df['Seperation'] = contrast_seps
-			df['Uncalibrated Contrast'] = contrast
-			wavelength = round(self.wln_um[wavelength_index], 2)
-			title = 'Uncalibrated Contrast at {0}um ({1})'.format(wavelength, self.object_name)
-			df.plot(x='Seperation', y='Uncalibrated Contrast', legend=False, title=title)
-			plt.ylabel('Uncalibrated Contrast')
-			plt.xlabel('Seperation')
-			plt.semilogy()
-			plt.savefig(data_output_filepath[0:-4] + '.png')
-			df.to_csv(data_output_filepath)
-
-			# If Fakes Present, Then Use Them To Calibrate Contrast
-			if contains_fakes:
-				if not os.path.exists(self.object_name + '/calibrated_contrast'):
-					os.mkdir(self.object_name + '/calibrated_contrast')
-				data_output_filepath = self.object_name + '/calibrated_contrast/{0}_KL{1}_contrast.csv'.format(
-										   self.klip_parameters, self.numbasis[filepath_index])
+				# Always Going to Save Uncalibrated Contrast
+				if not os.path.exists(self.object_name + '/uncalibrated_contrast'):
+					os.mkdir(self.object_name + '/uncalibrated_contrast')
+				data_output_filepath = self.object_name + f'/uncalibrated_contrast/{self.klip_parameters}_KL' \
+										f'{self.numbasis[filepath_index]}_{wavelength}um_contrast.csv'
 				df = pd.DataFrame()
 				df['Seperation'] = contrast_seps
-				df['Calibrated Contrast'] = correct_contrast
-				wavelength = round(self.wln_um[wavelength_index], 2)
-				title = 'Calibrated Contrast at {0}um ({1})'.format(wavelength, self.object_name)
-				df.plot(x='Seperation', y='Calibrated Contrast', legend=False, title=title)
-				plt.ylabel('Calibrated Contrast')
+				df['Uncalibrated Contrast'] = contrast
+				title = 'Uncalibrated Contrast at {0}um ({1})'.format(wavelength, self.object_name)
+				df.plot(x='Seperation', y='Uncalibrated Contrast', legend=False, title=title)
+				plt.ylabel('Uncalibrated Contrast')
 				plt.xlabel('Seperation')
 				plt.semilogy()
 				plt.savefig(data_output_filepath[0:-4] + '.png')
 				df.to_csv(data_output_filepath)
+
+				# If Fakes Present, Then Use Them To Calibrate Contrast
+				if contains_fakes:
+					if not os.path.exists(self.object_name + '/calibrated_contrast'):
+						os.mkdir(self.object_name + '/calibrated_contrast')
+					data_output_filepath = self.object_name + f'/calibrated_contrast/{self.klip_parameters}_KL' \
+										f'{self.numbasis[filepath_index]}_{wavelength}um_contrast.csv'
+					df = pd.DataFrame()
+					df['Seperation'] = contrast_seps
+					df['Calibrated Contrast'] = correct_contrast
+					title = f'Calibrated Contrast at {wavelength}um ({self.object_name})'
+					df.plot(x='Seperation', y='Calibrated Contrast', legend=False, title=title)
+					plt.ylabel('Calibrated Contrast')
+					plt.xlabel('Seperation')
+					plt.semilogy()
+					plt.savefig(data_output_filepath[0:-4] + '.png')
+					df.to_csv(data_output_filepath)
 
 
 	def detect_planets(self, SNR_threshold=2, datasetwithfakes=True):
