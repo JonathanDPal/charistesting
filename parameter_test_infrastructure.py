@@ -631,7 +631,7 @@ class TestDataset:
 																					 float(number_of_klip),3)*100))
 
 
-	def contrast_and_detection(self, detect_planets=True, datasetwithfakes=True):
+	def contrast_and_detection(self, detect_planets=True, datasetwithfakes=True, numthreads=65):
 		if not os.path.exists(self.object_name + '/detections') and detect_planets:
 			os.mkdir(self.object_name + '/detections')
 		if not os.path.exists(self.object_name + '/calibrated_contrast') and True in datasetwithfakes:
@@ -650,10 +650,11 @@ class TestDataset:
 			t = Trial.from_string(trial_string)
 			t.detect_planets()
 
-		trial_strings =
-		for i, trial in enumerate(self.trials): # i only used for progress updates
-			# if calib=True and fake planets injected, contrast will be calibrated w/ respect to KLIP subtraction
-			trial.get_contrast(contains_fakes=datasetwithfakes)
-			if detect_planets:
-				# if withfakes=True, detections will use KLIP output w/ fakes; else will use KLIP output w/o fakes
-				trial.detect_planets(datasetwithfakes=datasetwithfakes)
+		trial_strings = [t.rebuild_string for t in self.trials]
+
+		with Pool(numthreads) as p:
+			p.map(func=contrast_measurement, iterable=trial_strings)
+			p.map(func=planet_detection, iterable=trial_strings)
+
+		self.write_to_log_and_print(f"\n############## DONE WITH CONTRAST AND DETECTION FOR {self.object_name} "
+									"##############")
