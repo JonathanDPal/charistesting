@@ -5,6 +5,7 @@ from numpy import floor
 from astropy.io import fits
 from glob import glob
 import os
+from astropy.wcs.wcs import FITSFixedWarning
 
 #####################################################
 #################### USER INPUTS ####################
@@ -102,6 +103,7 @@ start0 = time()
 
 # KLIP creates a bunch of RuntimeWarnings that we don't want to spam our log file
 warnings.simplefilter('ignore', category=RuntimeWarning)
+warnings.simplefilter('ignore', category=FITSFixedWarning)
 
 # FWHM Is Based on Central Wavelength of Filter Used During Obsveration.
 with fits.open(glob(fileset0)[0]) as hdulist:
