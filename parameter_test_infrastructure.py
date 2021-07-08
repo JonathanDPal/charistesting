@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 from contextlib import contextmanager
 import inspect
 from multiprocessing import Pool
+from time import time
 
 
 @contextmanager
@@ -568,7 +569,7 @@ class TestDataset:
 		self.write_to_log_and_print("############ DONE INJECTING FAKES FOR {0} ############".format(self.object_name))
 
 
-	def run_KLIP_on_data_without_fakes(self):
+	def run_KLIP_on_data_without_fakes(self, numthreads):
 		if not os.path.exists(self.object_name):
 			os.mkdir(self.object_name)
 		if not os.path.exists(self.object_name+'/klipped_cubes_Nfakes'):
@@ -579,6 +580,7 @@ class TestDataset:
 		self.write_to_log_and_print('####### BEGINNING KLIP ON DATA WITHOUT FAKES #######\n'
 									'####### Number of KLIP Runs To Complete: {0} #######\n'.format(number_of_klip))
 
+		prevtime = time()
 		for i, trial in enumerate(self.trials): # i only used for measuring progress
 			klip_runs = i # get number of KLIP run conducted already
 
@@ -588,18 +590,21 @@ class TestDataset:
 							 annuli=trial.annuli, subsections=trial.subsections, movement=trial.movement,
 							 numbasis=trial.numbasis, spectrum=trial.spectrum, verbose=True,
 							 corr_smooth=trial.corr_smooth, highpass=trial.highpass, mode=self.mode,
-							 numthreads=65)
+							 numthreads=numthreads)
 
-			# Update Every 5 or When Completely Done
+			# Update Every 20 or When Completely Done
 			if i + 1 == len(self.trials):
-				self.write_to_log_and_print("\n### DONE WITH KLIP ON DATA WITHOUT FAKES###")
-			elif (klip_runs + 2) % 5 == 0:
-				self.write_to_log_and_print("####### {0}/{1} KLIP Runs Complete ({2}%) #######".
-											format(klip_runs + 2, number_of_klip, round(float(klip_runs + 1) /
-																					 float(number_of_klip),3)*100))
+				self.write_to_log_and_print("\n### DONE WITH KLIP ON DATA WITH FAKES ###")
+			elif (klip_runs + 1) % 20 == 0:
+				currenttime = time()
+				minutes_per_run = round(((currenttime - prevtime) / 60) / 20, 2)
+				self.write_to_log_and_print('####### {0}/{1} KLIP Runs Complete ({2}%) -- avg speed: {3} '
+											'min/run#######'.format(klip_runs + 1, number_of_klip, round(float(
+					klip_runs + 1) / float(number_of_klip), 3) * 100, minutes_per_run))
+				prevtime = time()
 
 
-	def run_KLIP_on_data_with_fakes(self):
+	def run_KLIP_on_data_with_fakes(self, numthreads):
 		if not os.path.exists(self.object_name):
 			os.mkdir(self.object_name)
 		if not os.path.exists(self.object_name+'/klipped_cubes_Wfakes'):
@@ -610,6 +615,7 @@ class TestDataset:
 		self.write_to_log_and_print('####### BEGINNING KLIP ON DATA WITH FAKES #######\n'
 									'####### Number of KLIP Runs To Complete: {0} #######\n'.format(number_of_klip))
 
+		prevtime = time()
 		for i, trial in enumerate(self.trials): # i only used for measuring progress
 			klip_runs = i # get number of KLIP runs conducted already
 
@@ -619,20 +625,22 @@ class TestDataset:
 							 annuli=trial.annuli, subsections=trial.subsections, movement=trial.movement,
 							 numbasis=trial.numbasis, spectrum=trial.spectrum, verbose=True,
 							 corr_smooth=trial.corr_smooth, highpass=trial.highpass, mode=self.mode,
-							 numthreads=65)
-				trial.output_wcs = self.dataset.output_wcs[0] # need this for calibrating contrast curve
+							 numthreads=numthreads)
 
-			# Update Every 5 or When Completely Done
+			# Update Every 20 or When Completely Done
 			if i + 1 == len(self.trials):
 				self.write_to_log_and_print("\n### DONE WITH KLIP ON DATA WITH FAKES ###")
-			elif (klip_runs + 1) % 5 == 0:
-				self.write_to_log_and_print("####### {0}/{1} KLIP Runs Complete ({2}%) #######".
-											format(klip_runs + 2, number_of_klip, round(float(klip_runs + 1) /
-																					 float(number_of_klip),3)*100))
+			elif (klip_runs + 1) % 20 == 0:
+				currenttime = time()
+				minutes_per_run = round(((currenttime - prevtime) / 60) / 20, 2)
+				self.write_to_log_and_print('####### {0}/{1} KLIP Runs Complete ({2}%) -- avg speed: {3} '
+											'min/run#######'.format(klip_runs + 1, number_of_klip, round(float(
+					klip_runs + 1) / float(number_of_klip), 3) * 100, minutes_per_run))
+				prevtime = time()
 
 
-	def contrast_and_detection(self, detect_planets=True, datasetwithfakes=True, numthreads=65):
-		if not os.path.exists(self.object_name + '/detections') and detect_planets:
+	def contrast_and_detection(self, run_planet_detection=True, datasetwithfakes=True, numthreads=65):
+		if not os.path.exists(self.object_name + '/detections') and run_planet_detection:
 			os.mkdir(self.object_name + '/detections')
 		if not os.path.exists(self.object_name + '/calibrated_contrast') and True in datasetwithfakes:
 			os.mkdir(self.object_name + '/calibrated_contrast')
@@ -654,7 +662,8 @@ class TestDataset:
 
 		with Pool(numthreads) as p:
 			p.map(func=contrast_measurement, iterable=trial_strings)
-			p.map(func=planet_detection, iterable=trial_strings)
+			if run_planet_detection:
+				p.map(func=planet_detection, iterable=trial_strings)
 
 		self.write_to_log_and_print(f"\n############## DONE WITH CONTRAST AND DETECTION FOR {self.object_name} "
 									"##############")
