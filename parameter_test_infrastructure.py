@@ -110,6 +110,16 @@ def distance(xy1, xy2):
 	return np.sqrt((xy1[0] - xy2[0]) ** 2 + (xy1[1] - xy2[1]) ** 2)
 
 
+def contrast_measurement(trial_string):
+	t = Trial.from_string(trial_string)
+	t.get_contrast()
+
+
+def planet_detection(trial_string):
+	t = Trial.from_string(trial_string)
+	t.detect_planets()
+
+
 # TestDataset Will Have a List of Trials Associated With It (one for each group of KLIP Parameters)
 class Trial:
 	"""
@@ -145,9 +155,6 @@ class Trial:
 			self.highpass = length / (highpass * 2 * np.sqrt(2 * np.log(2)))
 		else:
 			self.highpass = highpass
-
-		# This Value Will Be Written In After KLIP Run Performed
-		self.output_wcs = None
 
 		# String Identifying Parameters Used (Used Later For Saving Contrast Info)
 		self.klip_parameters = str(annuli)+'Annuli_'+str(subsections)+'Subsections_'+str(movement)+'Movement_'+str(
@@ -277,7 +284,7 @@ class Trial:
 				dataset_fwhm, dataset_iwa, dataset_owa = FWHMIOWA_calculator(hdulist)
 				output_wcs = WCS(hdulist[0].header, naxis=[1,2])
 
-			for wavelength_index in range(self.wln_um):
+			for wavelength_index in range(len(self.wln_um)):
 				# Taking Slice of Cube and then Calibrating It
 				frame = cube[wavelength_index]
 				frame /= self.dn_per_contrast[wavelength_index]
@@ -642,21 +649,13 @@ class TestDataset:
 	def contrast_and_detection(self, run_planet_detection=True, datasetwithfakes=True, numthreads=65):
 		if not os.path.exists(self.object_name + '/detections') and run_planet_detection:
 			os.mkdir(self.object_name + '/detections')
-		if not os.path.exists(self.object_name + '/calibrated_contrast') and True in datasetwithfakes:
+		if not os.path.exists(self.object_name + '/calibrated_contrast') and datasetwithfakes:
 			os.mkdir(self.object_name + '/calibrated_contrast')
 		if not os.path.exists(self.object_name + '/uncalibrated_contrast'):
 			os.mkdir(self.object_name + '/uncalibrated_contrast')
 
 		self.write_to_log_and_print("\n############## BEGINNING CONTRAST AND DETECTION FOR {0} "
 									 "##############".format(self.object_name))
-
-		def contrast_measurement(trial_string):
-			t = Trial.from_string(trial_string)
-			t.get_contrast()
-
-		def planet_detection(trial_string):
-			t = Trial.from_string(trial_string)
-			t.detect_planets()
 
 		trial_strings = [t.rebuild_string for t in self.trials]
 
