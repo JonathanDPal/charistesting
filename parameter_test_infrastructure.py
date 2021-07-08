@@ -256,7 +256,7 @@ class Trial:
 		return cls(p[0],p[1],p[2],p[3],p[4],p[5],p[6],p[7],p[8],p[9],p[10],p[11],p[12],p[13],p[14],p[15])
 
 
-	def get_contrast(self, contains_fakes):
+	def get_contrast(self, contains_fakes=True):
 		"""
 		Measures contrast at a particular wavelength, then saves contrast curve as a PNG and contrast data as a CSV.
 		---
@@ -642,9 +642,15 @@ class TestDataset:
 		self.write_to_log_and_print("\n############## BEGINNING CONTRAST AND DETECTION FOR {0} "
 									 "##############".format(self.object_name))
 
-		def contrast(trial_string):
+		def contrast_measurement(trial_string):
 			t = Trial.from_string(trial_string)
 			t.get_contrast()
+
+		def planet_detection(trial_string):
+			t = Trial.from_string(trial_string)
+			t.detect_planets()
+
+		trial_strings =
 		for i, trial in enumerate(self.trials): # i only used for progress updates
 			# if calib=True and fake planets injected, contrast will be calibrated w/ respect to KLIP subtraction
 			trial.get_contrast(contains_fakes=datasetwithfakes)
