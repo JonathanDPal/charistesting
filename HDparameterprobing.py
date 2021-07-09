@@ -18,10 +18,6 @@ fileset0 = 'HD1160_cubes/*.fits' # will be passed into glob.glob() to identify e
 mask0 = [144, 80] # [X-coor, Y-coor] of object in KLIP output
 object_name0 = 'HD1160' # Name of Directory Where All Outputs Will Be Placed
 
-# fileset0 = 'HR8799_cubes/*.fits'
-# mask0 = [[128, 152], [157, 137], [129, 70]]
-# object_name0 = 'HR8799'
-
 # Setting Up Lists/Tuples For KLIP
 annuli = [4, 6, 8, 10, 12] # List of Integer(s)
 subsections = [2, 4, 6] # List of Integer(s)
@@ -35,7 +31,7 @@ highpass = [False, 5.0, True, 15.0] # List or Tuple of Float(s), Integer(s), and
 mode = 'ADI+SDI' # Exactly ONE (not a list or tuple) or the following: 'ADI', 'SDI', 'ADI+SDI'
 
 # Maximum Number of Threads to Use (set to None to use maximum computer capacity)
-numthreads = 65
+max_numthreads = None
 
 # Setting Up For Fake Planets
 fake_fluxes = [5e-4, 5e-5, 5e-6, 1e-4, 1e-5, 1e-6] # List of Float(s)
@@ -45,7 +41,7 @@ fake_PAs=[19, 79, 139, 199, 259, 319] # List of Integer(s) and/or Float(s)
 ##### Specifying Which Things to Do/Not Do #####
 # Most of the time, the four values below should be set to True
 put_in_fakes = True
-run_KLIP_on_dataset_with_fakes = False # if no fakes are injected, this will just be a dataset without fakes
+run_KLIP_on_dataset_with_fakes = True # if no fakes are injected, this will just be a dataset without fakes
 get_contrast = True # won't be calibrated if no fake planets are injected
 get_planet_detections_from_dataset_with_fakes = True
 # Most of the time, these two values below should be set to False
@@ -118,14 +114,14 @@ td0 = TestDataset(fileset=fileset0, object_name=object_name0, mask_xy=mask0, fak
 # Have TestDataset 0 Run Each Part
 # if we want KLIP output of data without fakes, we need to run KLIP before injecting planets
 if run_KLIP_on_dataset_without_fakes:
-    td0.run_KLIP_on_data_without_fakes(numthreads=numthreads)
+    td0.run_KLIP_on_data_without_fakes(numthreads=max_numthreads)
 if put_in_fakes:
     td0.inject_fakes()
 if run_KLIP_on_dataset_with_fakes:
-    td0.run_KLIP_on_data_with_fakes(numthreads=numthreads)
+    td0.run_KLIP_on_data_with_fakes(numthreads=max_numthreads)
 if get_contrast_and_detections:
     td0.contrast_and_detection(run_planet_detection=detect_planets, datasetwithfakes=datasetwithfakes,
-                               numthreads=numthreads)
+                               numthreads=max_numthreads)
 
 # Print Out Time Taken
 end0 = time()
@@ -137,40 +133,6 @@ seconds = round(remaining_time - minutes * 60)
 
 td0.write_to_log_and_print("##################### TIME ELAPSED: {0} Hours, {1} Minutes, {2} Seconds "
                             "#####################".format(hours, minutes, seconds))
-
-# #### SECOND TESTDATASET ####
-# start1 = time()
-#
-# # FWHM Is Based on Central Wavelength of Filter Used During Obsveration.
-# with fits.open(glob(fileset1)[0]) as hdulist:
-#    fake_fwhm1 = FWHMIOWA_calculator(hdulist)[0]
-#
-# # Create TestDataset For Target 1
-# td1 = TestDataset(fileset=fileset1, object_name=object_name1, mask_xy=mask1, fake_fluxes=fake_fluxes,
-#                   fake_seps=fake_seps, annuli=annuli, subsections=subsections, movement=movement, numbasis=numbasis,
-#                   corr_smooth=corr_smooth, highpass=highpass, spectrum=spectrum, mode=mode, fake_PAs=fake_PAs,
-#                   fake_fwhm=fake_fwhm1)
-#
-# # Have TestDataset 1 Run Each Part
-# if run_KLIP_on_dataset_without_fakes:
-#     td1.run_KLIP_on_data_without_fakes()
-# if put_in_fakes:
-#     td1.inject_fakes()
-# if run_KLIP_on_dataset_with_fakes:
-#     td1.run_KLIP_on_data_with_fakes()
-# if get_contrast_and_detections:
-#     td1.contrast_and_detection(detect_planets=detect_planets, datasetwithfakes=datasetwithfakes)
-#
-# # Print Out Time Taken
-# end1 = time()
-# time_elapsed = end1 - start1
-# hours = int(floor(time_elapsed / 3600))
-# remaining_time = time_elapsed - (hours * 3600)
-# minutes = int(floor(remaining_time / 60))
-# seconds = round(remaining_time - minutes * 60)
-#
-# td1.write_to_log_and_print("##################### TIME ELAPSED: {0} Hours, {1} Minutes, {2} Seconds "
-#                             "#####################".format(hours, minutes, seconds))
 
 
 
