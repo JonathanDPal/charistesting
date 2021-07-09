@@ -3,7 +3,7 @@ from astropy.wcs import WCS
 import numpy as np
 from glob import glob
 from pyklip.instruments.CHARIS import CHARISData
-from copy import copy
+from copy import copy, deepcopy
 from pyklip.parallelized import klip_dataset
 from pyklip.klip import meas_contrast
 from pyklip.fakes import inject_planet, retrieve_planet_flux
@@ -111,13 +111,48 @@ def distance(xy1, xy2):
 
 
 def contrast_measurement(trial_string):
+	"""
+	Used for parallelization on contrast measurements.
+	"""
 	t = Trial.from_string(trial_string)
 	t.get_contrast()
 
 
 def planet_detection(trial_string):
+	"""
+	Could be used for parallelization on planet detections. Currently not in use because would need to eliminate
+	pyKLIP's parallelization on planet detection in order to use this parallelization.
+	"""
 	t = Trial.from_string(trial_string)
 	t.detect_planets()
+
+
+def parameter_set_batcher(batchindex, batchsize, args):
+	num_param_combos = np.prod([len(arg) for arg in args])
+	remainder = num_param_combos % batchsize
+	if remainder != 0:
+		num_full_size_batches = int(np.floor(num_param_combos / batchsize))
+		if batchindex > num_full_size_batches:
+			partial_batch = True
+	annuli, subsections, movement, spectrum, corr_smooth, highpass = args
+	params = []
+	for ani in annuli:
+		for subsec in subsections:
+			for mov in movement:
+				for spec in spectrum:
+					for cs in corr_smooth:
+						for hp in highpass:
+							params.append((ani, subsec, mov, spec, cs, hp))
+
+	startingindex = batchsize * (batchindex - 1)
+	if not partial_batch:
+		finalindex = startingindex + batchsize
+	else:
+		finalindex = None
+
+	newparams = params[startingindex:finalindex]
+
+	return newparams
 
 
 # TestDataset Will Have a List of Trials Associated With It (one for each group of KLIP Parameters)
@@ -266,7 +301,7 @@ class Trial:
 	def from_string(cls, rebuild_string):
 		p = cls.list_rebuilder(rebuild_string)
 		if len(p) != 16:
-			raise ValueError("Incorrect number of arguments.")
+			raise ValueError("Incorrect number of arguments given for building class Trial using from_string method.")
 		return cls(p[0],p[1],p[2],p[3],p[4],p[5],p[6],p[7],p[8],p[9],p[10],p[11],p[12],p[13],p[14],p[15])
 
 
@@ -286,7 +321,6 @@ class Trial:
 		for filepath_index, filepath in enumerate(filepaths): # filepath_index used to identify number of KL modes
 			with fits.open(filepath) as hdulist:
 				cube = copy(hdulist[1].data)
-				cube /= self.dn_per_contrast[:cube.shape[0], np.newaxis, np.newaxis]
 				dataset_center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
 				dataset_fwhm, dataset_iwa, dataset_owa = FWHMIOWA_calculator(hdulist)
 				output_wcs = WCS(hdulist[0].header, naxis=[1,2])
@@ -294,6 +328,7 @@ class Trial:
 			for wavelength_index in range(cube.shape[0]):
 				# Taking Slice of Cube and then Calibrating It
 				frame = cube[wavelength_index]
+				frame /= self.dn_per_contrast[wavelength_index]
 				wavelength = round(self.wln_um[wavelength_index], 2)
 
 				# Applying Mask to Science Target If Location Specified
@@ -314,6 +349,8 @@ class Trial:
 							distance_from_planet = np.sqrt((xdat - x_pos) ** 2 + (ydat - y_pos) ** 2)
 							frame[np.where(distance_from_planet <= 2 * dataset_fwhm)] = np.nan
 
+				frame_pre_planet_mask = deepcopy(frame) # need to have fake planets available for later
+
 				# Applying Mask to Fake Planets
 				if contains_fakes:
 					fakelocs = pasep_to_xy(self.fake_PAs, self.fake_seps)
@@ -323,11 +360,13 @@ class Trial:
 
 						ydat, xdat = np.indices(frame.shape)
 						distance_from_planet = np.sqrt((xdat - x_pos) ** 2 + (ydat - y_pos) ** 2)
-						frame[np.where(distance_from_planet <= 2 * dataset_fwhm)] = np.nan
+						frame[np.where(distance_from_planet <= dataset_fwhm)] = np.nan
 
 				# Measuring Contrast
 				contrast_seps, contrast = meas_contrast(frame, dataset_iwa, dataset_owa, dataset_fwhm,
 														center=dataset_center, low_pass_filter=True)
+
+				frame = frame_pre_planet_mask # need fakes back in the frame for calibration
 
 				# Calibrating For KLIP Subtraction If Fakes Present
 				if contains_fakes:
@@ -492,7 +531,7 @@ class TestDataset:
 	pyklip.instruments.CHARIS) and then create an instance of Trial for each set of KLIP parameters to be looked at.
 	"""
 	def __init__(self, fileset, object_name, mask_xy, fake_fluxes, fake_seps, annuli, subsections, movement,
-				 numbasis, corr_smooth, highpass, spectrum, fake_fwhm, fake_PAs, mode):
+				 numbasis, corr_smooth, highpass, spectrum, fake_fwhm, fake_PAs, mode, batched=False):
 		self.object_name = object_name
 		self.mask_xy = mask_xy
 
@@ -525,20 +564,35 @@ class TestDataset:
 		self.fake_PAs = fake_PAs
 
 		self.trials = []
-		for ani in annuli:
-			for subsec in subsections:
-				for mov in movement:
-						for spec in spectrum:
-							for cs in corr_smooth:
-								for hp in highpass:
-									self.trials.append(Trial(object_name=self.object_name, mask_xy=self.mask_xy,
-															 annuli=ani, subsections=subsec, movement=mov,
-															 numbasis=numbasis, spectrum=spec, corr_smooth=cs,
-															 fake_PAs=self.fake_PAs, fake_fluxes=self.fake_fluxes,
-															 fake_fwhm=self.fake_fwhm, fake_seps=self.fake_seps,
-															 dn_per_contrast=self.dataset.dn_per_contrast,
-															 wln_um=self.dataset.wvs, highpass=hp,
-															 length=self.dataset.input.shape[1]))
+		if not isinstance(batched, tuple):
+			for ani in annuli:
+				for subsec in subsections:
+					for mov in movement:
+							for spec in spectrum:
+								for cs in corr_smooth:
+									for hp in highpass:
+										self.trials.append(Trial(object_name=self.object_name, mask_xy=self.mask_xy,
+																 annuli=ani, subsections=subsec, movement=mov,
+																 numbasis=numbasis, spectrum=spec, corr_smooth=cs,
+																 fake_PAs=self.fake_PAs, fake_fluxes=self.fake_fluxes,
+																 fake_fwhm=self.fake_fwhm, fake_seps=self.fake_seps,
+																 dn_per_contrast=self.dataset.dn_per_contrast,
+																 wln_um=self.dataset.wvs, highpass=hp,
+																 length=self.dataset.input.shape[1]))
+		else:
+			args = [annuli, subsections, movement, spectrum, corr_smooth, highpass]
+			_, batchindex, batchsize = batched
+			paramset = parameter_set_batcher(batchindex, batchsize, args)
+			for params in paramset:
+				ani, subsec, mov, spec, cs, hp = params
+				self.trials.append(Trial(object_name=self.object_name, mask_xy=self.mask_xy,
+										 annuli=ani, subsections=subsec, movement=mov,
+										 numbasis=numbasis, spectrum=spec, corr_smooth=cs,
+										 fake_PAs=self.fake_PAs, fake_fluxes=self.fake_fluxes,
+										 fake_fwhm=self.fake_fwhm, fake_seps=self.fake_seps,
+										 dn_per_contrast=self.dataset.dn_per_contrast,
+										 wln_um=self.dataset.wvs, highpass=hp,
+										 length=self.dataset.input.shape[1]))
 
 		self.mode = mode
 		self.write_to_log_and_print("############ DONE BUILDING TRIALS FOR {0} ############".format(self.object_name))
@@ -666,7 +720,7 @@ class TestDataset:
 		trial_strings = [t.rebuild_string for t in self.trials]
 
 		p0 = Pool(numthreads)
-		p0.map(func=contrast_measurement, iterable=trial_strings)
+		p0.map_async(func=contrast_measurement, iterable=trial_strings)
 		p0.close()
 		p0.join()
 		p0.terminate()
