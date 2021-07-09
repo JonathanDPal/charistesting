@@ -1,10 +1,9 @@
 from parameter_test_infrastructure import *
-import warnings
 from time import time
 from numpy import floor
 from astropy.io import fits
 from glob import glob
-import os
+import os, sys, warnings
 from astropy.wcs.wcs import FITSFixedWarning
 
 #####################################################
@@ -13,7 +12,7 @@ from astropy.wcs.wcs import FITSFixedWarning
 
 # see https://docs.google.com/document/d/1yX0l96IZs1IxxKCRmriVSAQM3KFGF9U1-FnpJXhcLXo/edit?usp=sharing for help
 
-# # General Set-Up
+# General Set-Up
 fileset0 = 'HR8799_cubes/*.fits'
 mask0 = [[128, 152], [157, 137], [129, 70]]
 object_name0 = 'HR8799'
@@ -21,11 +20,11 @@ object_name0 = 'HR8799'
 # Setting Up Lists/Tuples For KLIP
 annuli = [4, 6, 8, 10, 12] # List of Integer(s)
 subsections = [2, 4, 6] # List of Integer(s)
-movement = [0, 1, 2] # List or Tuple of Integer(s)
-spectrum = [None] # List or Tuple of None and/or 'methane'
-numbasis = [10, 20, 30, 40, 50, 60] # List or Tuple of Integer(s)
-corr_smooth = [0, 1, 2] # List or Tuple of Float(s) and/or Integer(s)
-highpass = [False, 5.0, True, 15.0] # List or Tuple of Float(s), Integer(s), and/or Bool(s)
+movement = [0, 1, 2] # List of Float(s)
+spectrum = [None] # List of None and/or 'methane'
+numbasis = [10, 20, 30, 40, 50, 60] # List of Integer(s)
+corr_smooth = [0, 1, 2] # List of Float(s) and/or Integer(s)
+highpass = [False, 5.0, True, 15.0] # List of Float(s), Integer(s), and/or Bool(s)
 
 # Setting Mode For KLIP
 mode = 'ADI+SDI' # Exactly ONE (not a list or tuple) or the following: 'ADI', 'SDI', 'ADI+SDI'
@@ -42,7 +41,7 @@ fake_PAs=[19, 79, 139, 199, 259, 319] # List of Integer(s) and/or Float(s)
 # Most of the time, the four values below should be set to True
 put_in_fakes = True
 run_KLIP_on_dataset_with_fakes = True # if no fakes are injected, this will just be a dataset without fakes
-get_contrast = True # won't be calibrated if no fake planets are injected
+get_contrast = False # won't be calibrated if no fake planets are injected
 get_planet_detections_from_dataset_with_fakes = True
 # Most of the time, these two values below should be set to False
 run_KLIP_on_dataset_without_fakes = False
@@ -60,11 +59,13 @@ if os.path.exists(object_name0):
     warnings.warn("WARNING: There is already a directory with the same name as the one you specified for outputs to "
                   "be written to. Outputs will overwrite previous outputs if filenames are identical")
 
-# Making Sure This Group of Parameters Are In The Form of a List or Tuple
+# Making Sure This Group of Parameters Are In The Form of a List
 for param in [[annuli, 'annuli'], [subsections, 'subsections'], [movement, 'movement'], [spectrum, 'spectrum'],
               [corr_smooth, 'corr_smooth'], [highpass, 'highpass']]:
     if not isinstance(param[0], (list, tuple)):
-        raise TypeError("{0} needs to be a list or a tuple. Check input.".format(param[1]))
+        raise TypeError(f"{param[1]} needs to be a list. Check input. See "
+                        "https://docs.google.com/document/d/1yX0l96IZs1IxxKCRmriVSAQM3KFGF9U1-FnpJXhcLXo/edit?usp"
+                        "=sharing for help")
 
 # Checking Mode -- Common Mistake is Inputting Mode as a List/Tuple Like Other Params
 if not isinstance(mode, str):
@@ -73,7 +74,9 @@ if not isinstance(mode, str):
     try:
         mode = mode[0]
     except:
-        raise TypeError("Mode needs to be a string. Check input")
+        raise TypeError("Mode needs to be a string. Check input. See "
+                        "https://docs.google.com/document/d/1yX0l96IZs1IxxKCRmriVSAQM3KFGF9U1-FnpJXhcLXo/edit?usp"
+                        "=sharing for help")
 
 # Checking Fake Planet Stuff
 for param in [[fake_fluxes, 'fake_fluxes'], [fake_seps, 'fake_seps'], [fake_PAs, 'fake_PAs']]:
@@ -92,6 +95,23 @@ else:
     datasetwithfakes = False
 get_contrast_and_detections = get_contrast or detect_planets
 
+# Selecting Batch if Needed (or providing link to instructions document)
+if len(sys.argv) != 1:
+    if "-h" in sys.argv or "--help" in sys.argv:
+        print("See https://docs.google.com/document/d/1yX0l96IZs1IxxKCRmriVSAQM3KFGF9U1-FnpJXhcLXo/edit?usp=sharing "
+              "for help.")
+        raise KeyboardInterrupt
+    elif len(sys.argv) == 3:
+        batchindex = int(sys.argv[1])
+        batchsize = int(sys.argv[2])
+        batched = (True, batchindex, batchsize)
+    else:
+        raise ValueError("Incorrect number of keyword arguments passed in. Please either provide two (batchindex & "
+                         "batchsize) or zero.")
+else:
+    batched = False
+    paramset = None
+
 ############################################################
 ################ ACTUALLY STARTING TESTING #################
 ############################################################
@@ -109,7 +129,7 @@ with fits.open(glob(fileset0)[0]) as hdulist:
 td0 = TestDataset(fileset=fileset0, object_name=object_name0, mask_xy=mask0, fake_fluxes=fake_fluxes,
                   fake_seps=fake_seps, annuli=annuli, subsections=subsections, movement=movement, numbasis=numbasis,
                   corr_smooth=corr_smooth, highpass=highpass, spectrum=spectrum, mode=mode, fake_PAs=fake_PAs,
-                  fake_fwhm=fake_fwhm0)
+                  fake_fwhm=fake_fwhm0, batched=batched)
 
 # Have TestDataset 0 Run Each Part
 # if we want KLIP output of data without fakes, we need to run KLIP before injecting planets
@@ -133,7 +153,3 @@ seconds = round(remaining_time - minutes * 60)
 
 td0.write_to_log_and_print("##################### TIME ELAPSED: {0} Hours, {1} Minutes, {2} Seconds "
                             "#####################".format(hours, minutes, seconds))
-
-
-
-
