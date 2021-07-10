@@ -8,7 +8,7 @@ import os
 def valuefinder(filename, param):
     param = str.lower(param)
     paramlengths = {'annuli': 6, 'subsections': 11, 'movement': 8, 'spectrum': 8, 'smooth': 6, 'highpass': 8, 'KL': 4}
-    paramlength = paramlengths[param][0]
+    paramlength = paramlengths[param]
     startingindex = None # will be defined soon
     for i in range(len(filename)):
         if str.lower(filename[i:i+paramlength]) == param:
