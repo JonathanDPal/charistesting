@@ -130,10 +130,12 @@ def planet_detection(trial_string):
 def parameter_set_batcher(batchindex, batchsize, args):
 	num_param_combos = np.prod([len(arg) for arg in args])
 	remainder = num_param_combos % batchsize
+	partial_batch = False # default value, might be flipped by next section
 	if remainder != 0:
 		num_full_size_batches = int(np.floor(num_param_combos / batchsize))
 		if batchindex > num_full_size_batches:
 			partial_batch = True
+
 	annuli, subsections, movement, spectrum, corr_smooth, highpass = args
 	params = []
 	for ani in annuli:
@@ -349,7 +351,23 @@ class Trial:
 							distance_from_planet = np.sqrt((xdat - x_pos) ** 2 + (ydat - y_pos) ** 2)
 							frame[np.where(distance_from_planet <= 2 * dataset_fwhm)] = np.nan
 
-				frame_pre_planet_mask = deepcopy(frame) # need to have fake planets available for later
+				# Measuring Algorithm Throughput BEFORE Fake Planets Get Masked Out
+				if contains_fakes:
+					retrieved_fluxes = []
+					for sep in self.fake_seps:
+						fake_planet_fluxes = []
+						for pa in self.fake_PAs:
+							fake_flux = retrieve_planet_flux(frame, dataset_center, output_wcs, sep, pa, searchrad=7)
+							fake_planet_fluxes.append(fake_flux)
+						retrieved_fluxes.append(np.mean(fake_planet_fluxes))
+
+					numgroups = len(self.fake_seps)
+					groupsize = int(len(self.fake_fluxes) / len(self.fake_seps))
+					fluxgroups = [[self.fake_fluxes[i * numgroups + j] for i in range(groupsize)] for j in range(
+						numgroups)]
+					fluxes = [np.mean(fluxgroups[i]) for i in range(numgroups)]
+
+					algo_throughput = np.array(retrieved_fluxes) / np.array(fluxes)
 
 				# Applying Mask to Fake Planets
 				if contains_fakes:
@@ -366,26 +384,8 @@ class Trial:
 				contrast_seps, contrast = meas_contrast(frame, dataset_iwa, dataset_owa, dataset_fwhm,
 														center=dataset_center, low_pass_filter=True)
 
-				frame = frame_pre_planet_mask # need fakes back in the frame for calibration
-
 				# Calibrating For KLIP Subtraction If Fakes Present
 				if contains_fakes:
-					retrieved_fluxes = []
-					for sep in self.fake_seps:
-						fake_planet_fluxes = []
-						for pa in self.fake_PAs:
-							fake_flux = retrieve_planet_flux(frame, dataset_center, output_wcs, sep, pa, searchrad=7)
-							fake_planet_fluxes.append(fake_flux)
-						retrieved_fluxes.append(np.mean(fake_planet_fluxes))
-
-					numgroups = len(self.fake_seps)
-					groupsize = int(len(self.fake_fluxes) / len(self.fake_seps))
-					fluxgroups = [[self.fake_fluxes[i*numgroups + j] for i in range(groupsize)] for j in range(
-						 numgroups)]
-					fluxes = [np.mean(fluxgroups[i]) for i in range(numgroups)]
-
-					algo_throughput = np.array(retrieved_fluxes) / np.array(fluxes)
-
 					correct_contrast = np.copy(contrast)
 					for j, sep in enumerate(contrast_seps):
 						closest_throughput_index = np.argmin(np.abs(sep - self.fake_seps))
@@ -395,7 +395,7 @@ class Trial:
 				if not os.path.exists(self.object_name + '/uncalibrated_contrast'):
 					os.mkdir(self.object_name + '/uncalibrated_contrast')
 				data_output_filepath = self.object_name + f'/uncalibrated_contrast/{self.klip_parameters}_KL' \
-										f'{self.numbasis[filepath_index]}_{wavelength}um_contrastC.csv'
+										f'{self.numbasis[filepath_index]}_{wavelength}um_contrastD.csv'
 				df = pd.DataFrame()
 				df['Seperation'] = contrast_seps
 				df['Uncalibrated Contrast'] = contrast
@@ -412,7 +412,7 @@ class Trial:
 					if not os.path.exists(self.object_name + '/calibrated_contrast'):
 						os.mkdir(self.object_name + '/calibrated_contrast')
 					data_output_filepath = self.object_name + f'/calibrated_contrast/{self.klip_parameters}_KL' \
-										f'{self.numbasis[filepath_index]}_{wavelength}um_contrastC.csv'
+										f'{self.numbasis[filepath_index]}_{wavelength}um_contrastD.csv'
 					df = pd.DataFrame()
 					df['Seperation'] = contrast_seps
 					df['Calibrated Contrast'] = correct_contrast
@@ -666,8 +666,8 @@ class TestDataset:
 				currenttime = time()
 				minutes_per_run = round(((currenttime - prevtime) / 60) / 20, 2)
 				self.write_to_log_and_print('####### {0}/{1} KLIP Runs Complete ({2}%) -- avg speed: {3} '
-											'min/run#######'.format(klip_runs + 1, number_of_klip, round(float(
-					klip_runs + 1) / float(number_of_klip), 3) * 100, minutes_per_run))
+											'min/run #######'.format(klip_runs + 1, number_of_klip, round(float(
+					klip_runs + 1) / float(number_of_klip) * 100, 2), minutes_per_run))
 				prevtime = time()
 
 
@@ -701,8 +701,8 @@ class TestDataset:
 				currenttime = time()
 				minutes_per_run = round(((currenttime - prevtime) / 60) / 20, 2)
 				self.write_to_log_and_print('####### {0}/{1} KLIP Runs Complete ({2}%) -- avg speed: {3} '
-											'min/run#######'.format(klip_runs + 1, number_of_klip, round(float(
-					klip_runs + 1) / float(number_of_klip), 3) * 100, minutes_per_run))
+											'min/run #######'.format(klip_runs + 1, number_of_klip, round(float(
+					klip_runs + 1) / float(number_of_klip) * 100, 2), minutes_per_run))
 				prevtime = time()
 
 
@@ -720,7 +720,7 @@ class TestDataset:
 		trial_strings = [t.rebuild_string for t in self.trials]
 
 		p0 = Pool(numthreads)
-		p0.map_async(func=contrast_measurement, iterable=trial_strings)
+		p0.map(func=contrast_measurement, iterable=trial_strings)
 		p0.close()
 		p0.join()
 		p0.terminate()
