@@ -13,6 +13,11 @@ from astropy.wcs.wcs import FITSFixedWarning
 
 # see https://docs.google.com/document/d/1yX0l96IZs1IxxKCRmriVSAQM3KFGF9U1-FnpJXhcLXo/edit?usp=sharing for help
 
+# General Set-Up
+fileset0 = 'HD1160_cubes/*.fits'
+mask0 = [144, 80]
+object_name0 = 'HD1160'
+
 # Setting Up Lists/Tuples For KLIP
 annuli = [4, 6, 8, 10, 12] # List of Integer(s)
 subsections = [2, 4, 6] # List of Integer(s)
@@ -36,9 +41,9 @@ fake_PAs=[19, 79, 139, 199, 259, 319] # List of Integer(s) and/or Float(s)
 ##### Specifying Which Things to Do/Not Do #####
 # Most of the time, the four values below should be set to True
 put_in_fakes = True
-run_KLIP_on_dataset_with_fakes = True # if no fakes are injected, this will just be a dataset without fakes
-get_contrast = False # won't be calibrated if no fake planets are injected
-get_planet_detections_from_dataset_with_fakes = True
+run_KLIP_on_dataset_with_fakes = False # if no fakes are injected, this will just be a dataset without fakes
+get_contrast = True # won't be calibrated if no fake planets are injected
+get_planet_detections_from_dataset_with_fakes = False
 # Most of the time, these two values below should be set to False
 run_KLIP_on_dataset_without_fakes = False
 get_planet_detections_from_dataset_without_fakes = False
