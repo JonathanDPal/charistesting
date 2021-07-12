@@ -41,7 +41,7 @@ fake_PAs=[19, 79, 139, 199, 259, 319] # List of Integer(s) and/or Float(s)
 # Most of the time, the four values below should be set to True
 put_in_fakes = True
 run_KLIP_on_dataset_with_fakes = True # if no fakes are injected, this will just be a dataset without fakes
-get_contrast = False # won't be calibrated if no fake planets are injected
+get_contrast = True # won't be calibrated if no fake planets are injected
 get_planet_detections_from_dataset_with_fakes = True
 # Most of the time, these two values below should be set to False
 run_KLIP_on_dataset_without_fakes = False
@@ -110,7 +110,6 @@ if len(sys.argv) != 1:
                          "batchsize) or zero.")
 else:
     batched = False
-    paramset = None
 
 ############################################################
 ################ ACTUALLY STARTING TESTING #################
