@@ -57,7 +57,8 @@ get_planet_detections_from_dataset_without_fakes = False
 # Warning User if the Directory Where Stuff Will Be Outputted to Already Exists
 if os.path.exists(object_name0):
     warnings.warn("WARNING: There is already a directory with the same name as the one you specified for outputs to "
-                  "be written to. Outputs will overwrite previous outputs if filenames are identical")
+                  "be written to. Outputs will NOT OVERWRITE previous outputs if filenames are identical -- they "
+                  "will just be written out with a number at the end of the filepath.")
 
 # Making Sure This Group of Parameters Are In The Form of a List
 for param in [[annuli, 'annuli'], [subsections, 'subsections'], [movement, 'movement'], [spectrum, 'spectrum'],
