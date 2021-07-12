@@ -55,10 +55,10 @@ def FWHMIOWA_calculator(speccubefile, filtname=None):
 
 def make_dn_per_contrast(dataset):
 	"""
-    Calculates and sets spot_ratio and dn_per_contrast attributes for an initialized CHARISData dataset.
+	Calculates and sets spot_ratio and dn_per_contrast attributes for an initialized CHARISData dataset.
 
-    Returns modified CHARISData dataset object.
-    """
+	Returns modified CHARISData dataset object.
+	"""
 
 	# Gets number of input fits files (Ncubes) and number of wavelengths (Nwln)
 	Nframes = dataset.input.shape[0]  # This dimension is Ncubes*Nwln
@@ -128,6 +128,17 @@ def planet_detection(trial_string):
 
 
 def parameter_set_batcher(batchindex, batchsize, args):
+	"""
+	Designed to take a set of parameters and return a subset of combinations so that parameters can be broken up
+	into batches using the command line arguments of the parameterprobing scripts.
+
+	Args:
+		batchindex: Which batch should be used (USING 1-BASED INDEXING, NOT 0-BASED INDEXING)
+		batchsize: How many trials should be in the batches
+		args: The KLIP parameters (annuli, subsections, movement, spectrum, corr_smooth, highpass)
+
+	Returns a list or list of lists of parameters to be passed in to TestDataset.
+	"""
 	num_param_combos = np.prod([len(arg) for arg in args])
 	remainder = num_param_combos % batchsize
 	partial_batch = False # default value, might be flipped by next section
@@ -146,7 +157,7 @@ def parameter_set_batcher(batchindex, batchsize, args):
 						for hp in highpass:
 							params.append((ani, subsec, mov, spec, cs, hp))
 
-	startingindex = batchsize * (batchindex - 1)
+	startingindex = batchsize * (batchindex - 1) # (batchindex - 1) is because it is 1-Based indexing being passed in
 	if not partial_batch:
 		finalindex = startingindex + batchsize
 	else:
@@ -333,6 +344,16 @@ class Trial:
 				frame /= self.dn_per_contrast[wavelength_index]
 				wavelength = round(self.wln_um[wavelength_index], 2)
 
+				uncal_contrast_output_filepath = self.object_name + f'/uncalibrated_contrast' \
+												f'/{self.klip_parameters}_KL{self.numbasis[filepath_index]}' \
+																	f'_{wavelength}um_contrast.csv'
+				cal_contrast_output_filepath = self.object_name + f'/calibrated_contrast/{self.klip_parameters}_KL' \
+										f'{self.numbasis[filepath_index]}_{wavelength}um_contrast.csv'
+
+				# Checking to Make Sure We're Not Going To Overwrite an Existing File
+				if os.path.exists(uncal_contrast_output_filepath) or os.path.exists(cal_contrast_output_filepath):
+					continue
+
 				# Applying Mask to Science Target If Location Specified
 				if isinstance(self.mask_xy, (list, tuple)):
 					if not isinstance(self.mask_xy[0], (list, tuple)):
@@ -394,8 +415,6 @@ class Trial:
 				# Always Going to Save Uncalibrated Contrast
 				if not os.path.exists(self.object_name + '/uncalibrated_contrast'):
 					os.mkdir(self.object_name + '/uncalibrated_contrast')
-				data_output_filepath = self.object_name + f'/uncalibrated_contrast/{self.klip_parameters}_KL' \
-										f'{self.numbasis[filepath_index]}_{wavelength}um_contrastD.csv'
 				df = pd.DataFrame()
 				df['Seperation'] = contrast_seps
 				df['Uncalibrated Contrast'] = contrast
@@ -404,15 +423,15 @@ class Trial:
 				plt.ylabel('Uncalibrated Contrast')
 				plt.xlabel('Seperation')
 				plt.semilogy()
-				plt.savefig(data_output_filepath[0:-4] + '.png')
-				df.to_csv(data_output_filepath)
+				plt.savefig(uncal_contrast_output_filepath[0:-4] + '.png')
+				df.to_csv(uncal_contrast_output_filepath)
 
 				# If Fakes Present, Then Use Them To Calibrate Contrast
 				if contains_fakes:
 					if not os.path.exists(self.object_name + '/calibrated_contrast'):
 						os.mkdir(self.object_name + '/calibrated_contrast')
 					data_output_filepath = self.object_name + f'/calibrated_contrast/{self.klip_parameters}_KL' \
-										f'{self.numbasis[filepath_index]}_{wavelength}um_contrastD.csv'
+										f'{self.numbasis[filepath_index]}_{wavelength}um_contrast.csv'
 					df = pd.DataFrame()
 					df['Seperation'] = contrast_seps
 					df['Calibrated Contrast'] = correct_contrast
@@ -421,8 +440,8 @@ class Trial:
 					plt.ylabel('Calibrated Contrast')
 					plt.xlabel('Seperation')
 					plt.semilogy()
-					plt.savefig(data_output_filepath[0:-4] + '.png')
-					df.to_csv(data_output_filepath)
+					plt.savefig(cal_contrast_output_filepath[0:-4] + '.png')
+					df.to_csv(cal_contrast_output_filepath)
 
 
 	def detect_planets(self, SNR_threshold=2, datasetwithfakes=True):
@@ -442,6 +461,11 @@ class Trial:
 			filepaths = self.filepaths_Nfakes
 
 		for filepath_index, filepath in enumerate(filepaths): # filepath_index used to identify number of KL modes
+			# Not going to overwrite an existing file
+			if os.path.exists('{0}{1}C.csv'.format(self.filepath_detections_prefixes[filepath_index],
+												  str(SNR_threshold))):
+				continue
+
 			with fits.open(filepath) as hdulist:
 				image = copy(hdulist[1].data)
 				center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
@@ -502,7 +526,7 @@ class Trial:
 
 	def __eq__(self, other):
 		"""
-		Checks to see if two Trials have the same KLIP parameters. Intended for testing out code functionality.
+		Checks to see if two Trials have the same attributes. Intended for testing out code functionality.
 		"""
 		equal_attributes = list()
 		for i, j in zip(inspect.getmembers(self), inspect.getmembers(other)):
@@ -651,6 +675,13 @@ class TestDataset:
 		for i, trial in enumerate(self.trials): # i only used for measuring progress
 			klip_runs = i # get number of KLIP run conducted already
 
+			filename = self.object_name+'/klipped_cubes_Nfakes'+self.object_name+ '_withoutfakes_' + \
+					   trial.klip_parameters+f'-KL{trial.numbasis}-speccube.fits'
+			if os.path.exists(filename):
+				self.write_to_log_and_print(f"{filename} ALREADY EXISTS -- continuing without running KLIP on this "
+											 f"set of parameters")
+				continue
+
 			with log_file_output(self.object_name):
 				klip_dataset(self.dataset, outputdir=self.object_name+'/klipped_cubes_Nfakes',
 							 fileprefix=self.object_name+ '_withoutfakes_' + trial.klip_parameters,
@@ -667,7 +698,7 @@ class TestDataset:
 				minutes_per_run = round(((currenttime - prevtime) / 60) / 20, 2)
 				self.write_to_log_and_print('####### {0}/{1} KLIP Runs Complete ({2}%) -- avg speed: {3} '
 											'min/run #######'.format(klip_runs + 1, number_of_klip, round(float(
-					klip_runs + 1) / float(number_of_klip) * 100, 2), minutes_per_run))
+					klip_runs + 1) / float(number_of_klip) * 100, 1), minutes_per_run))
 				prevtime = time()
 
 
@@ -686,6 +717,13 @@ class TestDataset:
 		for i, trial in enumerate(self.trials): # i only used for measuring progress
 			klip_runs = i # get number of KLIP runs conducted already
 
+			filename = self.object_name + '/klipped_cubes_Wfakes' + self.object_name + '_withfakes_' + \
+					   trial.klip_parameters + f'-KL{trial.numbasis}-speccube.fits'
+			if os.path.exists(filename):
+				self.write_to_log_and_print(f"{filename} ALREADY EXISTS -- continuing without running KLIP on this "
+											f"set of parameters")
+				continue
+
 			with log_file_output(self.object_name):
 				klip_dataset(self.dataset, outputdir=self.object_name + '/klipped_cubes_Wfakes',
 							 fileprefix=self.object_name + '_withfakes_' + trial.klip_parameters,
@@ -702,7 +740,7 @@ class TestDataset:
 				minutes_per_run = round(((currenttime - prevtime) / 60) / 20, 2)
 				self.write_to_log_and_print('####### {0}/{1} KLIP Runs Complete ({2}%) -- avg speed: {3} '
 											'min/run #######'.format(klip_runs + 1, number_of_klip, round(float(
-					klip_runs + 1) / float(number_of_klip) * 100, 2), minutes_per_run))
+					klip_runs + 1) / float(number_of_klip) * 100, 1), minutes_per_run))
 				prevtime = time()
 
 
