@@ -1,6 +1,7 @@
 detections/
 Cookbooks/
 Reference Papers/
+pyklip/
 *.pdf
 *.png
 *.fits
