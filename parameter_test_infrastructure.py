@@ -349,6 +349,7 @@ class Trial:
 				frame /= self.dn_per_contrast[wavelength_index]
 				wavelength = round(self.wln_um[wavelength_index], 2)
 
+
 				uncal_contrast_output_filepath = self.object_name + f'/uncalibrated_contrast' \
 												f'/{self.klip_parameters}_KL{self.numbasis[filepath_index]}' \
 																	f'_{wavelength}um_contrast.csv'
@@ -356,8 +357,21 @@ class Trial:
 										f'{self.numbasis[filepath_index]}_{wavelength}um_contrast.csv'
 
 				# Checking to Make Sure We're Not Going To Overwrite an Existing File
-				if os.path.exists(uncal_contrast_output_filepath) or os.path.exists(cal_contrast_output_filepath):
-					continue
+				if os.path.exists(uncal_contrast_output_filepath):
+					i = 1
+					while os.path.exists(uncal_contrast_output_filepath[:-4] + str(i) + \
+										 uncal_contrast_output_filepath[-4:]):
+						i += 1
+					uncal_contrast_output_filepath = uncal_contrast_output_filepath[:-4] + str(i) + \
+												   uncal_contrast_output_filepath[-4:]
+				if os.path.exists(cal_contrast_output_filepath):
+					i = 1
+					while os.path.exists(cal_contrast_output_filepath[:-4] + str(i) + \
+												   cal_contrast_output_filepath[-4:]):
+						i += 1
+					cal_contrast_output_filepath = cal_contrast_output_filepath[:-4] + str(i) + \
+												   cal_contrast_output_filepath[-4:]
+
 
 				# Applying Mask to Science Target If Location Specified
 				if isinstance(self.mask_xy, (list, tuple)):
@@ -428,10 +442,10 @@ class Trial:
 				plt.ylabel('Uncalibrated Contrast')
 				plt.xlabel('Seperation')
 				plt.semilogy()
-				plt.savefig(uncal_contrast_output_filepath[0:-4] + '.png')
+				plt.savefig(uncal_contrast_output_filepath[:-4] + '.png')
 				df.to_csv(uncal_contrast_output_filepath)
 
-				# If Fakes Present, Then Use Them To Calibrate Contrast
+				# If Contrast Was Calibrated, Then Save It
 				if contains_fakes:
 					if not os.path.exists(self.object_name + '/calibrated_contrast'):
 						os.mkdir(self.object_name + '/calibrated_contrast')
@@ -443,7 +457,7 @@ class Trial:
 					plt.ylabel('Calibrated Contrast')
 					plt.xlabel('Seperation')
 					plt.semilogy()
-					plt.savefig(cal_contrast_output_filepath[0:-4] + '.png')
+					plt.savefig(cal_contrast_output_filepath[:-4] + '.png')
 					df.to_csv(cal_contrast_output_filepath)
 
 
@@ -464,11 +478,18 @@ class Trial:
 			filepaths = self.filepaths_Nfakes
 
 		for filepath_index, filepath in enumerate(filepaths): # filepath_index used to identify number of KL modes
-			# Not going to overwrite an existing file
-			if os.path.exists('{0}{1}C.csv'.format(self.filepath_detections_prefixes[filepath_index],
-												  str(SNR_threshold))):
-				continue
 
+			output_filepath = '{0}{1}.csv'.format(self.filepath_detections_prefixes[filepath_index],
+												  str(SNR_threshold))
+
+			# Not going to overwrite an existing file
+			if os.path.exists(output_filepath):
+				i = 0
+				while os.path.exists(output_filepath[:-4] + str(i) + output_filepath[-4:]):
+					i += 1
+				output_filepath = output_filepath[:-4] + str(i) + output_filepath[-4:]
+
+			# Actual Start of Process
 			with fits.open(filepath) as hdulist:
 				image = copy(hdulist[1].data)
 				center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
@@ -523,8 +544,7 @@ class Trial:
 			candidates['Injected'] = injected
 
 			# Saving Information
-			candidates.to_csv('{0}{1}C.csv'.format(self.filepath_detections_prefixes[filepath_index],
-												  str(SNR_threshold)))
+			candidates.to_csv(output_filepath)
 
 
 	def __eq__(self, other):
@@ -556,7 +576,7 @@ class Trial:
 #####################################################################################################
 class TestDataset:
 	"""
-	The main object which the user will interact with. Will load in CHARIS fileset into CHARISData class (see
+	The main object which parameterprobing will interact with. Will load in CHARIS fileset into CHARISData class (see
 	pyklip.instruments.CHARIS) and then create an instance of Trial for each set of KLIP parameters to be looked at.
 	"""
 	def __init__(self, fileset, object_name, mask_xy, fake_fluxes, fake_seps, annuli, subsections, movement,
@@ -677,15 +697,15 @@ class TestDataset:
 									'####### Number of KLIP Runs To Complete: {0} #######\n'.format(number_of_klip))
 
 		prevtime = time()
-		for i, trial in enumerate(self.trials): # i only used for measuring progress
-			klip_runs = i # get number of KLIP run conducted already
-
+		for klip_runs, trial in enumerate(self.trials): # klip_runs indicates how many have been previously completed
+			# NOT GOING TO OVERWRITE PREVIOUS KLIP OUTPUT
 			filename = self.object_name+'/klipped_cubes_Nfakes'+self.object_name+ '_withoutfakes_' + \
 					   trial.klip_parameters+f'-KL{trial.numbasis}-speccube.fits'
 			if os.path.exists(filename):
 				self.write_to_log_and_print(f"{filename} ALREADY EXISTS -- continuing without running KLIP on this "
 											 f"set of parameters")
 				continue
+
 
 			with log_file_output(self.object_name):
 				klip_dataset(self.dataset, outputdir=self.object_name+'/klipped_cubes_Nfakes',
@@ -696,12 +716,12 @@ class TestDataset:
 							 numthreads=numthreads)
 
 			# Update Every 20 or When Completely Done
-			if i + 1 == len(self.trials):
+			if klip_runs + 1 == len(self.trials):
 				self.write_to_log_and_print("\n### DONE WITH KLIP ON DATA WITH FAKES ###")
 			elif (klip_runs + 1) % 20 == 0:
 				currenttime = time()
 				minutes_per_run = round(((currenttime - prevtime) / 60) / 20, 2)
-				self.write_to_log_and_print('####### {0}/{1} KLIP Runs Complete ({2}%) -- avg speed: {3} '
+				self.write_to_log_and_print(f'####### {0}/{1} KLIP Runs Complete ({2}%) -- avg speed: {3} '
 											'min/run #######'.format(klip_runs + 1, number_of_klip, round(float(
 					klip_runs + 1) / float(number_of_klip) * 100, 1), minutes_per_run))
 				prevtime = time()
@@ -719,15 +739,15 @@ class TestDataset:
 									'####### Number of KLIP Runs To Complete: {0} #######\n'.format(number_of_klip))
 
 		prevtime = time()
-		for i, trial in enumerate(self.trials): # i only used for measuring progress
-			klip_runs = i # get number of KLIP runs conducted already
-
+		for klip_runs, trial in enumerate(self.trials): # klip_runs indicates how many have been previously completed
+			# NOT GOING TO OVERWRITE PREVIOUS KLIP OUTPUT
 			filename = self.object_name + '/klipped_cubes_Wfakes' + self.object_name + '_withfakes_' + \
 					   trial.klip_parameters + f'-KL{trial.numbasis}-speccube.fits'
 			if os.path.exists(filename):
 				self.write_to_log_and_print(f"{filename} ALREADY EXISTS -- continuing without running KLIP on this "
 											f"set of parameters")
 				continue
+
 
 			with log_file_output(self.object_name):
 				klip_dataset(self.dataset, outputdir=self.object_name + '/klipped_cubes_Wfakes',
@@ -738,7 +758,7 @@ class TestDataset:
 							 numthreads=numthreads)
 
 			# Update Every 20 or When Completely Done
-			if i + 1 == len(self.trials):
+			if klip_runs + 1 == len(self.trials):
 				self.write_to_log_and_print("\n### DONE WITH KLIP ON DATA WITH FAKES ###")
 			elif (klip_runs + 1) % 20 == 0:
 				currenttime = time()
