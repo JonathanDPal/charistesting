@@ -19,6 +19,9 @@ import inspect
 from multiprocessing import Pool
 from time import time
 
+####################################################################
+######################### HELPER FUNCTIONS #########################
+####################################################################
 
 @contextmanager
 def log_file_output(directory, write_type='a'):
@@ -168,7 +171,9 @@ def parameter_set_batcher(batchindex, batchsize, args):
 	return newparams
 
 
-# TestDataset Will Have a List of Trials Associated With It (one for each group of KLIP Parameters)
+########################################################################################
+### TestDataset Will Manage a List of Trials (one for each group of KLIP Parameters) ###
+########################################################################################
 class Trial:
 	"""
 	NOTE: The user will almost certainly not interact with this class directly, rather they will interact with an
@@ -430,8 +435,6 @@ class Trial:
 				if contains_fakes:
 					if not os.path.exists(self.object_name + '/calibrated_contrast'):
 						os.mkdir(self.object_name + '/calibrated_contrast')
-					data_output_filepath = self.object_name + f'/calibrated_contrast/{self.klip_parameters}_KL' \
-										f'{self.numbasis[filepath_index]}_{wavelength}um_contrast.csv'
 					df = pd.DataFrame()
 					df['Seperation'] = contrast_seps
 					df['Calibrated Contrast'] = correct_contrast
@@ -548,7 +551,9 @@ class Trial:
 		return np.sum(equal_attributes) == len(equal_attributes)
 
 
-# Each Object (eg. HD1160, BetaPic) Will Have An Instance of TestDataset Associated With It
+#####################################################################################################
+### Observation Set (eg. HD1160, BetaPic) Will Have An Instance of TestDataset Associated With It ###
+#####################################################################################################
 class TestDataset:
 	"""
 	The main object which the user will interact with. Will load in CHARIS fileset into CHARISData class (see
