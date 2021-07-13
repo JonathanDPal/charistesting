@@ -22,12 +22,12 @@ subsections = ('subsections', subsections_vals)
 movement = ('movement', movement_vals)
 
 # Output Filepaths
-of1 = 'max_heatmap/ann-sbs'
-of2 = 'max_heatmap/ann-mov'
-of3 = 'max_heatmap/sbs-mov'
+of1 = 'mean_heatmap/ann-sbs'
+of2 = 'mean_heatmap/ann-mov'
+of3 = 'mean_heatmap/sbs-mov'
 
-if not os.path.exists('max_heatmap'):
-    os.mkdir('max_heatmap')
+if not os.path.exists('mean_heatmap'):
+    os.mkdir('mean_heatmap')
 
 params = [str.lower(param) for param in sys.argv[2:4]]
 
