@@ -6,6 +6,7 @@ from astropy.io import fits
 from glob import glob
 import os
 from astropy.wcs.wcs import FITSFixedWarning
+import sys
 
 #####################################################
 #################### USER INPUTS ####################
