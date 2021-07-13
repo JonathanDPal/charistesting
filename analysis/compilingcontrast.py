@@ -1,21 +1,20 @@
 import pandas as pd
 import numpy as np
+import os
 
-annuli = [6, 7, 8, 9, 10, 11, 12]
-subsections = [4]
-movement = [0,1,2,3,4,5]
+annuli = [4, 6, 8, 10, 12]
+subsections = [2, 4, 6]
+movement = [0, 1, 2]
 spectrum = [None]
-numbasis = [20]
-corr_smooth = [1]
-highpass = [True]
+numbasis = [10, 20, 30, 40, 50, 60]
+corr_smooth = [0, 1, 2]
+highpass = [False, 5.0, True, 15.0]
 
-filepaths = {(ann, mov) : '{0}Annuli_{1}Subsections_{2}Movement_{3}Spectrum_{4}Smooth_{5}Highpass__KL'
-                          '{6}_contrast.csv'.format(ann, subsec, mov, spec, cs, hp, nb) for ann in annuli for subsec
-             in subsections for mov in movement for spec in spectrum for nb in numbasis for cs in corr_smooth for hp
-             in highpass}
+filepaths = {(ann, mov): f'{ann}Annuli_{subsec}Subsections_{mov}Movement_{spec}Spectrum_{cs}Smooth_{hp}Highpass__KL'
+                         '{nb}_contrast.csv' for ann in annuli for subsec in subsections for mov in movement for
+             spec in spectrum for nb in numbasis for cs in corr_smooth for hp in highpass}
 
 params = []
-sums = []
 avgs = []
 contrasts = []
 
@@ -23,23 +22,30 @@ for p in filepaths.keys():
     df1 = pd.read_csv(filepaths[p])
     contrast = df1['Calibrated Contrast']
     params.append(p)
-    sums.append(np.sum(contrast))
-    avgs.append(np.mean(contrast))
+    avgs.append(np.mean([c if not np.isnan(c) else 1 for c in contrast]))  # heavily punishing NaN values
     contrasts.append(contrast)
 
-best_contrast_sum = np.min(sums)
-best_index_sum = [i for i, j in enumerate(sums) if j == best_contrast_sum]
-for i in best_index_sum:
-    print("By minimum of sum:")
-    print(params[i])
-    print(contrasts[i])
-    print("")
+scores = [list() for _ in range(len(params))]
 
-best_contrast_avg = np.min(avgs)
-best_index_avg = [i for i, j in enumerate(avgs) if j == best_contrast_avg]
-for i in best_index_avg:
-    print("By minimum of avg:")
-    print(params[i])
-    print(contrasts[i])
+specific_seperations = []
+for i in range(len(contrasts[0])):
+    specific_seperations[i] = [c[i] for c in contrasts]
 
+for contrast_index, ss in enumerate(specific_seperations):
+    local_ss = ss
+    rank = 1
+    while len(local_ss) != 0:
+        best_indices = [i for i, j in enumerate(local_ss) if j == np.min(local_ss)]
+        for index in best_indices:
+            scores[index].append(rank)
+        rank += len(best_indices)
+        local_ss = [local_ss[i] for i in range(len(local_ss)) if i not in best_indices]
 
+local_avgs = avgs
+rank = 1
+while len(local_avgs) != 0:
+    best_index_avgs = [i for i, j in enumerate(avgs) if j == np.min(local_avgs)]
+    for index in best_index_avgs:
+        scores[index].append(rank)
+    rank += len(best_index_avgs)
+    local_avgs = [avgs[i] for i in range(len(local_avgs)) if i not in best_index_avgs]
