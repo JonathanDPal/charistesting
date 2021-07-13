@@ -7,13 +7,44 @@ from glob import glob
 import os
 
 
+def paramvaluesfinder(object_name, param):
+    with open('/home/jpal/data0/jpal/parameter_sampling/' + object_name + '/log.txt') as logfile:
+        for line in logfile:
+            if str.lower(param) in str.lower(line):
+                paramline = line
+                break
+    paramline = paramline.replace(' ', '')
+    for i in range(len(paramline)):
+        if paramline[i] == '[':
+            starting_index = i + 1
+        elif paramline[i] == ']':
+            final_index = i
+    if str.lower(param) in ['annuli', 'subsections', 'numbasis']:
+        vals = [int(val) for val in paramline[starting_index: final_index].split(',')]
+    elif str.lower(param) in ['movement, corr_smooth']:
+        vals = [float(val) for val in paramline[starting_index: final_index].split(',')]
+    elif str.lower(param) == 'highpass':
+        vals = list()
+        for val in paramline[starting_index: final_index].split(','):
+            if str.lower(val) == 'true':
+                vals.append(True)
+            elif str.lower(val) == 'false':
+                vals.append(False)
+            else:
+                vals.append(float(val))
+    else:
+        raise ValueError(f"Sorry, this function does not currently support value finding for param {param}.")
+
+    return vals
+
+
 def valuefinder(filename, param):
     param = str.lower(param)
-    paramlengths = {'annuli': 6, 'subsections': 11, 'movement': 8, 'spectrum': 8, 'smooth': 6, 'highpass': 8, 'kl':2}
+    paramlengths = {'annuli': 6, 'subsections': 11, 'movement': 8, 'spectrum': 8, 'smooth': 6, 'highpass': 8, 'kl': 2}
     paramlength = paramlengths[param]
-    startingindex = None # will be defined soon
+    startingindex = None  # will be defined soon
     for i in range(len(filename)):
-        if str.lower(filename[i:i+paramlength]) == param:
+        if str.lower(filename[i: i + paramlength]) == param:
             if param == 'kl':
                 startingindex = i + paramlength
             else:
@@ -24,9 +55,9 @@ def valuefinder(filename, param):
         while startingindex >= 0 and filename[startingindex] != '_':
             startingindex -= 1
             valuelength += 1
-        value = filename[startingindex+1:startingindex+valuelength+1]
+        value = filename[startingindex + 1:startingindex + valuelength + 1]
     else:
-        value = filename[startingindex:startingindex+2]
+        value = filename[startingindex:startingindex + 2]
 
     return value
 
@@ -42,21 +73,21 @@ def roc_generator(snr_values, param1, num_injections, object_name, filepath_to_s
         object_name (str)
         filepath_to_save (str): Where to save graph.
     """
-    collection = {str(val): {str(snr):[] for snr in snr_values} for val in param1[1]}
+    collection = {str(val): {str(snr): list() for snr in snr_values} for val in param1[1]}
     originalwd = os.getcwd()
-    os.chdir('/home/jpal/data0/jpal/parameter_sampling/'+ object_name + '/detections/')
+    os.chdir('/home/jpal/data0/jpal/parameter_sampling/' + object_name + '/detections/')
     filelist = glob('*.csv')
-    for file in filelist: # i used only to get different colors/markers on graph
+    for file in filelist:  # i used only to get different colors/markers on graph
         detections = pd.read_csv(file)
         val = valuefinder(file, param1[0])
         for snr in snr_values:
             detections_subset = detections[detections['SNR Value'] >= snr]
-            detections_subset= detections_subset[detections_subset['Injected'] != "Science Target"]
+            detections_subset = detections_subset[detections_subset['Injected'] != "Science Target"]
             inj = []
             for m in detections_subset['Injected']:
-                if m == True or m == "True":
+                if m is True or m == "True":
                     inj.append(True)
-                elif m == False or m == "False":
+                elif m is False or m == "False":
                     inj.append(False)
             collection[val][str(snr)].append([np.sum(inj), len(inj) - np.sum(inj)])
     for i, val in enumerate(param1[1]):
@@ -73,7 +104,7 @@ def roc_generator(snr_values, param1, num_injections, object_name, filepath_to_s
         markers = ['.', 'o', 'v', '^', '<', '>', '1', '2', '3', '4', '8', 's', 'p', 'P', '*', 'h', 'H', '+',
                    'x', 'X', 'D', 'd', '|', '_']
         colors = list(mcolors.BASE_COLORS) + list(mcolors.TABLEAU_COLORS)
-        plt.plot(x,y, label=val, marker=markers[i], color=colors[i])
+        plt.plot(x, y, label=val, marker=markers[i], color=colors[i])
 
     plt.xlabel('False Positives')
     plt.ylabel('True Positives')
@@ -93,12 +124,17 @@ def max_value_heatmap(param1, param2, object_name, filepath_to_save, file_finder
         file_finder: str -- passed into glob to get all relevant (CSV) files.
     """
     originalwd = os.getcwd()
-    os.chdir(object_name + '/detections/')
+    os.chdir('/home/jpal/data0/jpal/parameter_sampling/' + object_name + '/detections/')
     fileset = glob(file_finder)
-    full_data = {str(a): {str(m):[] for m in param2[1]} for a in param1[1]}
+    full_data = {str(a): {str(m): list() for m in param2[1]} for a in param1[1]}
     for file in fileset:
         df = pd.read_csv(file)
         snr = df['SNR Value'].max()
+        snr_max_index = np.argmax(df['SNR Value'])
+        try:
+            assert df['Injected'][snr_max_index] == 'Science Target'
+        except AssertionError:
+            raise AssertionError("Largest SNR value is not a real science target.")
         p1 = valuefinder(file, param1[0])
         p2 = valuefinder(file, param2[0])
         full_data[p1][p2].append(snr)
@@ -129,15 +165,15 @@ def mean_value_heatmap(param1, param2, num_injections, object_name, filepath_to_
         file_finder: str -- passed into glob to get all relevant (CSV) files.
     """
     originalwd = os.getcwd()
-    os.chdir(object_name + '/detections/')
+    os.chdir('/home/jpal/data0/jpal/parameter_sampling/' + object_name + '/detections/')
     fileset = glob(file_finder)
-    full_data = {str(a): {str(m):[] for m in param2[1]} for a in param1[1]}
+    full_data = {str(a): {str(m): list() for m in param2[1]} for a in param1[1]}
     for file in fileset:
         df = pd.read_csv(file)
         injected = df[df["Injected"] == "True"]
         snr = injected['SNR Value'].mean()
         if not len(injected['SNR Value']) == num_injections:
-            missing = [1] * (len(injected['SNR Value']) - num_injections)
+            missing = [0] * (len(injected['SNR Value']) - num_injections)
             snr = np.mean([snr] + missing)
         p1 = valuefinder(file, param1[0])
         p2 = valuefinder(file, param2[0])
