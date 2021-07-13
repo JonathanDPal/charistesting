@@ -1,21 +1,41 @@
-from plotting_funcs import roc_generator
+import sys
+from plotting_funcs import roc_generator, paramvaluesfinder
 import numpy as np
+import os
 
-snr_vals = np.arange(start=3, stop=10.5, step=0.25)
+try:
+    assert len(sys.argv) == 3
+except AssertionError:
+    raise ValueError("Incorrect number of arguments. First argument should be either 'highpass', 'smooth', "
+                     "or 'numbasis', and second argument should be the number of planets which were injected.")
 
-highpass = ("Highpass", [False, 5.0, True, 15.0])
-smooth = ("Smooth", [0, 1, 2])
-numbasis = ("KL", [10,20,30,40,50,60])
+name = sys.argv[1]  # name of directory with all the data in it
+param = sys.argv[2]  # parameter to look at (Highpass,
+ni = int(sys.argv[3])  # number of injected planets
 
-name = "HD1160" 
+snr_vals = list(np.arange(start=3, stop=10.5, step=0.25))
 
+# Using Log Files to Get Values
+highpass_vals = paramvaluesfinder(name, 'Highpass')
+smooth_vals = paramvaluesfinder(name, 'Corr_Smooth')
+numbasis_vals = paramvaluesfinder(name, 'Numbasis')
+
+# Putting in to Tuples to Pass In to roc_generator
+highpass = ("Highpass", highpass_vals)
+smooth = ("Smooth", smooth_vals)
+numbasis = ("KL", numbasis_vals)
+
+# Output Filepaths
 of1 = 'ROC/highpass_roc.png'
 of2 = 'ROC/smooth_roc.png'
 of3 = 'ROC/numbasis_roc.png'
 
-num_injections = 18
+if not os.path.exists('ROC'):
+    os.mkdir('ROC')
 
-#roc_generator(snr_vals, highpass, num_injections, name, of1)
-roc_generator(snr_vals, smooth, num_injections, name, of2)
-#roc_generator(snr_vals, numbasis, num_injections, name, of3)
-
+if param == 'highpass':
+    roc_generator(snr_vals, highpass, ni, name, of1)
+elif param == 'smooth':
+    roc_generator(snr_vals, smooth, ni, name, of2)
+elif param == 'numbasis':
+    roc_generator(snr_vals, numbasis, ni, name, of3)
