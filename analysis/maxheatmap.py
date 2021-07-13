@@ -3,7 +3,7 @@ import sys
 import os
 
 try:
-    assert len(sys.argv) == 4
+    assert len(sys.argv) == 4  # the first argument in sys.argv is the name of the script ("maxheatmap.py")
 except AssertionError:
     raise ValueError("Incorrect number of arguments. Specify three arguments: first should be the name of the "
                      "object and the other two should be either 'annuli', 'subsections', or 'movement'.")
@@ -31,7 +31,7 @@ if not os.path.exists('max_heatmap'):
 params = [str.lower(param) for param in sys.argv[2:]]
 
 if 'annuli' in params and 'subsections' in params:
-        max_value_heatmap(annuli, subsections, name, of1)
+    max_value_heatmap(annuli, subsections, name, of1)
 elif 'annuli' in params and 'movement' in params:
     max_value_heatmap(annuli, movement, name, of2)
 elif 'subsections' in params and 'movement' in params:

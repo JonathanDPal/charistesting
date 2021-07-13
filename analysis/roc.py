@@ -4,7 +4,7 @@ import numpy as np
 import os
 
 try:
-    assert len(sys.argv) == 3
+    assert len(sys.argv) == 3  # the first argument in sys.argv is the name of the script ("roc.py")
 except AssertionError:
     raise ValueError('Incorrect number of arguments. Should have two arguments: first, the object name; '
                      'second, either "highpass", "smooth", or "numbasis".')

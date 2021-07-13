@@ -3,10 +3,10 @@ from plotting_funcs import mean_value_heatmap, paramvaluesfinder
 import os
 
 try:
-    assert len(sys.argv) == 4
+    assert len(sys.argv) == 4  # the first arg in sys.argv is the name of the script ("meanheatmap.py")
 except AssertionError:
-    raise ValueError("Incorrect number of arguments. First argument should be the name of the object. Second and third "
-                     "arguments should be either 'annuli', 'subsections', or 'movement'.")
+    raise ValueError("Incorrect number of arguments. Specify three arguments. First argument should be the name of the "
+                     "object. Second and third arguments should be either 'annuli', 'subsections', or 'movement'.")
 
 name = sys.argv[1]  # name of directory with all of the data in it
 
