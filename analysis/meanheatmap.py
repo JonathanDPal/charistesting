@@ -3,19 +3,18 @@ from plotting_funcs import mean_value_heatmap, paramvaluesfinder
 import os
 
 try:
-    assert len(sys.argv) == 5
+    assert len(sys.argv) == 4
 except AssertionError:
     raise ValueError("Incorrect number of arguments. First argument should be the name of the object. Second and third "
-                     "arguments should be either 'annuli', 'subsections', or 'movement', and fourth argument should "
-                     "be the number of planets which were injected.")
+                     "arguments should be either 'annuli', 'subsections', or 'movement'.")
 
 name = sys.argv[1]  # name of directory with all of the data in it
-ni = int(sys.argv[4])  # number of injected planets
 
 # Using Log File to Get Values
 annuli_vals = paramvaluesfinder(name, 'Annuli')
 subsections_vals = paramvaluesfinder(name, 'Subsections')
 movement_vals = paramvaluesfinder(name, 'Movement')
+ni = paramvaluesfinder(name, 'ni')  # number of injected planets
 
 # Putting Into Tuples For mean_value_heatmap
 annuli = ('annuli', annuli_vals)

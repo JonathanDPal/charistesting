@@ -8,32 +8,59 @@ import os
 
 
 def paramvaluesfinder(object_name, param):
+    paramline = None
+    fluxes = None
+    pas = None
     with open('/home/jpal/data0/jpal/parameter_sampling/' + object_name + '/log.txt') as logfile:
         for line in logfile:
-            if str.lower(param) in str.lower(line):
-                paramline = line
-                break
-    paramline = paramline.replace(' ', '')
-    for i in range(len(paramline)):
-        if paramline[i] == '[':
-            starting_index = i + 1
-        elif paramline[i] == ']':
-            final_index = i
-    if str.lower(param) in ['annuli', 'subsections', 'numbasis']:
-        vals = [int(val) for val in paramline[starting_index: final_index].split(',')]
-    elif str.lower(param) in ['movement', 'corr_smooth']:
-        vals = [float(val) for val in paramline[starting_index: final_index].split(',')]
-    elif str.lower(param) == 'highpass':
-        vals = list()
-        for val in paramline[starting_index: final_index].split(','):
-            if str.lower(val) == 'true':
-                vals.append(True)
-            elif str.lower(val) == 'false':
-                vals.append(False)
+            if str.lower(param) != 'ni':
+                if str.lower(param) in str.lower(line):
+                    paramline = line
+                    break
             else:
-                vals.append(float(val))
-    else:
-        raise ValueError(f"Sorry, this function does not currently support value finding for param {param}.")
+                if str.lower('Fake Fluxes') in str.lower(line):
+                    fluxes = line
+                elif str.lower('Fake PAs') in str.lower(line):
+                    pas = line
+    if paramline is not None:
+        paramline = paramline.replace(' ', '')
+        for i in range(len(paramline)):
+            if paramline[i] == '[':
+                starting_index = i + 1
+            elif paramline[i] == ']':
+                final_index = i
+        if str.lower(param) in ['annuli', 'subsections', 'numbasis']:
+            vals = [int(val) for val in paramline[starting_index: final_index].split(',')]
+        elif str.lower(param) in ['movement', 'corr_smooth']:
+            vals = [float(val) for val in paramline[starting_index: final_index].split(',')]
+        elif str.lower(param) == 'highpass':
+            vals = list()
+            for val in paramline[starting_index: final_index].split(','):
+                if str.lower(val) == 'true':
+                    vals.append(True)
+                elif str.lower(val) == 'false':
+                    vals.append(False)
+                else:
+                    vals.append(float(val))
+        else:
+            raise ValueError(f"Sorry, this function does not currently support value finding for param {param}.")
+    elif fluxes is not None and pas is not None:
+        flux_vals = list()
+        pa_vals = list()
+        fluxes = fluxes.replace(' ', '')
+        pas = pas.replace(' ', '')
+        for p in [fluxes, pas]:
+            for i in range(len(p)):
+                if p[i] == '[':
+                    starting_index = i + 1
+                elif p[i] == ']':
+                    final_index = i
+            for val in p[starting_index: final_index].split(','):
+                if p == fluxes:
+                    flux_vals.append(int(val))
+                elif p == pas:
+                    pa_vals.append(int(val))
+        vals = len(flux_vals) * len(pa_vals)
 
     return vals
 
