@@ -6,8 +6,8 @@ import os
 try:
     assert len(sys.argv) == 4
 except AssertionError:
-    raise ValueError("Incorrect number of arguments. First argument should be either 'highpass', 'smooth', "
-                     "or 'numbasis', and second argument should be the number of planets which were injected.")
+    raise ValueError('Incorrect number of arguments. First argument should be either "highpass", "smooth", '
+                     'or "numbasis", and second argument should be the number of planets which were injected.')
 
 name = sys.argv[1]  # name of directory with all the data in it
 param = sys.argv[2]  # parameter to look at (Highpass,
@@ -21,9 +21,9 @@ smooth_vals = paramvaluesfinder(name, 'Corr_Smooth')
 numbasis_vals = paramvaluesfinder(name, 'Numbasis')
 
 # Putting in to Tuples to Pass In to roc_generator
-highpass = ("Highpass", highpass_vals)
-smooth = ("Smooth", smooth_vals)
-numbasis = ("KL", numbasis_vals)
+highpass = ('Highpass', highpass_vals)
+smooth = ('Smooth', smooth_vals)
+numbasis = ('KL', numbasis_vals)
 
 # Output Filepaths
 of1 = 'ROC/highpass_roc.png'
