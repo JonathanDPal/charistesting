@@ -21,7 +21,7 @@ def paramvaluesfinder(object_name, param):
             final_index = i
     if str.lower(param) in ['annuli', 'subsections', 'numbasis']:
         vals = [int(val) for val in paramline[starting_index: final_index].split(',')]
-    elif str.lower(param) in ['movement, corr_smooth']:
+    elif str.lower(param) in ['movement', 'corr_smooth']:
         vals = [float(val) for val in paramline[starting_index: final_index].split(',')]
     elif str.lower(param) == 'highpass':
         vals = list()
