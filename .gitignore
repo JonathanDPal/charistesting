@@ -2,6 +2,7 @@ detections/
 Cookbooks/
 Reference Papers/
 pyklip/
+results/
 *.pdf
 *.png
 *.fits
