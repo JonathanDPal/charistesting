@@ -28,7 +28,7 @@ of3 = 'max_heatmap/sbs-mov.png'
 if not os.path.exists('max_heatmap'):
     os.mkdir('max_heatmap')
 
-params = [str.lower(param) for param in sys.argv[2:4]]
+params = [str.lower(param) for param in sys.argv[2:]]
 
 if 'annuli' in params and 'subsections' in params:
         max_value_heatmap(annuli, subsections, name, of1)

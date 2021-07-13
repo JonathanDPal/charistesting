@@ -4,7 +4,7 @@ import numpy as np
 import os
 
 try:
-    assert len(sys.argv) == 3
+    assert len(sys.argv) == 4
 except AssertionError:
     raise ValueError("Incorrect number of arguments. First argument should be either 'highpass', 'smooth', "
                      "or 'numbasis', and second argument should be the number of planets which were injected.")
