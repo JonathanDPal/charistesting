@@ -29,9 +29,9 @@ def paramvaluesfinder(object_name, param):
                 starting_index = i + 1
             elif paramline[i] == ']':
                 final_index = i
-        if str.lower(param) in ['annuli', 'subsections', 'numbasis', 'movement', 'corr_smooth']:
+        if str.lower(param) in ['annuli', 'subsections', 'numbasis']:
             vals = [int(val) for val in paramline[starting_index: final_index].split(',')]
-        elif str.lower(param) in ['none at the moment']:
+        elif str.lower(param) in ['movement', 'corr_smooth']:
             vals = [float(val) for val in paramline[starting_index: final_index].split(',')]
         elif str.lower(param) in ['highpass']:
             vals = list()
