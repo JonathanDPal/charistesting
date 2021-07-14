@@ -344,10 +344,10 @@ class Trial:
                 output_wcs = WCS(hdulist[0].header, naxis=[1, 2])
 
             for wavelength_index in range(cube.shape[0]):
-                # Taking Slice of Cube and then Calibrating It
-                frame = cube[wavelength_index]
-                frame /= self.dn_per_contrast[wavelength_index]
-                wavelength = round(self.wln_um[wavelength_index], 2)
+                # Taking Slice of Cube and Calibrating It
+                frame = cube[wavelength_index] / self.dn_per_contrast[wavelength_index]
+
+                wavelength = round(self.wln_um[wavelength_index], 2)  # in microns
 
                 uncal_contrast_output_filepath = self.object_name + f'/uncalibrated_contrast' \
                                                                     f'/{self.klip_parameters}_KL' \
