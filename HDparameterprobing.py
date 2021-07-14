@@ -20,13 +20,13 @@ mask0 = [144, 80]
 object_name0 = 'HD1160'
 
 # Setting Up Lists/Tuples For KLIP
-annuli = [4, 6, 8, 10, 12]  # List of Integer(s)
-subsections = [2, 4, 6]  # List of Integer(s)
-movement = [0, 1, 2]  # List of Float(s)
+annuli = [2, 3, 5, 7, 9, 11]  # List of Integer(s)
+subsections = [2, 4]  # List of Integer(s)
+movement = [0.5, 1.5]  # List of Float(s)
 spectrum = [None]  # List of None and/or 'methane'
-numbasis = [10, 20, 30, 40, 50, 60]  # List of Integer(s)
-corr_smooth = [0, 1, 2]  # List of Float(s) and/or Integer(s)
-highpass = [False, 5.0, True, 15.0]  # List of Float(s), Integer(s), and/or Bool(s)
+numbasis = [15, 20, 25, 30, 35]  # List of Integer(s)
+corr_smooth = [0.0, 0.5, 1.0]  # List of Float(s)
+highpass = [False, True, 30.0]  # List of Float(s), and/or Bool(s)
 
 # Setting Mode For KLIP
 mode = 'ADI+SDI'  # Exactly ONE (not a list or tuple) or the following: 'ADI', 'SDI', 'ADI+SDI'
@@ -42,8 +42,8 @@ fake_PAs = [19, 79, 139, 199, 259, 319]  # List of Integer(s) and/or Float(s)
 # Specifying Which Things to Do/Not Do #
 # Most of the time, the four values below should be set to True
 put_in_fakes = True
-run_KLIP_on_dataset_with_fakes = False  # if no fakes are injected, this will just be a dataset without fakes
-get_contrast = True  # won't be calibrated if no fake planets are injected
+run_KLIP_on_dataset_with_fakes = True  # if no fakes are injected, this will just be a dataset without fakes
+get_contrast = False  # won't be calibrated if no fake planets are injected
 get_planet_detections_from_dataset_with_fakes = False
 # Most of the time, these two values below should be set to False
 run_KLIP_on_dataset_without_fakes = False
@@ -69,6 +69,20 @@ for param in [[annuli, 'annuli'], [subsections, 'subsections'], [movement, 'move
         raise TypeError(f"{param[1]} needs to be a list. Check input. See "
                         "https://docs.google.com/document/d/1yX0l96IZs1IxxKCRmriVSAQM3KFGF9U1-FnpJXhcLXo/edit?usp"
                         "=sharing for help")
+
+# Making Sure Float/Int Parameters In Correct Form (needs to be standardized for analysis purposes after the fact)
+for param in [[annuli, 'annuli'], [subsections, 'subsections']]:
+    for p in param[0]:
+        if not isinstance(p, int):
+            raise ValueError(f"All values in {param[1]} need to inputted as integers. This just needs to be "
+                             f"standardized for analysis purposes after the fact.")
+for param in [[movement, 'movement'], [corr_smooth, 'corr_smooth'], [highpass, 'highpass']]:
+    for p in param[0]:
+        if not isinstance(p, float):
+            raise ValueError(f"All values in {param[1]} need to be inputted as floats. If things are inputted as "
+                             f"integers, then please just add a decimal point after the number and re-run. Integers "
+                             f"just need to be inputted as floats so that inputs are standardized for analysis "
+                             f"purposes after runs are complete.")
 
 # Checking Mode -- Common Mistake is Inputting Mode as a List/Tuple Like Other Params
 if not isinstance(mode, str):
