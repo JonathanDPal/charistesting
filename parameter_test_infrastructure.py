@@ -437,12 +437,6 @@ class Trial:
                 df = pd.DataFrame()
                 df['Seperation'] = contrast_seps
                 df['Uncalibrated Contrast'] = contrast
-                title = 'Uncalibrated Contrast at {0}um ({1})'.format(wavelength, self.object_name)
-                df.plot(x='Seperation', y='Uncalibrated Contrast', legend=False, title=title)
-                plt.ylabel('Uncalibrated Contrast')
-                plt.xlabel('Seperation')
-                plt.semilogy()
-                plt.savefig(uncal_contrast_output_filepath[:-4] + '.png')
                 df.to_csv(uncal_contrast_output_filepath)
 
                 # If Contrast Was Calibrated, Then Save It
@@ -452,12 +446,6 @@ class Trial:
                     df = pd.DataFrame()
                     df['Seperation'] = contrast_seps
                     df['Calibrated Contrast'] = correct_contrast
-                    title = f'Calibrated Contrast at {wavelength}um ({self.object_name})'
-                    df.plot(x='Seperation', y='Calibrated Contrast', legend=False, title=title)
-                    plt.ylabel('Calibrated Contrast')
-                    plt.xlabel('Seperation')
-                    plt.semilogy()
-                    plt.savefig(cal_contrast_output_filepath[:-4] + '.png')
                     df.to_csv(cal_contrast_output_filepath)
 
     def detect_planets(self, SNR_threshold=2, datasetwithfakes=True):
