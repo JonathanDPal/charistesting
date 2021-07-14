@@ -29,11 +29,11 @@ def paramvaluesfinder(object_name, param):
                 starting_index = i + 1
             elif paramline[i] == ']':
                 final_index = i
-        if str.lower(param) in ['annuli', 'subsections', 'numbasis']:
+        if str.lower(param) in ['annuli', 'subsections', 'numbasis', 'movement', 'corr_smooth']:
             vals = [int(val) for val in paramline[starting_index: final_index].split(',')]
-        elif str.lower(param) in ['movement', 'corr_smooth']:
+        elif str.lower(param) in ['none at the moment']:
             vals = [float(val) for val in paramline[starting_index: final_index].split(',')]
-        elif str.lower(param) == 'highpass':
+        elif str.lower(param) in ['highpass']:
             vals = list()
             for val in paramline[starting_index: final_index].split(','):
                 if str.lower(val) == 'true':
@@ -57,9 +57,9 @@ def paramvaluesfinder(object_name, param):
                     final_index = i
             for val in p[starting_index: final_index].split(','):
                 if p == fluxes:
-                    flux_vals.append(int(val))
+                    flux_vals.append(float(val))
                 elif p == pas:
-                    pa_vals.append(int(val))
+                    pa_vals.append(float(val))
         vals = len(flux_vals) * len(pa_vals)
 
     return vals
@@ -77,14 +77,14 @@ def valuefinder(filename, param):
             else:
                 startingindex = i - 1
 
-    valuelength = 0
     if param != 'kl':
+        valuelength = 0
         while startingindex >= 0 and filename[startingindex] != '_':
             startingindex -= 1
             valuelength += 1
-        value = filename[startingindex + 1:startingindex + valuelength + 1]
+        value = filename[startingindex + 1: startingindex + 1 + valuelength]
     else:
-        value = filename[startingindex:startingindex + 2]
+        value = filename[startingindex: startingindex + 2]
 
     return value
 
@@ -157,11 +157,6 @@ def max_value_heatmap(param1, param2, object_name, filepath_to_save, file_finder
     for file in fileset:
         df = pd.read_csv(file)
         snr = df['SNR Value'].max()
-        snr_max_index = np.argmax(df['SNR Value'])
-        try:
-            assert df['Injected'][snr_max_index] == 'Science Target'
-        except AssertionError:
-            raise AssertionError("Largest SNR value is not a real science target.")
         p1 = valuefinder(file, param1[0])
         p2 = valuefinder(file, param2[0])
         full_data[p1][p2].append(snr)
@@ -198,13 +193,17 @@ def mean_value_heatmap(param1, param2, num_injections, object_name, filepath_to_
     for file in fileset:
         df = pd.read_csv(file)
         injected = df[df["Injected"] == "True"]
-        snr = injected['SNR Value'].mean()
-        if not len(injected['SNR Value']) == num_injections:
-            missing = [0] * (len(injected['SNR Value']) - num_injections)
-            snr = np.mean([snr] + missing)
+        snrs = list(injected['SNR Value'])
+        missing = [0] * (len(injected['SNR Value']) - num_injections)  # heavily punishing non-detections
+        snr_avg = np.mean(snrs + missing)
         p1 = valuefinder(file, param1[0])
         p2 = valuefinder(file, param2[0])
-        full_data[p1][p2].append(snr)
+        try:
+            full_data[p1][p2].append(snr_avg)
+        except KeyError:
+            print(full_data)
+            print(p1, p2)
+            raise KeyError
     for p1 in param1[1]:
         for p2 in param2[1]:
             p01 = str(p1)
