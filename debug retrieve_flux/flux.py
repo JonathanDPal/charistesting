@@ -3,7 +3,7 @@ from astropy.wcs import WCS
 import numpy as np
 from pyklip.fakes import retrieve_planet_flux
 from copy import copy
-from parameter_test_infrastructure import make_dn_per_contrast
+from parameter_test_infrastructure import make_dn_per_contrast, FWHMIOWA_calculator
 from pyklip.instruments.CHARIS import CHARISData
 import pandas as pd
 
@@ -12,7 +12,7 @@ dataset = make_dn_per_contrast(CHARISData(orig_filepath))
 dn_per_contrast = dataset.dn_per_contrast
 dataset = None
 
-filepath = 'HD1160/klipped_cubes_W_fakes' \
+filepath = 'HD1160/klipped_cubes_Wfakes' \
             '/HD1160_withfakes_4Annuli_2Subsections_0Movement_NoneSpectrum_0Smooth_TrueHighpass_-KL20-speccube.fits'
 with fits.open(filepath) as hdulist:
     cube = copy(hdulist[1].data)
@@ -22,12 +22,11 @@ with fits.open(filepath) as hdulist:
 
 wavelength_index = 10
 frame = cube[wavelength_index] / dn_per_contrast[wavelength_index]
-wavelength = round(self.wln_um[wavelength_index], 2)
 
 mask_xy = [144, 80]
 
-x_pos = self.mask_xy[0]
-y_pos = self.mask_xy[1]
+x_pos = mask_xy[0]
+y_pos = mask_xy[1]
 ydat, xdat = np.indices(frame.shape)
 distance_from_planet = np.sqrt((xdat - x_pos) ** 2 + (ydat - y_pos) ** 2)
 frame[np.where(distance_from_planet <= 2 * dataset_fwhm)] = np.nan
@@ -37,9 +36,10 @@ fake_seps = [20, 40, 60]  # List of Integer(s) and/or Float(s)
 fake_PAs = [19, 79, 139, 199, 259, 319]  # List of Integer(s) and/or Float(s)
 
 retrieved_fluxes = []
-for sep in self.fake_seps:
-    for pa in self.fake_PAs:
-        fake_flux = retrieve_planet_flux(frame, dataset_center, output_wcs, sep, pa, searchrad=7)
+for sep in fake_seps:
+    for pa in fake_PAs:
+        fake_flux = retrieve_planet_flux(frame, dataset_center, output_wcs, sep, pa, guessfwhm=dataset_fwhm,
+                                         guesspeak=1e-6, refinefit=True, searchrad=12)
         retrieved_fluxes.append(fake_flux)
 
 at20 = [fake_fluxes[0], fake_fluxes[3]] * 3
@@ -64,4 +64,4 @@ df['Actual (40 sep)'] = act40
 df['Injected (60 sep)'] = at60
 df['Actual (60 sep)'] = act60
 
-df.to_csv('fluxes.csv')
+df.to_csv('fluxes_refinefitTrue.csv')
