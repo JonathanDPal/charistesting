@@ -343,7 +343,7 @@ class Trial:
                 dataset_fwhm, dataset_iwa, dataset_owa = FWHMIOWA_calculator(hdulist)
                 output_wcs = WCS(hdulist[0].header, naxis=[1, 2])
 
-            for wavelength_index in range(cube.shape[0]):
+            for wavelength_index in range(cube.shape[0]):  # making measurements at every wavelengthw
                 # Taking Slice of Cube and Calibrating It
                 frame = cube[wavelength_index] / self.dn_per_contrast[wavelength_index]
 
@@ -357,21 +357,11 @@ class Trial:
                                                                   f'{self.numbasis[filepath_index]}' \
                                                                   f'_{wavelength}um_contrast.csv'
 
-                # Checking to Make Sure We're Not Going To Overwrite an Existing File
+                # If Already Done, Then Don't Do It Again
                 if os.path.exists(uncal_contrast_output_filepath):
-                    i = 1
-                    while os.path.exists(uncal_contrast_output_filepath[:-4] + str(i) +
-                                         uncal_contrast_output_filepath[-4:]):
-                        i += 1
-                    uncal_contrast_output_filepath = uncal_contrast_output_filepath[:-4] + str(i) + \
-                                                     uncal_contrast_output_filepath[-4:]
+                    continue
                 if os.path.exists(cal_contrast_output_filepath):
-                    i = 1
-                    while os.path.exists(cal_contrast_output_filepath[:-4] + str(i) +
-                                         cal_contrast_output_filepath[-4:]):
-                        i += 1
-                    cal_contrast_output_filepath = cal_contrast_output_filepath[:-4] + str(i) + \
-                                                   cal_contrast_output_filepath[-4:]
+                    continue
 
                 # Applying Mask to Science Target If Location Specified
                 if isinstance(self.mask_xy, (list, tuple)):
@@ -469,12 +459,9 @@ class Trial:
             output_filepath = '{0}{1}.csv'.format(self.filepath_detections_prefixes[filepath_index],
                                                   str(SNR_threshold))
 
-            # Not going to overwrite an existing file
+            # Not going to redo a measurement already made
             if os.path.exists(output_filepath):
-                i = 0
-                while os.path.exists(output_filepath[:-4] + str(i) + output_filepath[-4:]):
-                    i += 1
-                output_filepath = output_filepath[:-4] + str(i) + output_filepath[-4:]
+                continue
 
             # Actual Start of Process
             with fits.open(filepath) as hdulist:
