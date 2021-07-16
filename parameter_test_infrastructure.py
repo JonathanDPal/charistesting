@@ -14,7 +14,6 @@ from pyklip.kpp.detection.detection import point_source_detection
 import pandas as pd
 import sys
 import os
-import matplotlib.pyplot as plt
 from contextlib import contextmanager
 import inspect
 from concurrent.futures import ProcessPoolExecutor as Pool
