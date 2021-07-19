@@ -55,7 +55,7 @@ act20 = retrieved_fluxes[:6] + [np.mean(retrieved_fluxes[:6])]
 act40 = retrieved_fluxes[6:12] + [np.mean(retrieved_fluxes[6:12])]
 act60 = retrieved_fluxes[12:] + [np.mean(retrieved_fluxes[12:])]
 
-df = pd.DataFrame(index=([str(num+1) for num in range(18)] + ['MEAN']))
+df = pd.DataFrame(index=([str(num+1) for num in range(6)] + ['MEAN']))
 
 df['Injected (20 sep)'] = at20
 df['Actual (20 sep)'] = act20
