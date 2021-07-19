@@ -55,31 +55,31 @@ def standardize(filename):
         if needs_fixing:
             new_filename = deepcopy(filename)
             if fix_mov:
-                new_filename = f'{new_filename[:mov_si]}{movement}{new_filename[mov_ei:]}'
+                new_filename = f'{new_filename[:mov_si]}_{movement}{new_filename[mov_ei:]}'
                 offset_mov = len(str(movement)) - (mov_ei - mov_si)
             if fix_cs:
                 if fix_mov:
                     cs_si += offset_mov
                     cs_ei += offset_mov
-                    new_filename = f'{new_filename[:cs_si]}{smooth}{new_filename[cs_ei:]}'
+                    new_filename = f'{new_filename[:cs_si]}_{smooth}{new_filename[cs_ei:]}'
                 else:
-                    new_filename = f'{new_filename[:cs_si]}{smooth}{new_filename[cs_ei:]}'
+                    new_filename = f'{new_filename[:cs_si]}_{smooth}{new_filename[cs_ei:]}'
                 offset_cs = len(str(smooth)) - (cs_ei - cs_si)
             if fix_hp:
                 if fix_mov and fix_cs:
                     hp_si += (offset_mov + offset_cs)
                     hp_ei += (offset_mov + offset_cs)
-                    new_filename = f'{new_filename[:hp_si]}{highpass}{new_filename[hp_ei:]}'
+                    new_filename = f'{new_filename[:hp_si]}_{highpass}{new_filename[hp_ei:]}'
                 elif fix_mov:
                     hp_si += offset_mov
                     hp_ei += offset_mov
-                    new_filename = f'{new_filename[:hp_si]}{highpass}{new_filename[hp_ei:]}'
+                    new_filename = f'{new_filename[:hp_si]}_{highpass}{new_filename[hp_ei:]}'
                 elif fix_cs:
                     hp_si += offset_cs
                     hp_ei += offset_cs
-                    new_filename = f'{new_filename[:hp_si]}{highpass}{new_filename[hp_ei:]}'
+                    new_filename = f'{new_filename[:hp_si]}_{highpass}{new_filename[hp_ei:]}'
                 else:
-                    new_filename = f'{new_filename[:hp_si]}{highpass}{new_filename[hp_ei:]}'
+                    new_filename = f'{new_filename[:hp_si]}_{highpass}{new_filename[hp_ei:]}'
             os.rename(filename, new_filename)
 
 
