@@ -83,6 +83,21 @@ def standardize(filename):
             os.rename(filename, new_filename)
 
 
+def underscore(filename):
+    old_filename = deepcopy(filename)
+    for j in range(len(filename)):
+        if str.lower(filename[j: j+11]) == 'subsections' and filename[j+11] != '_':
+            filename = f'{filename[:j+11]}_{filename[j+11:]}'
+        elif str.lower(filename[j: j+8]) == 'spectrum' and filename[j+8] != '_':
+            filename = f'{filename[:j+8]}_{filename[j+8:]}'
+        elif str.lower(filename[j: j+6]) == 'smooth' and filename[j+6] != '_':
+            filename = f'{filename[:j+6]}_{filename[j+6:]}'
+        elif filename[j: j+2] == 'KL' and filename[j-1] != '-':
+            filename = f'{filename[:j-1]}-{filename[j:]}'
+    if not old_filename == filename:
+        os.rename(old_filename, filename)
+
+
 direc = sys.argv[1]
 stuff = glob(f'{direc}/*')
 directories = []
@@ -109,5 +124,6 @@ while more_subdirectories:
 
 for file in filenames:
     standardize(file)
+    underscore(file)
 
 # condor record = 3344 (209 KLIP runs simultaneously)
