@@ -57,10 +57,10 @@ get_planet_detections_from_dataset_without_fakes = False
 # CHECKING USER INPUTS #
 ########################
 
-# Warning User if the Directory Where Stuff Will Be Outputted to Already Exists
-if os.path.exists(object_name0):
-    warnings.warn("WARNING: There is already a directory with the same name as the one you specified for outputs to "
-                  "be written to. Outputs will overwrite previous outputs if filenames are identical")
+# # Warning User if the Directory Where Stuff Will Be Outputted to Already Exists
+# if os.path.exists(object_name0):
+#     warnings.warn("WARNING: There is already a directory with the same name as the one you specified for outputs to "
+#                   "be written to. Outputs will overwrite previous outputs if filenames are identical")
 
 # Making Sure This Group of Parameters Are In The Form of a List
 for param in [[annuli, 'annuli'], [subsections, 'subsections'], [movement, 'movement'], [spectrum, 'spectrum'],
@@ -69,20 +69,6 @@ for param in [[annuli, 'annuli'], [subsections, 'subsections'], [movement, 'move
         raise TypeError(f"{param[1]} needs to be a list. Check input. See "
                         "https://docs.google.com/document/d/1yX0l96IZs1IxxKCRmriVSAQM3KFGF9U1-FnpJXhcLXo/edit?usp"
                         "=sharing for help")
-
-# Making Sure Float/Int Parameters In Correct Form (needs to be standardized for analysis purposes after the fact)
-for param in [[annuli, 'annuli'], [subsections, 'subsections']]:
-    for p in param[0]:
-        if not isinstance(p, int):
-            raise ValueError(f"All values in {param[1]} need to inputted as integers. This just needs to be "
-                             f"standardized for analysis purposes after the fact.")
-for param in [[movement, 'movement'], [corr_smooth, 'corr_smooth'], [highpass, 'highpass']]:
-    for p in param[0]:
-        if not isinstance(p, float):
-            raise ValueError(f"All values in {param[1]} need to be inputted as floats. If things are inputted as "
-                             f"integers, then please just add a decimal point after the number and re-run. Integers "
-                             f"just need to be inputted as floats so that inputs are standardized for analysis "
-                             f"purposes after runs are complete.")
 
 # Checking Mode -- Common Mistake is Inputting Mode as a List/Tuple Like Other Params
 if not isinstance(mode, str):

@@ -20,7 +20,7 @@ mask0 = [[128, 152], [157, 137], [129, 70]]
 object_name0 = 'HR8799'
 
 # Setting Up Lists/Tuples For KLIP
-annuli = [2, 3, 5, 7, 9, 11]  # List of Integer(s)
+annuli = [4, 6, 8, 10, 12]  # List of Integer(s)
 subsections = [2, 4]  # List of Integer(s)
 movement = [0.5, 1.5]  # List of Float(s)
 spectrum = [None]  # List of None and/or 'methane'
@@ -32,7 +32,7 @@ highpass = [False, True, 30.0]  # List of Float(s), and/or Bool(s)
 mode = 'ADI+SDI'  # Exactly ONE (not a list or tuple) or the following: 'ADI', 'SDI', 'ADI+SDI'
 
 # Maximum Number of Threads to Use (set to None to use maximum computer capacity)
-max_numthreads = None
+max_numthreads = 65
 
 # Setting Up For Fake Planets
 fake_fluxes = [5e-4, 5e-5, 5e-6, 1e-4, 1e-5, 1e-6]  # List of Float(s)
@@ -58,10 +58,10 @@ get_planet_detections_from_dataset_without_fakes = False
 ########################
 
 # Warning User if the Directory Where Stuff Will Be Outputted to Already Exists
-if os.path.exists(object_name0):
-    warnings.warn("WARNING: There is already a directory with the same name as the one you specified for outputs to "
-                  "be written to. Outputs will NOT OVERWRITE previous outputs if filenames are identical -- they "
-                  "will just be written out with a number at the end of the filepath.")
+# if os.path.exists(object_name0):
+#     warnings.warn("HEADS UP: There is already a directory with the same name as the one you specified for outputs to "
+#                   "be written to. Outputs will NOT OVERWRITE previous outputs if filenames are identical -- those "
+#                   "parameters will just get skipped over right now.")
 
 # Making Sure This Group of Parameters Are In The Form of a List
 for param in [[annuli, 'annuli'], [subsections, 'subsections'], [movement, 'movement'], [spectrum, 'spectrum'],
@@ -70,20 +70,6 @@ for param in [[annuli, 'annuli'], [subsections, 'subsections'], [movement, 'move
         raise TypeError(f"{param[1]} needs to be a list. Check input. See "
                         "https://docs.google.com/document/d/1yX0l96IZs1IxxKCRmriVSAQM3KFGF9U1-FnpJXhcLXo/edit?usp"
                         "=sharing for help")
-
-# Making Sure Float/Int Parameters In Correct Form
-for param in [[annuli, 'annuli'], [subsections, 'subsections']]:
-    for p in param[0]:
-        if not isinstance(p, int):
-            raise ValueError(f"All values in {param[1]} need to inputted as integers. This just needs to be "
-                             f"standardized for analysis purposes after the fact.")
-for param in [[movement, 'movement'], [corr_smooth, 'corr_smooth'], [highpass, 'highpass']]:
-    for p in param[0]:
-        if not isinstance(p, float):
-            raise ValueError(f"All values in {param[1]} need to be inputted as floats. If things are inputted as "
-                             f"integers, then please just add a decimal point after the number and re-run. Integers "
-                             f"just need to be inputted as floats so that inputs are standardized for analysis "
-                             f"purposes after runs are complete.")
 
 # Checking Mode -- Common Mistake is Inputting Mode as a List/Tuple Like Other Params
 if not isinstance(mode, str):
