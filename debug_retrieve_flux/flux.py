@@ -1,9 +1,9 @@
 from astropy.io import fits
 from astropy.wcs import WCS
 import numpy as np
-from pyklip.fakes import retrieve_planet_flux
+from pyklip.fakes import retrieve_planet_flux, retrieve_planet
 from copy import copy
-from parameter_test_infrastructure import make_dn_per_contrast, FWHMIOWA_calculator
+from parameter_test_infrastructure import make_dn_per_contrast, FWHMIOWA_calculator, pasep_to_xy
 from pyklip.instruments.CHARIS import CHARISData
 import pandas as pd
 
@@ -13,7 +13,7 @@ dn_per_contrast = dataset.dn_per_contrast
 dataset = None
 
 filepath = 'HD1160/klipped_cubes_Wfakes' \
-            '/HD1160_withfakes_4Annuli_2Subsections_0Movement_NoneSpectrum_0Smooth_TrueHighpass_-KL20-speccube.fits'
+            '/HD1160_withfakes_4Annuli_2Subsections_0.0Movement_NoneSpectrum_0.0Smooth_TrueHighpass_-KL20-speccube.fits'
 with fits.open(filepath) as hdulist:
     cube = copy(hdulist[1].data)
     dataset_center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
@@ -36,11 +36,18 @@ fake_seps = [20, 40, 60]  # List of Integer(s) and/or Float(s)
 fake_PAs = [19, 79, 139, 199, 259, 319]  # List of Integer(s) and/or Float(s)
 
 retrieved_fluxes = []
+ret_fwhms = []
+ret_xfits = []
+ret_yfits = []
 for sep in fake_seps:
     for pa in fake_PAs:
-        fake_flux = retrieve_planet_flux(frame, dataset_center, output_wcs, sep, pa, guessfwhm=dataset_fwhm,
-                                         guesspeak=1e-6, refinefit=True, searchrad=12)
+        fake_flux, xfit, yfit, ret_fwhm = retrieve_planet(frame, dataset_center, output_wcs, sep, pa,
+                                                           guessfwhm=dataset_fwhm, guesspeak=1e-6, refinefit=True,
+                                                           searchrad=12)
         retrieved_fluxes.append(fake_flux)
+        ret_fwhms.append(ret_fwhm)
+        ret_xfits.append(xfit - dataset_center[0])
+        ret_yfits.append(yfit - dataset_center[0])
 
 at20 = [fake_fluxes[0], fake_fluxes[3]] * 3
 at20.append(float(np.mean(at20)))
@@ -55,13 +62,52 @@ act20 = retrieved_fluxes[:6] + [np.mean(retrieved_fluxes[:6])]
 act40 = retrieved_fluxes[6:12] + [np.mean(retrieved_fluxes[6:12])]
 act60 = retrieved_fluxes[12:] + [np.mean(retrieved_fluxes[12:])]
 
+fwhms20 = ret_fwhms[:6] + [np.mean(ret_fwhms[:6])]
+fwhms40 = ret_fwhms[6:12] + [np.mean(ret_fwhms[6:12])]
+fwhms60 = ret_fwhms[12:] + [np.mean(ret_fwhms[12:])]
+
+xfits20 = ret_xfits[:6] + [np.nan]
+xfits40 = ret_xfits[6:12] + [np.nan]
+xfits60 = ret_xfits[12:] + [np.nan]
+
+yfits20 = ret_yfits[:6] + [np.nan]
+yfits40 = ret_yfits[6:12] + [np.nan]
+yfits60 = ret_yfits[12:] + [np.nan]
+
+locs = pasep_to_xy(fake_PAs, fake_seps)
+
+xlocs20 = [loc[0] for loc in locs[:6]] + [np.nan]
+xlocs40 = [loc[0] for loc in locs[6:12]] + [np.nan]
+xlocs60 = [loc[0] for loc in locs[12:]] + [np.nan]
+
+ylocs20 = [loc[1] for loc in locs[:6]] + [np.nan]
+ylocs40 = [loc[1] for loc in locs[6:12]] + [np.nan]
+ylocs60 = [loc[1] for loc in locs[12:]] + [np.nan]
+
 df = pd.DataFrame(index=([str(num+1) for num in range(6)] + ['MEAN']))
 
-df['Injected (20 sep)'] = at20
-df['Actual (20 sep)'] = act20
-df['Injected (40 sep)'] = at40
-df['Actual (40 sep)'] = act40
-df['Injected (60 sep)'] = at60
-df['Actual (60 sep)'] = act60
+df['Injected Flux (20 sep)'] = at20
+df['Retrieved Flux (20 sep)'] = act20
+df['Injected X (20 sep)'] = xlocs20
+df['Retrieved X (20 sep)'] = xfits20
+df['Injected Y (20 sep)'] = ylocs20
+df['Retrieved Y (20 sep)'] = yfits20
+df['Retrieved FWHM (20 sep)'] = fwhms20
 
-df.to_csv('fluxes_refinefitTrue.csv')
+df['Injected Flux (40 sep)'] = at40
+df['Retrieved Flux (40 sep)'] = act40
+df['Injected X (40 sep)'] = xlocs40
+df['Retrieved X (40 sep)'] = xfits40
+df['Injected Y (40 sep)'] = ylocs40
+df['Retrieved Y (40 sep)'] = yfits40
+df['Retrieved FWHM (40 sep)'] = fwhms40
+
+df['Injected Flux (60 sep)'] = at60
+df['Retrieved Flux (60 sep)'] = act60
+df['Injected X (60 sep)'] = xlocs60
+df['Retrieved X (60 sep)'] = xfits60
+df['Injected Y (60 sep)'] = ylocs60
+df['Retrieved Y (60 sep)'] = yfits60
+df['Retrieved FWHM (60 sep)'] = fwhms60
+
+df.to_excel('retrieve_planet_data.xlsx')
