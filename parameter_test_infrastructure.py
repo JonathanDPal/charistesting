@@ -5,7 +5,7 @@ from glob import glob
 from pyklip.instruments.CHARIS import CHARISData
 from copy import copy
 from pyklip.parallelized import klip_dataset
-from pyklip.klip import meas_contrast
+from pyklip.klip import meas_contrast, _rotate_wcs_hdr
 from pyklip.fakes import inject_planet, retrieve_planet_flux
 from pyklip.kpp.utils.mathfunc import gauss2d
 from pyklip.kpp.metrics.crossCorr import calculate_cc
@@ -184,7 +184,8 @@ class Trial:
 	"""
 
     def __init__(self, object_name, mask_xy, annuli, subsections, movement, numbasis, spectrum, corr_smooth,
-                 fake_PAs, fake_fluxes, fake_fwhm, fake_seps, dn_per_contrast, wln_um, highpass, length):
+                 fake_PAs, fake_fluxes, fake_fwhm, fake_seps, rot_angs, flipx, dn_per_contrast, wln_um, highpass,
+                 length):
         self.object_name = object_name
         self.mask_xy = mask_xy
 
@@ -199,6 +200,8 @@ class Trial:
         self.fake_fluxes = fake_fluxes
         self.fake_fwhm = fake_fwhm
         self.fake_seps = np.array(fake_seps)
+        self.rot_angs = rot_angs
+        self.flipx = flipx
 
         self.dn_per_contrast = np.array(dn_per_contrast)
         self.wln_um = np.array(wln_um)
@@ -227,7 +230,7 @@ class Trial:
 
         # Can Rebuild Class From This String
         params = [object_name, mask_xy, annuli, subsections, movement, numbasis, spectrum, corr_smooth,
-                  fake_PAs, fake_fluxes, fake_fwhm, fake_seps, dn_per_contrast, wln_um, highpass, length]
+                  fake_PAs, fake_fluxes, fake_fwhm, fake_seps, dn_per_contrast, wln_um, highpass, length, rot_angs]
         modifiedparams = []
         for i in range(len(params)):
             array = False
@@ -254,6 +257,10 @@ class Trial:
 
     @staticmethod
     def list_rebuilder(s):
+        """
+        Takes the rebuild string created by the __init__ method of Trial and returns the original set of parameters
+        which was used to build it. Intended to support the class method from_string.
+        """
         s = s.replace(' ', '')
         original_params = s.split('|')
         for i in range(len(original_params)):
@@ -317,10 +324,15 @@ class Trial:
 
     @classmethod
     def from_string(cls, rebuild_string):
+        """
+        Uses the Trial rebuild string from the __init__ method to recreate the Trial object. This is intended so that
+        contrast and planet detection can be parallelized.
+        """
         p = cls.list_rebuilder(rebuild_string)
-        if len(p) != 16:
+        if len(p) != 18:
             raise ValueError("Incorrect number of arguments given for building class Trial using from_string method.")
-        return cls(p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12], p[13], p[14], p[15])
+        return cls(p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12], p[13], p[14],
+                   p[15], p[16], p[17])
 
     def get_contrast(self, contains_fakes=True):
         """
@@ -341,6 +353,7 @@ class Trial:
                 dataset_center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
                 dataset_fwhm, dataset_iwa, dataset_owa = FWHMIOWA_calculator(hdulist)
                 output_wcs = WCS(hdulist[0].header, naxis=[1, 2])
+                _rotate_wcs_hdr(output_wcs, self.rot_angs[wavelength_index], flipx=self.flipx)
 
             for wavelength_index in range(cube.shape[0]):  # making measurements at every wavelengthw
                 # Taking Slice of Cube and Calibrating It
@@ -598,6 +611,7 @@ class TestDataset:
                                                              numbasis=numbasis, spectrum=spec, corr_smooth=cs,
                                                              fake_PAs=self.fake_PAs, fake_fluxes=self.fake_fluxes,
                                                              fake_fwhm=self.fake_fwhm, fake_seps=self.fake_seps,
+                                                             rot_angs=dataset.PAs, flipx=dataset.flipx,
                                                              dn_per_contrast=self.dataset.dn_per_contrast,
                                                              wln_um=self.dataset.wvs, highpass=hp,
                                                              length=self.dataset.input.shape[1]))
@@ -612,6 +626,7 @@ class TestDataset:
                                          numbasis=numbasis, spectrum=spec, corr_smooth=cs,
                                          fake_PAs=self.fake_PAs, fake_fluxes=self.fake_fluxes,
                                          fake_fwhm=self.fake_fwhm, fake_seps=self.fake_seps,
+                                         rot_angs=dataset.PAs, flipx=dataset.flipx,
                                          dn_per_contrast=self.dataset.dn_per_contrast,
                                          wln_um=self.dataset.wvs, highpass=hp,
                                          length=self.dataset.input.shape[1]))
