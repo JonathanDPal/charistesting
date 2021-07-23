@@ -49,33 +49,30 @@ def valuefinder(filename, param):
                     else:
                         startingindex = j - 1
 
-            if startingindex is not None:
-                if prm != 'kl':
-                    valuelength = 0
-                    while startingindex > 0 and filename[startingindex] != '_' and filename[startingindex] != '/':
-                        startingindex -= 1
-                        valuelength += 1
-                    end_index = startingindex + 1 + valuelength
-                    value = filename[startingindex + 1: end_index]
+            if prm != 'kl':
+                valuelength = 0
+                while startingindex > 0 and filename[startingindex] != '_' and filename[startingindex] != '/':
+                    startingindex -= 1
+                    valuelength += 1
+                end_index = startingindex + 1 + valuelength
+                value = filename[startingindex + 1: end_index]
+            else:
+                end_index = startingindex + 2
+                value = filename[startingindex: end_index]
+            if prm == 'annuli' or prm == 'subsections' or prm == 'kl':
+                value = int(value)
+            elif prm == 'movement' or prm == 'smooth':
+                value = float(value)
+            elif prm == 'highpass':
+                if str.lower(value) == 'true':
+                    value = True
+                elif str.lower(value) == 'false':
+                    value = False
                 else:
-                    end_index = startingindex + 2
-                    value = filename[startingindex: end_index]
-            try:
-                if prm == 'annuli' or prm == 'subsections' or prm == 'kl':
-                    value = int(value)
-                elif prm == 'movement' or prm == 'smooth':
                     value = float(value)
-                elif prm == 'highpass':
-                    if str.lower(value) == 'true' or str.lower(value) == 'false':
-                        value = bool(value)
-                    else:
-                        value = float(value)
-                elif prm == 'spectrum':
-                    if str.lower(value) == 'none':
-                        value = None
-            except ValueError:
-                print(prm, filename, value)
-                raise ValueError('now')
+            elif prm == 'spectrum':
+                if str.lower(value) == 'none':
+                    value = None
             values.append(value)
 
         return values
@@ -84,23 +81,6 @@ def valuefinder(filename, param):
 direc = sys.argv[1]
 klip_outputs = glob(f'{direc}/klipped_cubes_Wfakes/*.fits')
 completed = [valuefinder(file, 'all') for file in klip_outputs]
-
-# stuff that is going to go on CRC for HD1160
-# ann0 = [2, 3, 5, 7, 9, 11]
-# sbs0 = [2, 4]
-# mov0 = [0.5, 1.5]
-# spec0 = [None]
-# nb0 = [15, 20, 25, 30, 35]
-# cs0 = [0.0, 0.5, 1.0]
-# hp0 = [False, True, 30.0]
-# for a in ann0:
-#     for s in sbs0:
-#         for m in mov0:
-#             for p in spec0:
-#                 for n in nb0:
-#                     for c in cs0:
-#                         for h in hp0:
-#                             completed.append([a, s, m, p, n, c, h])
 
 fullset = []
 for a in listset([pms[0] for pms in completed]):
