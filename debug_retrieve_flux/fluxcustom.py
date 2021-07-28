@@ -1,24 +1,25 @@
-from astropy.io import fits
-from astropy.wcs import WCS
-import numpy as np
-# from pyklip.fakes import retrieve_planet_flux, retrieve_planet
-from pyklip.fakes import convert_pa_to_image_polar
-from pyklip.klip import _rotate_wcs_hdr
-from copy import copy
-from parameter_test_infrastructure import make_dn_per_contrast, FWHMIOWA_calculator, pasep_to_xy
-from pyklip.instruments.CHARIS import CHARISData
-import pandas as pd
-from glob import glob
-from astropy.wcs.wcs import FITSFixedWarning
-import warnings
-import os
-from scipy.optimize import curve_fit
+if __name__ == '__main__':
+    from astropy.io import fits
+    from astropy.wcs import WCS
+    import numpy as np
+    # from pyklip.fakes import retrieve_planet_flux, retrieve_planet
+    from pyklip.fakes import convert_pa_to_image_polar
+    from pyklip.klip import _rotate_wcs_hdr
+    from copy import copy
+    from parameter_test_infrastructure import make_dn_per_contrast, FWHMIOWA_calculator, pasep_to_xy
+    from pyklip.instruments.CHARIS import CHARISData
+    import pandas as pd
+    from glob import glob
+    from astropy.wcs.wcs import FITSFixedWarning
+    import warnings
+    import os
+    from scipy.optimize import curve_fit
 
-warnings.simplefilter('ignore', FITSFixedWarning)
-if not os.path.exists('retrievals'):
-    os.mkdir('retrievals')
+    warnings.simplefilter('ignore', FITSFixedWarning)
+    if not os.path.exists('retrievals'):
+        os.mkdir('retrievals')
 
-np.random.seed(314)
+    np.random.seed(314)
 
 
 def valuefinder(filename, param):
@@ -94,164 +95,167 @@ def valuefinder(filename, param):
         return values
 
 
-def retrieve_planet_flux(data_frame, PA, Sep, rotated_wcs, center, fwhm, guess_peak_flux=None, force_fwhm=True,
-                         searchrad=None):
-    def guassian(xy, a, sigma):
+def retrieve_planet_flux(frame, pa, sep, rotated_wcs, dataset_center, dataset_fwhm, guess_peak_flux=None,
+                         force_fwhm=False, searchradius=None, return_all=False):
+    def guassian(xy, peak, Fwhm, offset):
         x, y = xy
-        return np.ravel(a * np.exp(-(x ** 2 + y ** 2) / (2 * sigma ** 2)))
+        sigma = Fwhm / (2 * np.sqrt(2 * np.log(2)))
+        return peak * np.exp(-(x ** 2 + y ** 2) / (2 * sigma ** 2)) + offset
 
-    def guassian_force_fwhm(xy_fwhm, a):
+    def guassian_force_fwhm(xy_fwhm, peak, offset):
         x, y, Fwhm = xy_fwhm
         sigma = Fwhm / (2 * np.sqrt(2 * np.log(2)))
-        return np.ravel(a * np.exp(-(x ** 2 + y ** 2) / (2 * sigma ** 2)))
+        return peak * np.exp(-(x ** 2 + y ** 2) / (2 * sigma ** 2)) + offset
 
-    theta = convert_pa_to_image_polar(PA, rotated_wcs)
-    x0 = int(round(Sep * np.cos(np.radians(theta)) + center[0]))
-    y0 = int(round(Sep * np.sin(np.radians(theta)) + center[1]))
+    theta = convert_pa_to_image_polar(pa, rotated_wcs)
+    x0 = int(round(sep * np.cos(np.radians(theta)) + dataset_center[0]))
+    y0 = int(round(sep * np.sin(np.radians(theta)) + dataset_center[1]))
+
+    if searchradius is None:
+        searchradius = int(np.ceil(dataset_fwhm))
+
+    preliminary_searchbox = np.copy(frame[y0 - searchradius: y0 + searchradius + 1,
+                                          x0 - searchradius: x0 + searchradius + 1])
+    preliminary_searchbox[np.where(np.isnan(preliminary_searchbox))] = 0
+
+    # since sometimes the theta found from the position angle and wcs information can be slighly off, we're going to
+    # just make sure that we center the Gaussian at the brightest pixel. Usually this will leave x0 and y0
+    # unchanged since (x0, y0) will already be the location of the brightest pixel.
+    maxindices = np.unravel_index(preliminary_searchbox.argmax(), preliminary_searchbox.shape)
+    y0, x0 = maxindices[1] + y0 - searchradius, maxindices[0] + x0 - searchradius
+
+    # now this will be the actual searchbox
+    searchbox = np.copy(frame[y0 - searchradius: y0 + searchradius + 1, x0 - searchradius: x0 + searchradius + 1])
+    searchbox[np.where(np.isnan(searchbox))] = 0
+    uppery, upperx = searchbox.shape
+
+    # building out arrays so that we get a full coordinate system when they are zipped together
+    yvals, xvals = np.arange(0, uppery, 1.0) - searchradius, np.arange(0, upperx, 1.0) - searchradius
+    numyvals, numxvals = len(yvals), len(xvals)
+    yvals = np.array(list(yvals) * numxvals)
+    xvals = np.array([[xval] * numyvals for xval in xvals]).flatten()
+
+    vals = [searchbox[int(y + searchradius), int(x + searchradius)] for y, x in zip(yvals, xvals)]
+
+    vals_w_distances = pd.DataFrame({'vals': vals, 'distance squred': [y ** 2 + x ** 2 for y, x in zip(yvals, xvals)]})
+    data_to_fit = vals_w_distances[vals_w_distances['distance squared'] <= searchradius ** 2]['vals']
 
     if guess_peak_flux is None:
-        # if left as None, the initial guess (1) will be outside of the boundaries we specify later, throwing an error
-        guess_peak_flux = 1e-3
+        # if None, starting guess (default 1) will be outside of the boundaries we specify, yielding an error
+        guess_peak_flux = np.max(data_to_fit) * 0.9
 
     if force_fwhm:
         guesses = [guess_peak_flux]
-        bounds = (0, 1)  # peak flux cannot be less than zero or greater than star flux
+        # peak flux cannot be less than zero or greater than the brightest pixel in the image; no bound on offset
+        bounds = ((0, -np.inf), (np.max(data_to_fit), np.inf))
     else:
-        guesses = [guess_peak_flux, fwhm]
-        bounds = (0, (1, np.inf))  # sigma cannot be less than zero
-
-    if searchrad is None:
-        searchrad = int(np.ceil(fwhm))
-
-    searchbox = np.copy(data_frame[y0 - searchrad: y0 + searchrad + 1, x0 - searchrad: x0 + searchrad + 1])
-    searchbox[np.where(np.isnan(searchbox))] = 0
-    upperx = searchbox.shape[1]
-    uppery = searchbox.shape[0]
+        guesses = [guess_peak_flux, dataset_fwhm]
+        bounds = ((0, 0, -np.inf), (np.max(data_to_fit), np.inf, np.inf))  # FWHM cannot be less than zero
 
     if force_fwhm:
-        coordinates = np.meshgrid(np.arange(0, upperx, 1.0) - x0, np.arange(0, uppery, 1.0) - y0, fwhm)
-        optimalparams, covariance = curve_fit(f=guassian_force_fwhm, xdata=coordinates, ydata=np.ravel(searchbox),
-                                              p0=guesses, bounds=bounds)
+        fwhmlist = np.array([dataset_fwhm] * numxvals * numyvals)
+        coordinates = (xvals, yvals, fwhmlist)
+        optimalparams, covariance_matrix = curve_fit(f=guassian_force_fwhm, xdata=coordinates, ydata=data_to_fit,
+                                                     p0=guesses, bounds=bounds)
     else:
-        coordinates = np.meshgrid(np.arange(0, upperx, 1.0) - x0, np.arange(0, uppery, 1.0) - y0)
-        optimalparams, covariance = curve_fit(f=guassian, xdata=coordinates, ydata=np.ravel(searchbox), p0=guesses,
-                                              bounds=bounds)
+        coordinates = (xvals, yvals)
+        optimalparams, covariance_matrix = curve_fit(f=guassian, xdata=coordinates, ydata=data_to_fit, p0=guesses,
+                                                     bounds=bounds)
 
-    peakflux = optimalparams[0]
-    return peakflux
+    if return_all:
+        return optimalparams
+    else:
+        return optimalparams[0]  # just the peak flux
 
 
-orig_filepaths = 'HD1160_cubes/*.fits'
-dataset = make_dn_per_contrast(CHARISData(glob(orig_filepaths)))
-dn_per_contrast = dataset.dn_per_contrast
-rot_angles = dataset.PAs
-flipx = dataset.flipx
+if __name__ == '__main__':
+    orig_filepaths = 'HD1160_cubes/*.fits'
+    dataset = make_dn_per_contrast(CHARISData(glob(orig_filepaths)))
+    dn_per_contrast = dataset.dn_per_contrast
+    rot_angles = dataset.PAs
+    flipx = dataset.flipx
 
-filepaths = glob('HD1160/klipped_cubes_Wfakes/*')
-filepaths = [filepaths[index] for index in [np.random.randint(len(filepaths)) for _ in range(10)]]
+    filepaths = glob('HD1160/klipped_cubes_Wfakes/*')
+    filepaths = [filepaths[index] for index in [np.random.randint(len(filepaths)) for _ in range(10)]]
 
-wavelength_index = 10
+    wavelength_index = 10
 
-with fits.open('HD1160/klipped_cubes_Wfakes/HD1160_withfakes_6Annuli_4Subsections_1.0Movement_NoneSpectrum_0.0Smooth_5'
-               '.0Highpass_-KL50-speccube.fits') as hdulist:
-    output_wcs = WCS(hdulist[0].header, naxis=[1, 2])
-    _rotate_wcs_hdr(output_wcs, rot_angles[wavelength_index], flipx=flipx)
-
-for filepath in filepaths:
-    with fits.open(filepath) as hdulist:
-        cube = copy(hdulist[1].data)
-        dataset_center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
-        dataset_fwhm, _, _ = FWHMIOWA_calculator(hdulist)
-
-    frame = cube[wavelength_index] / dn_per_contrast[wavelength_index]
-
-    mask_xy = [144, 80]
-
-    x_pos = mask_xy[0]
-    y_pos = mask_xy[1]
-    ydat, xdat = np.indices(frame.shape)
-    distance_from_planet = np.sqrt((xdat - x_pos) ** 2 + (ydat - y_pos) ** 2)
-    frame[np.where(distance_from_planet <= 2 * dataset_fwhm)] = np.nan
-
-    fake_fluxes = [5e-4, 5e-5, 5e-6, 1e-4, 1e-5, 1e-6]  # List of Float(s)
-    fake_seps = [20, 40, 60]  # List of Integer(s) and/or Float(s)
-    fake_PAs = [19, 79, 139, 199, 259, 319]  # List of Integer(s) and/or Float(s)
-
-    retrieved_fluxes = []
-    ret_fwhms = []
-    ret_xfits = []
-    ret_yfits = []
-    for sep in fake_seps:
-        for pa in fake_PAs:
-            # fake_flux, xfit, yfit, ret_fwhm = retrieve_planet(frame, dataset_center, output_wcs, sep, pa,
-            #                                                    guessfwhm=dataset_fwhm, guesspeak=1e-4,
-            #                                                    refinefit=False,
-            #                                                    searchrad=1)
-            fake_flux = retrieve_planet_flux(frame, pa, sep, output_wcs, dataset_center, dataset_fwhm)
-            retrieved_fluxes.append(fake_flux)
-            # ret_fwhms.append(ret_fwhm)
-            # ret_xfits.append(xfit - dataset_center[0])
-            # ret_yfits.append(yfit - dataset_center[0])
-
-    at20 = [fake_fluxes[0], fake_fluxes[3]] * 3
-    at20.append(float(np.mean(at20)))
-    at40 = [fake_fluxes[1], fake_fluxes[4]] * 3
-    at40.append(float(np.mean(at40)))
-    at60 = [fake_fluxes[2], fake_fluxes[5]] * 3
-    at60.append(float(np.mean(at60)))
-
-    assert len(retrieved_fluxes) == 18
-
-    act20 = retrieved_fluxes[:6] + [np.mean(retrieved_fluxes[:6])]
-    act40 = retrieved_fluxes[6:12] + [np.mean(retrieved_fluxes[6:12])]
-    act60 = retrieved_fluxes[12:] + [np.mean(retrieved_fluxes[12:])]
-
-    # fwhms20 = ret_fwhms[:6] + [np.mean(ret_fwhms[:6])]
-    # fwhms40 = ret_fwhms[6:12] + [np.mean(ret_fwhms[6:12])]
-    # fwhms60 = ret_fwhms[12:] + [np.mean(ret_fwhms[12:])]
+    # with fits.open('HD1160/klipped_cubes_Wfakes/HD1160_withfakes_6Annuli_4Subsections_1.0Movement_NoneSpectrum_0'
+    #                '.0Smooth_5.0Highpass_-KL50-speccube.fits') as hdulist:
     #
-    # xfits20 = ret_xfits[:6] + [np.nan]
-    # xfits40 = ret_xfits[6:12] + [np.nan]
-    # xfits60 = ret_xfits[12:] + [np.nan]
-    #
-    # yfits20 = ret_yfits[:6] + [np.nan]
-    # yfits40 = ret_yfits[6:12] + [np.nan]
-    # yfits60 = ret_yfits[12:] + [np.nan]
 
-    # locs = pasep_to_xy(fake_PAs, fake_seps)
-    #
-    # xlocs20 = [loc[0] for loc in locs[:6]] + [np.nan]
-    # xlocs40 = [loc[0] for loc in locs[6:12]] + [np.nan]
-    # xlocs60 = [loc[0] for loc in locs[12:]] + [np.nan]
-    #
-    # ylocs20 = [loc[1] for loc in locs[:6]] + [np.nan]
-    # ylocs40 = [loc[1] for loc in locs[6:12]] + [np.nan]
-    # ylocs60 = [loc[1] for loc in locs[12:]] + [np.nan]
+    for filepath in filepaths:
+        with fits.open(filepath) as hdulist:
+            cube = copy(hdulist[1].data)
+            dataset_center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
+            dataset_fwhm, _, _ = FWHMIOWA_calculator(hdulist)
+            output_wcs = WCS(hdulist[0].header, naxis=[1, 2])
+            _rotate_wcs_hdr(output_wcs, rot_angles[wavelength_index], flipx=flipx)
 
-    df = pd.DataFrame(index=([str(num+1) for num in range(6)] + ['MEAN']))
+        frame = cube[wavelength_index] / dn_per_contrast[wavelength_index]
 
-    df['Injected Flux (20 sep)'] = at20
-    df['Retrieved Flux (20 sep)'] = act20
-    # df['Injected X (20 sep)'] = xlocs20
-    # df['Retrieved X (20 sep)'] = xfits20
-    # df['Injected Y (20 sep)'] = ylocs20
-    # df['Retrieved Y (20 sep)'] = yfits20
-    # df['Retrieved FWHM (20 sep)'] = fwhms20
+        mask_xy = [144, 80]
 
-    df['Injected Flux (40 sep)'] = at40
-    df['Retrieved Flux (40 sep)'] = act40
-    # df['Injected X (40 sep)'] = xlocs40
-    # df['Retrieved X (40 sep)'] = xfits40
-    # df['Injected Y (40 sep)'] = ylocs40
-    # df['Retrieved Y (40 sep)'] = yfits40
-    # df['Retrieved FWHM (40 sep)'] = fwhms40
+        x_pos, y_pos = mask_xy
+        ydat, xdat = np.indices(frame.shape)
+        distance_from_planet = np.sqrt((xdat - x_pos) ** 2 + (ydat - y_pos) ** 2)
+        frame[np.where(distance_from_planet <= 2 * dataset_fwhm)] = np.nan
 
-    df['Injected Flux (60 sep)'] = at60
-    df['Retrieved Flux (60 sep)'] = act60
-    # df['Injected X (60 sep)'] = xlocs60
-    # df['Retrieved X (60 sep)'] = xfits60
-    # df['Injected Y (60 sep)'] = ylocs60
-    # df['Retrieved Y (60 sep)'] = yfits60
-    # df['Retrieved FWHM (60 sep)'] = fwhms60
+        fake_fluxes = [5e-4, 5e-5, 5e-6, 1e-4, 1e-5, 1e-6]  # List of Float(s)
+        fake_seps = [20, 40, 60]  # List of Integer(s) and/or Float(s)
+        fake_PAs = [19, 79, 139, 199, 259, 319]  # List of Integer(s) and/or Float(s)
 
-    df.to_excel(f'retrievals/{valuefinder(filename=filepath, param="all")}retrieve_planet_data.xlsx')
+        retrieved_fluxes, ret_fwhms, ret_xfits, ret_yfits = list(), list(), list(), list()
+
+        for sep in fake_seps:
+            for pa in fake_PAs:
+                # fake_flux, xfit, yfit, ret_fwhm = retrieve_planet(frame, dataset_center, output_wcs, sep, pa,
+                #                                                    guessfwhm=dataset_fwhm, guesspeak=1e-4,
+                #                                                    refinefit=False,
+                #                                                    searchrad=1)
+                # fake_flux = retrieve_planet_flux(frame, pa, sep, output_wcs, dataset_center, dataset_fwhm,
+                #                                  force_fwhm=False)
+                fake_flux,
+                retrieved_fluxes.append(fake_flux)
+                # ret_fwhms.append(ret_fwhm)
+                # ret_xfits.append(xfit - dataset_center[0])
+                # ret_yfits.append(yfit - dataset_center[0])
+
+        at20 = [fake_fluxes[0], fake_fluxes[3]] * 3
+        at20.append(float(np.mean(at20)))
+        at40 = [fake_fluxes[1], fake_fluxes[4]] * 3
+        at40.append(float(np.mean(at40)))
+        at60 = [fake_fluxes[2], fake_fluxes[5]] * 3
+        at60.append(float(np.mean(at60)))
+
+        assert len(retrieved_fluxes) == 18
+
+        # locs = pasep_to_xy(fake_PAs, fake_seps)
+
+        df = pd.DataFrame(index=([str(num+1) for num in range(6)] + ['MEAN']))
+
+        df['Injected Flux (20 sep)'] = at20
+        df['Retrieved Flux (20 sep)'] = retrieved_fluxes[:6] + [np.mean(retrieved_fluxes[:6])]
+        # df['Injected X (20 sep)'] = [loc[0] for loc in locs[:6]] + [np.nan]
+        # df['Retrieved X (20 sep)'] = ret_xfits[:6] + [np.nan]
+        # df['Injected Y (20 sep)'] = [loc[1] for loc in locs[:6]] + [np.nan]
+        # df['Retrieved Y (20 sep)'] = ret_yfits[:6] + [np.nan]
+        # df['Retrieved FWHM (20 sep)'] = ret_fwhms[:6] + [np.mean(ret_fwhms[:6])]
+
+        df['Injected Flux (40 sep)'] = at40
+        df['Retrieved Flux (40 sep)'] = retrieved_fluxes[6:12] + [np.mean(retrieved_fluxes[6:12])]
+        # df['Injected X (40 sep)'] = [loc[0] for loc in locs[6:12]] + [np.nan]
+        # df['Retrieved X (40 sep)'] = ret_xfits[6:12] + [np.nan]
+        # df['Injected Y (40 sep)'] = [loc[1] for loc in locs[6:12]] + [np.nan]
+        # df['Retrieved Y (40 sep)'] = ret_yfits[6:12] + [np.nan]
+        # df['Retrieved FWHM (40 sep)'] = ret_fwhms[6:12] + [np.mean(ret_fwhms[6:12])]
+
+        df['Injected Flux (60 sep)'] = at60
+        df['Retrieved Flux (60 sep)'] = retrieved_fluxes[12:] + [np.mean(retrieved_fluxes[12:])]
+        # df['Injected X (60 sep)'] = [loc[0] for loc in locs[12:]] + [np.nan]
+        # df['Retrieved X (60 sep)'] = ret_xfits[12:] + [np.nan]
+        # df['Injected Y (60 sep)'] = [loc[1] for loc in locs[12:]] + [np.nan]
+        # df['Retrieved Y (60 sep)'] = ret_yfits[12:] + [np.nan]
+        # df['Retrieved FWHM (60 sep)'] = ret_fwhms[12:] + [np.mean(ret_fwhms[12:])]
+
+        df.to_excel(f'retrievals/{valuefinder(filename=filepath, param="all")}retrieve_planet_data.xlsx')
