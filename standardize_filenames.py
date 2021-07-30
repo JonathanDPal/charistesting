@@ -125,5 +125,3 @@ while more_subdirectories:
 for file in filenames:
     standardize(file)
     underscore(file)
-
-# condor record = 3344 (209 KLIP runs simultaneously)
