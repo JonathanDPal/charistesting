@@ -20,13 +20,13 @@ mask0 = [[128, 152], [157, 137], [129, 70]]
 object_name0 = 'HR8799'
 
 # Setting Up Lists/Tuples For KLIP
-annuli = [4, 6, 8, 10, 12]  # List of Integer(s)
-subsections = [2, 4]  # List of Integer(s)
-movement = [0.5, 1.5]  # List of Float(s)
-spectrum = [None]  # List of None and/or 'methane'
-numbasis = [15, 20, 25, 30, 35]  # List of Integer(s)
-corr_smooth = [0.0, 0.5, 1.0]  # List of Float(s)
-highpass = [False, True, 30.0]  # List of Float(s), and/or Bool(s)
+annuli = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+subsections = [2, 4, 6]
+movement = [0.0, 0.5, 1.0, 1.5, 2.0]
+spectrum = [None]
+numbasis = [10, 15, 20, 25, 35, 40, 50, 60]
+corr_smooth = [0.0, 0.5, 1.0, 2.0]
+highpass = [False]
 
 # Setting Mode For KLIP
 mode = 'ADI+SDI'  # Exactly ONE (not a list or tuple) or the following: 'ADI', 'SDI', 'ADI+SDI'
@@ -56,12 +56,6 @@ get_planet_detections_from_dataset_without_fakes = False
 ########################
 # CHECKING USER INPUTS #
 ########################
-
-# Warning User if the Directory Where Stuff Will Be Outputted to Already Exists
-# if os.path.exists(object_name0):
-#     warnings.warn("HEADS UP: There is already a directory with the same name as the one you specified for outputs to "
-#                   "be written to. Outputs will NOT OVERWRITE previous outputs if filenames are identical -- those "
-#                   "parameters will just get skipped over right now.")
 
 # Making Sure This Group of Parameters Are In The Form of a List
 for param in [[annuli, 'annuli'], [subsections, 'subsections'], [movement, 'movement'], [spectrum, 'spectrum'],
