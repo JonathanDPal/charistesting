@@ -27,8 +27,8 @@ from time import time
 @contextmanager
 def log_file_output(directory, write_type='a'):
     """
-	Has outputs written out to a log file in the specified directory instead of printed in terminal.
-	"""
+    Has outputs written out to a log file in the specified directory instead of printed in terminal.
+    """
     with open(f'{directory}/log.txt', write_type) as log_file:
         old_stdout = sys.stdout
         sys.stdout = log_file
@@ -40,8 +40,8 @@ def log_file_output(directory, write_type='a'):
 
 def FWHMIOWA_calculator(speccubefile, filtname=None):
     """
-	Finds FWHM, IWA, and OWA for a opened CHARIS data cube.
-	"""
+    Finds FWHM, IWA, and OWA for a opened CHARIS data cube.
+    """
     wavelengths = {'j': 1200e-9, 'h': 1550e-9, 'k': 2346e-9, 'broadband': 1550e-9}
     if filtname is None:
         wavelength = wavelengths[str.lower(speccubefile[1].header['FILTNAME'])]
@@ -59,10 +59,10 @@ def FWHMIOWA_calculator(speccubefile, filtname=None):
 
 def make_dn_per_contrast(dataset):
     """
-	Calculates and sets spot_ratio and dn_per_contrast attributes for an initialized CHARISData dataset.
+    Calculates and sets spot_ratio and dn_per_contrast attributes for an initialized CHARISData dataset.
 
-	Returns modified CHARISData dataset object.
-	"""
+    Returns modified CHARISData dataset object.
+    """
 
     # Gets number of input fits files (Ncubes) and number of wavelengths (Nwln)
     Nframes = dataset.input.shape[0]  # This dimension is Ncubes*Nwln
@@ -90,10 +90,10 @@ def make_dn_per_contrast(dataset):
 
 def pasep_to_xy(PAs, seps):
     """
-	Takes lists of position angles and seperations and yields a numpy array with x-y coordinates for each combo, using
-	the convention used in the table of values outputted by the planet detection software. The origin used in their
-	convention is the center of the star's PSF.
-	"""
+    Takes lists of position angles and seperations and yields a numpy array with x-y coordinates for each combo, using
+    the convention used in the table of values outputted by the planet detection software. The origin used in their
+    convention is the center of the star's PSF.
+    """
     PAs = [float(pa) for pa in PAs]  # if not a float, then pa / 180 will yield zero in many cases
     radians = np.array(PAs) / 180 * np.pi
     locs = []
@@ -108,41 +108,41 @@ def pasep_to_xy(PAs, seps):
 
 def distance(xy1, xy2):
     """
-	Inputs should be of form [x-coor, y-coor] (list, numpy array, or tuple)
-	"""
+    Inputs should be of form [x-coor, y-coor] (list, numpy array, or tuple)
+    """
     return np.sqrt((xy1[0] - xy2[0]) ** 2 + (xy1[1] - xy2[1]) ** 2)
 
 
 def contrast_measurement(trial_string):
     """
-	Used for parallelization on contrast measurements.
-	"""
+    Used for parallelization on contrast measurements.
+    """
     t = Trial.from_string(trial_string)
     t.get_contrast()
 
 
 def planet_detection(trial_string):
     """
-	Used for parallelization on planet detections. Not currently in use because the planet detection section of
-	pyKLIP utilizes the multiprocessing process pool for computing SNR maps and multiprocessing cannot support
-	a pool inside of another pool.
-	"""
+    Used for parallelization on planet detections. Not currently in use because the planet detection section of
+    pyKLIP utilizes the multiprocessing process pool for computing SNR maps and multiprocessing cannot support
+    a pool inside of another pool.
+    """
     t = Trial.from_string(trial_string)
     t.detect_planets()
 
 
 def parameter_set_batcher(batchindex, batchsize, args):
     """
-	Designed to take a set of parameters and return a subset of combinations so that parameters can be broken up
-	into batches using the command line arguments of the parameterprobing scripts.
+    Designed to take a set of parameters and return a subset of combinations so that parameters can be broken up
+    into batches using the command line arguments of the parameterprobing scripts.
 
-	Args:
-		batchindex: Which batch should be used (USING 1-BASED INDEXING, NOT 0-BASED INDEXING)
-		batchsize: How many trials should be in the batches
-		args: The KLIP parameters (annuli, subsections, movement, spectrum, corr_smooth, highpass)
+    Args:
+        batchindex: Which batch should be used (USING 1-BASED INDEXING, NOT 0-BASED INDEXING)
+        batchsize: How many trials should be in the batches
+        args: The KLIP parameters (annuli, subsections, movement, spectrum, corr_smooth, highpass)
 
-	Returns a list or list of lists of parameters to be passed in to TestDataset.
-	"""
+    Returns a list or list of lists of parameters to be passed in to TestDataset.
+    """
     num_param_combos = np.prod([len(arg) for arg in args])
     remainder = num_param_combos % batchsize
     partial_batch = False  # default value, might be flipped by next section
@@ -177,12 +177,12 @@ def parameter_set_batcher(batchindex, batchsize, args):
 ####################################################################################
 class Trial:
     """
-	NOTE: The user will almost certainly not interact with this class directly, rather they will interact with an
-	instance of TestDataset and that instance of TestDataset will interact with instances of this class.
-	---
-	Stores a particular set of KLIP parameters and then is able to run contrast measurement or planet detection code
-	from KLIP for the KLIP output with that particular set of parameters.
-	"""
+    NOTE: The user will almost certainly not interact with this class directly, rather they will interact with an
+    instance of TestDataset and that instance of TestDataset will interact with instances of this class.
+    ---
+    Stores a particular set of KLIP parameters and then is able to run contrast measurement or planet detection code
+    from KLIP for the KLIP output with that particular set of parameters.
+    """
 
     def __init__(self, object_name, mask_xy, annuli, subsections, movement, numbasis, spectrum, corr_smooth,
                  fake_PAs, fake_fluxes, fake_fwhm, fake_seps, rot_angs, flipx, dn_per_contrast, wln_um, highpass,
@@ -343,13 +343,13 @@ class Trial:
 
     def get_contrast(self, contains_fakes=True, override=False):
         """
-		Measures contrast at a particular wavelength, then saves contrast data as a CSV. CSV file is saved from a
-		Pandas DataFrame, which makes it easy to load the data back into a Pandas DataFrame later on for analysis.
-		---
-		Args:
-			contains_fakes (bool): Default: True. Whether to use data with fakes (True) or without fakes (False).
-			override (bool): Default: False. Whether or not to override filepath if output filepath already exists.
-		"""
+        Measures contrast at a particular wavelength, then saves contrast data as a CSV. CSV file is saved from a
+        Pandas DataFrame, which makes it easy to load the data back into a Pandas DataFrame later on for analysis.
+        ---
+        Args:
+            contains_fakes (bool): Default: True. Whether to use data with fakes (True) or without fakes (False).
+            override (bool): Default: False. Whether or not to override filepath if output filepath already exists.
+        """
         if contains_fakes:
             filepaths = self.filepaths_Wfakes
         else:
@@ -465,14 +465,14 @@ class Trial:
 
     def detect_planets(self, SNR_threshold=2, datasetwithfakes=True, override=False):
         """
-		Looks at a KLIPped dataset with fakes and indicates potential planets. Identifies
-		---
-		Args:
-			SNR_threshold: Default: 2. Set this to the lowest value to be looked at.
-			datasetwithfakes (Bool): Default: True. If True, then run planet detection on dataset containing injected
-										planets; if False, then run planet detection on dataset not containing
-										injected planets.
-			override (bool): Default: False. Whether or not to override filepath if output filepath already exists.
+        Looks at a KLIPped dataset with fakes and indicates potential planets. Identifies
+        ---
+        Args:
+            SNR_threshold: Default: 2. Set this to the lowest value to be looked at.
+            datasetwithfakes (Bool): Default: True. If True, then run planet detection on dataset containing
+                                     injected planets; if False, then run planet detection on dataset not containing
+                                     injected planets.
+            override (bool): Default: False. Whether or not to override filepath if output filepath already exists.
 		"""
         if datasetwithfakes:
             filepaths = self.filepaths_Wfakes
@@ -546,8 +546,8 @@ class Trial:
 
     def __eq__(self, other):
         """
-		Checks to see if two Trials have the same attributes. Intended for testing out code functionality.
-		"""
+        Checks to see if two Trials have the same attributes. Intended for testing out code functionality.
+        """
         equal_attributes = list()
         for i, j in zip(inspect.getmembers(self), inspect.getmembers(other)):
             if i[0].startswith('_') or inspect.ismethod(i[1]) or i[0] == 'rebuild_string':
@@ -573,9 +573,9 @@ class Trial:
 #################################################################################################
 class TestDataset:
     """
-	The main object which parameterprobing will interact with. Will load in CHARIS fileset into CHARISData class (see
-	pyklip.instruments.CHARIS) and then create an instance of Trial for each set of KLIP parameters to be looked at.
-	"""
+    The main object which the user will interact with. Will load in CHARIS fileset into CHARISData class (see
+    pyklip.instruments.CHARIS) and then create an instance of Trial for each set of KLIP parameters to be looked at.
+    """
     def __init__(self, fileset, object_name, mask_xy, fake_fluxes, fake_seps, annuli, subsections, movement,
                  numbasis, corr_smooth, highpass, spectrum, fake_fwhm, fake_PAs, mode, batched, overwrite):
         self.object_name = object_name
