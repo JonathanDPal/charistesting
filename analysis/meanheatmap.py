@@ -3,18 +3,16 @@ from plotting_funcs import mean_value_heatmap, paramvaluesfinder
 import os
 
 try:
-    assert len(sys.argv) == 4  # the first arg in sys.argv is the name of the script ("meanheatmap.py")
+    assert len(sys.argv) == 3  # the first arg in sys.argv is the name of the script ("meanheatmap.py")
 except AssertionError:
-    raise ValueError("Incorrect number of arguments. Specify three arguments. First argument should be the name of the "
-                     "object. Second and third arguments should be either 'annuli', 'subsections', or 'movement'.")
-
-name = sys.argv[1]  # name of directory with all of the data in it
+    raise ValueError("Incorrect number of keyword arguments. Specify two arguments which should be either 'annuli', "
+                     "'subsections', or 'movement'.")
 
 # Using Log File to Get Values
-annuli_vals = paramvaluesfinder(name, 'Annuli')
-subsections_vals = paramvaluesfinder(name, 'Subsections')
-movement_vals = paramvaluesfinder(name, 'Movement')
-ni = paramvaluesfinder(name, 'ni')  # number of injected planets
+annuli_vals = paramvaluesfinder('Annuli')
+subsections_vals = paramvaluesfinder('Subsections')
+movement_vals = paramvaluesfinder('Movement')
+ni = paramvaluesfinder('ni')  # number of injected planets
 
 # Putting Into Tuples For mean_value_heatmap
 annuli = ('annuli', annuli_vals)
@@ -29,7 +27,7 @@ of3 = 'mean_heatmap/sbs-mov'
 if not os.path.exists('mean_heatmap'):
     os.mkdir('mean_heatmap')
 
-params = [str.lower(param) for param in sys.argv[2:4]]
+params = [str.lower(param) for param in sys.argv[1:]]
 
 if 'annuli' in params and 'subsections' in params:
     mean_value_heatmap(annuli, subsections, ni, name, of1)

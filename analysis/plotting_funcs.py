@@ -7,11 +7,11 @@ from glob import glob
 import os
 
 
-def paramvaluesfinder(object_name, param):
+def paramvaluesfinder(param):
     paramline = None
     fluxes = None
     pas = None
-    with open('/home/jpal/data0/jpal/parameter_sampling/' + object_name + '/log.txt') as logfile:
+    with open(os.path.realpath('../log.txt')) as logfile:
         for line in logfile:
             if str.lower(param) != 'ni':
                 if str.lower(param) in str.lower(line):
@@ -89,7 +89,7 @@ def valuefinder(filename, param):
     return value
 
 
-def roc_generator(snr_values, param1, num_injections, object_name, filepath_to_save):
+def roc_generator(snr_values, param1, num_injections, filepath_to_save, file_finder='*.csv'):
     """
     Makes an ROC curve.
     ---
@@ -97,13 +97,13 @@ def roc_generator(snr_values, param1, num_injections, object_name, filepath_to_s
         snr_values (list): SNR Values to plot
         param1: Should be tuple of form (str: name of parameter, list: values used for parameter)
         num_injections (int): Number of planets that got injected
-        object_name (str)
         filepath_to_save (str): Where to save graph.
+        file_finder (str): passed into glob to get all relevant files.
     """
     collection = {str(val): {str(snr): list() for snr in snr_values} for val in param1[1]}
     originalwd = os.getcwd()
-    os.chdir('/home/jpal/data0/jpal/parameter_sampling/' + object_name + '/detections/')
-    filelist = glob('*.csv')
+    os.chdir(os.path.realpath('../detections/'))
+    filelist = glob(file_finder)
     for file in filelist:  # i used only to get different colors/markers on graph
         detections = pd.read_csv(file)
         val = valuefinder(file, param1[0])
@@ -140,18 +140,17 @@ def roc_generator(snr_values, param1, num_injections, object_name, filepath_to_s
     plt.savefig(filepath_to_save)
 
 
-def max_value_heatmap(param1, param2, object_name, filepath_to_save, file_finder='*.csv'):
+def max_value_heatmap(param1, param2, filepath_to_save, file_finder='*.csv'):
     """
     Just shows the maximum SNR value found (i.e. SNR of HD1160)
     Args:
         param1: Should be tuple of form (str: name of parameter, list: values used for parameter)
         param2: Should be tuple of form (str: name of parameter, list: values used for parameter)
-        object_name
         filepath_to_save: string
         file_finder: str -- passed into glob to get all relevant (CSV) files.
     """
     originalwd = os.getcwd()
-    os.chdir('/home/jpal/data0/jpal/parameter_sampling/' + object_name + '/detections/')
+    os.chdir(os.path.realpath('../detections/'))
     fileset = glob(file_finder)
     full_data = {str(a): {str(m): list() for m in param2[1]} for a in param1[1]}
     for file in fileset:
@@ -175,19 +174,18 @@ def max_value_heatmap(param1, param2, object_name, filepath_to_save, file_finder
     plt.savefig(filepath_to_save)
 
 
-def mean_value_heatmap(param1, param2, num_injections, object_name, filepath_to_save, file_finder='*.csv'):
+def mean_value_heatmap(param1, param2, num_injections, filepath_to_save, file_finder='*.csv'):
     """
     Shows mean SNR of injected planets.
     Args:
         param1: Should be tuple of form (str: name of parameter, list: values used for parameter)
         param2: Should be tuple of form (str: name of parameter, list: values used for parameter)
         num_injections: Number of fake planets injected.
-        object_name
         filepath_to_save: string
         file_finder: str -- passed into glob to get all relevant (CSV) files.
     """
     originalwd = os.getcwd()
-    os.chdir('/home/jpal/data0/jpal/parameter_sampling/' + object_name + '/detections/')
+    os.chdir(os.path.realpath('../detections/'))
     fileset = glob(file_finder)
     full_data = {str(a): {str(m): list() for m in param2[1]} for a in param1[1]}
     for file in fileset:
