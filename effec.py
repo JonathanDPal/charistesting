@@ -19,7 +19,5 @@ for file in files:
 				else:
 					bad += 1
 					badfile = True
-	if not badfile:
-		print(file)
 
-print(f'Effectiveness: {round(float(good) / (float(good) + float(bad)) * 100, 2)}')
+print(f'positive retrieved fluxes in {round(float(good) / (float(good) + float(bad)) * 100, 2)}% of cases')
