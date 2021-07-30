@@ -29,7 +29,7 @@ def log_file_output(directory, write_type='a'):
     """
 	Has outputs written out to a log file in the specified directory instead of printed in terminal.
 	"""
-    with open('{0}/log.txt'.format(directory), write_type) as log_file:
+    with open(f'{directory}/log.txt', write_type) as log_file:
         old_stdout = sys.stdout
         sys.stdout = log_file
         try:
@@ -95,7 +95,6 @@ def pasep_to_xy(PAs, seps):
 	convention is the center of the star's PSF.
 	"""
     PAs = [float(pa) for pa in PAs]  # if not a float, then pa / 180 will yield zero in many cases
-    seps = [float(sep) for sep in seps]
     radians = np.array(PAs) / 180 * np.pi
     locs = []
     for sep in seps:
@@ -124,7 +123,9 @@ def contrast_measurement(trial_string):
 
 def planet_detection(trial_string):
     """
-	Used for parallelization on planet detections.
+	Used for parallelization on planet detections. Not currently in use because the planet detection section of
+	pyKLIP utilizes the multiprocessing process pool for computing SNR maps and multiprocessing cannot support
+	a pool inside of another pool.
 	"""
     t = Trial.from_string(trial_string)
     t.detect_planets()
@@ -189,6 +190,9 @@ class Trial:
         self.object_name = object_name
         self.mask_xy = mask_xy
 
+        # KLIP params used (all are specific values except for numbasis which is still a list of values at this point)
+        # By specific, I mean, for example, self.annuli=9 as opposed to self.annuli=[3, 5, 7, 9, 11], like you would
+        # see in the self.annuli attribute of TestDataset
         self.annuli = annuli
         self.subsections = subsections
         self.movement = movement
@@ -196,37 +200,40 @@ class Trial:
         self.spectrum = spectrum
         self.corr_smooth = corr_smooth
 
+        # set up as NumPy arrays so that we can take advantage of the flatten() method later on
         self.fake_PAs = np.array(fake_PAs)
-        self.fake_fluxes = fake_fluxes
+        self.fake_fluxes = np.array(fake_fluxes)
         self.fake_fwhm = fake_fwhm
         self.fake_seps = np.array(fake_seps)
+
+        # Needed to Replicate Rotation for Fake Planet Retrieval
         self.rot_angs = rot_angs
         self.flipx = flipx
 
         self.dn_per_contrast = np.array(dn_per_contrast)
-        self.wln_um = np.array(wln_um)
+        self.wln_um = wln_um  # only being used to identify wavelength in output filepath name
 
         # Switching Highpass To Image Space If Necessary
-        if isinstance(highpass, (int, float)) and not isinstance(highpass, bool):
+        if not isinstance(highpass, bool):
             highpass = float(highpass)
             self.highpass = length / (highpass * 2 * np.sqrt(2 * np.log(2)))
         else:
             self.highpass = highpass
 
         # String Identifying Parameters Used (Used Later For Saving Contrast Info)
-        self.klip_parameters = str(annuli) + 'Annuli_' + str(subsections) + 'Subsections_' + str(
-            movement) + 'Movement_' + str(
-            spectrum) + 'Spectrum_' + str(corr_smooth) + 'Smooth_' + str(highpass) + 'Highpass_'
+        self.klip_parameters = str(annuli) + 'Annuli_' + str(subsections) + 'Subsections_' + str(movement) + \
+                               'Movement_' + str(spectrum) + 'Spectrum_' + str(corr_smooth) + 'Smooth_' + str(
+                                highpass) + 'Highpass_'
 
         # Filepaths to KLIPped Datacubes
         self.filepaths_Wfakes = [self.object_name + '/klipped_cubes_Wfakes/' + self.object_name + '_withfakes_' +
-                                 self.klip_parameters + '-KL{0}-speccube.fits'.format(nb) for nb in self.numbasis]
+                                 self.klip_parameters + f'-KL{nb}-speccube.fits' for nb in self.numbasis]
         self.filepaths_Nfakes = [self.object_name + '/klipped_cubes_Nfakes/' + self.object_name + '_withoutfakes_' +
-                                 self.klip_parameters + '-KL{0}-speccube.fits'.format(nb) for nb in self.numbasis]
+                                 self.klip_parameters + f'-KL{nb}-speccube.fits' for nb in self.numbasis]
 
         # Filepath to Save Planet Detection Output To
-        self.filepath_detections_prefixes = [self.object_name + '/detections/{0}_KL{1}_SNR-'.format(
-            self.klip_parameters, nb) for nb in self.numbasis]
+        self.filepath_detections_prefixes = [self.object_name + f'/detections/{self.klip_paarameters}_KL{nb}_SNR-'
+                                                                 for nb in self.numbasis]
 
         # Can Rebuild Class From This String
         params = [object_name, mask_xy, annuli, subsections, movement, numbasis, spectrum, corr_smooth,
@@ -334,12 +341,14 @@ class Trial:
         return cls(p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12], p[13], p[14],
                    p[15], p[16], p[17])
 
-    def get_contrast(self, contains_fakes=True):
+    def get_contrast(self, contains_fakes=True, override=False):
         """
-		Measures contrast at a particular wavelength, then saves contrast curve as a PNG and contrast data as a CSV.
+		Measures contrast at a particular wavelength, then saves contrast data as a CSV. CSV file is saved from a
+		Pandas DataFrame, which makes it easy to load the data back into a Pandas DataFrame later on for analysis.
 		---
 		Args:
-			contains_fakes (bool): Set to True if looking to make measurements on data with fakes, vice versa.
+			contains_fakes (bool): Default: True. Whether to use data with fakes (True) or without fakes (False).
+			override (bool): Default: False. Whether or not to override filepath if output filepath already exists.
 		"""
         if contains_fakes:
             filepaths = self.filepaths_Wfakes
@@ -370,10 +379,9 @@ class Trial:
                                                                   f'_{wavelength}um_contrast.csv'
 
                 # If Already Done, Then Don't Do It Again
-                if os.path.exists(uncal_contrast_output_filepath):
-                    continue
-                if os.path.exists(cal_contrast_output_filepath):
-                    continue
+                if not override:
+                    if os.path.exists(uncal_contrast_output_filepath):
+                        continue
 
                 # Applying Mask to Science Target If Location Specified
                 if isinstance(self.mask_xy, (list, tuple)):
@@ -396,24 +404,24 @@ class Trial:
                 # Measuring Algorithm Throughput BEFORE Fake Planets Get Masked Out
                 if contains_fakes:
                     retrieved_fluxes = []
+                    if np.ndim(self.fake_PAs) == 1:
+                        pas = self.fake_PAs
+                        fluxes = self.fake_fluxes
+                    else:  # i.e., multiple tiers
+                        pas = self.fake_PAs[0]  # use highest tier planets (we want brightest ones for calibration)
+                        fluxes = self.fake_fluxes[0]
                     for sep in self.fake_seps:
                         fake_planet_fluxes = []
-                        for pa in self.fake_PAs:
+                        for pa in pas:
                             fake_flux = retrieve_planet_flux(frame, dataset_center, output_wcs, sep, pa, searchrad=7)
                             fake_planet_fluxes.append(fake_flux)
                         retrieved_fluxes.append(np.mean(fake_planet_fluxes))
-
-                    numgroups = len(self.fake_seps)
-                    groupsize = int(len(self.fake_fluxes) / len(self.fake_seps))
-                    fluxgroups = [[self.fake_fluxes[i * numgroups + j] for i in range(groupsize)] for j in range(
-                        numgroups)]
-                    fluxes = [np.mean(fluxgroups[i]) for i in range(numgroups)]
 
                     algo_throughput = np.array(retrieved_fluxes) / np.array(fluxes)
 
                 # Applying Mask to Fake Planets
                 if contains_fakes:
-                    fakelocs = pasep_to_xy(self.fake_PAs, self.fake_seps)
+                    fakelocs = pasep_to_xy(self.fake_PAs.flatten(), self.fake_seps.flatten())
                     for fl in fakelocs:
                         x_pos = fl[0] + dataset_center[0]  # moving it into correct coordinate system
                         y_pos = fl[1] + dataset_center[1]
@@ -422,16 +430,9 @@ class Trial:
                         distance_from_planet = np.sqrt((xdat - x_pos) ** 2 + (ydat - y_pos) ** 2)
                         frame[np.where(distance_from_planet <= dataset_fwhm)] = np.nan
 
-                # Measuring Contrast
+                # Measuring Uncalibrated Contrast
                 contrast_seps, contrast = meas_contrast(frame, dataset_iwa, dataset_owa, dataset_fwhm,
                                                         center=dataset_center, low_pass_filter=True)
-
-                # Calibrating For KLIP Subtraction If Fakes Present
-                if contains_fakes:
-                    correct_contrast = np.copy(contrast)
-                    for j, sep in enumerate(contrast_seps):
-                        closest_throughput_index = np.argmin(np.abs(sep - self.fake_seps))
-                        correct_contrast[j] /= algo_throughput[closest_throughput_index]
 
                 # Always Going to Save Uncalibrated Contrast
                 if not os.path.exists(self.object_name + '/uncalibrated_contrast'):
@@ -440,6 +441,18 @@ class Trial:
                 df['Seperation'] = contrast_seps
                 df['Uncalibrated Contrast'] = contrast
                 df.to_csv(uncal_contrast_output_filepath)
+
+                # If Already Done, Then Don't Do It Again
+                if not override:
+                    if os.path.exists(cal_contrast_output_filepath):
+                        continue
+
+                # Calibrating For KLIP Subtraction If Fakes Present
+                if contains_fakes:
+                    correct_contrast = np.copy(contrast)
+                    for j, sep in enumerate(contrast_seps):
+                        closest_throughput_index = np.argmin(np.abs(sep - self.fake_seps))
+                        correct_contrast[j] /= algo_throughput[closest_throughput_index]
 
                 # If Contrast Was Calibrated, Then Save It
                 if contains_fakes:
@@ -450,16 +463,16 @@ class Trial:
                     df['Calibrated Contrast'] = correct_contrast
                     df.to_csv(cal_contrast_output_filepath)
 
-    def detect_planets(self, SNR_threshold=2, datasetwithfakes=True):
+    def detect_planets(self, SNR_threshold=2, datasetwithfakes=True, override=False):
         """
-		Looks at a KLIPped dataset with fakes and indicates potential planets.
+		Looks at a KLIPped dataset with fakes and indicates potential planets. Identifies
 		---
 		Args:
-			SNR_threshold: Default: 2. Set this to the lowest value to be looked at. Later on, the subsets of
-										detections can be created for other SNR_thresholds.
+			SNR_threshold: Default: 2. Set this to the lowest value to be looked at.
 			datasetwithfakes (Bool): Default: True. If True, then run planet detection on dataset containing injected
 										planets; if False, then run planet detection on dataset not containing
 										injected planets.
+			override (bool): Default: False. Whether or not to override filepath if output filepath already exists.
 		"""
         if datasetwithfakes:
             filepaths = self.filepaths_Wfakes
@@ -468,12 +481,12 @@ class Trial:
 
         for filepath_index, filepath in enumerate(filepaths):  # filepath_index used to identify number of KL modes
 
-            output_filepath = '{0}{1}.csv'.format(self.filepath_detections_prefixes[filepath_index],
-                                                  str(SNR_threshold))
+            output_filepath = f'{self.filepath_detections_prefixes[filepath_index]}{SNR_threshold}.csv'
 
             # Not going to redo a measurement already made
-            if os.path.exists(output_filepath):
-                continue
+            if not override:
+                if os.path.exists(output_filepath):
+                    continue
 
             # Actual Start of Process
             with fits.open(filepath) as hdulist:
@@ -494,16 +507,16 @@ class Trial:
 
             candidates = pd.DataFrame(candidates_table, columns=['Index', 'SNR Value', 'PA', 'Sep (pix)',
                                                                  'Sep (as)', 'x', 'y', 'row', 'col'])
-            injected = []  # going to be an additional column of candidates DataFrame
-            fakelocs = pasep_to_xy(self.fake_PAs, self.fake_seps)  # where planets were injected
+
+            fakelocs = pasep_to_xy(self.fake_PAs.flatten(), self.fake_seps.flatten())  # where planets were injected
 
             candidate_locations = zip(candidates['x'], candidates['y'])  # where stuff was detected
 
             if not isinstance(self.mask_xy[0], (list, tuple)):
                 self.mask_xy = [self.mask_xy]  # making it a list of a list so that it can get iterated over properly
 
-            distances_from_fakes = []
-            distances_from_targets = []
+            distances_from_fakes = []  # going to be an additional column of candidates DataFrame
+            distances_from_targets = []  # going to be an additional column of candidates DataFrame
             for c in candidate_locations:
                 distances = []
                 for fl in fakelocs:
@@ -515,8 +528,8 @@ class Trial:
                     distances2.append(distance(c, mask))
                 distances_from_targets.append(np.min(distances2))
 
+            injected = []  # going to be an additional column of candidates DataFrame
             for d1, d2 in zip(distances_from_targets, distances_from_fakes):
-                # If Detection Within 1 FWHM of Location, Considered Legit
                 if d1 < self.fake_fwhm:
                     injected.append("Science Target")
                 elif d2 < self.fake_fwhm:
@@ -524,12 +537,11 @@ class Trial:
                 else:
                     injected.append(False)
 
-            # Appending Information to Previous candidates DataTable
+            # appending more information to output for analysis later on
             candidates['Distance From Fakes'] = distances_from_fakes
             candidates['Distance From Targets'] = distances_from_targets
             candidates['Injected'] = injected
 
-            # Saving Information
             candidates.to_csv(output_filepath)
 
     def __eq__(self, other):
@@ -564,41 +576,41 @@ class TestDataset:
 	The main object which parameterprobing will interact with. Will load in CHARIS fileset into CHARISData class (see
 	pyklip.instruments.CHARIS) and then create an instance of Trial for each set of KLIP parameters to be looked at.
 	"""
-
     def __init__(self, fileset, object_name, mask_xy, fake_fluxes, fake_seps, annuli, subsections, movement,
-                 numbasis, corr_smooth, highpass, spectrum, fake_fwhm, fake_PAs, mode, batched=False):
+                 numbasis, corr_smooth, highpass, spectrum, fake_fwhm, fake_PAs, mode, batched, overwrite):
         self.object_name = object_name
         self.mask_xy = mask_xy
 
         if not os.path.exists(self.object_name):
             os.mkdir(self.object_name)
 
-        self.write_to_log('Title for Set: {0}'.format(object_name), 'w')
-        self.write_to_log('\nFileset: {0}'.format(fileset))
+        self.write_to_log(f'Title for Set: {object_name}', 'w')
+        self.write_to_log(f'\nFileset: {fileset}')
         param_names = ['Annuli', 'Subsections', 'Movement', 'Numbasis', 'Corr_Smooth', 'Highpass', 'Spectrum',
                        'Mode', 'Fake Fluxes', 'Fake Seps', 'Fake PAs', 'Fake FWHM']
         params = [annuli, subsections, movement, numbasis, corr_smooth, highpass, spectrum]
         number_of_trials = np.prod([len(p) for p in params])
-        self.write_to_log('\nNumber of Trials: {0}'.format(number_of_trials))
+        self.write_to_log(f'\nNumber of Trials: {number_of_trials}')
 
         for param in [mode, fake_fluxes, fake_seps, fake_PAs, fake_fwhm]:
             params.append(param)
         for name, param in zip(param_names, params):
-            self.write_to_log('\n{0}: {1}'.format(name, param))
+            self.write_to_log(f'\n{name}: {param}')
 
-        self.write_to_log_and_print("############### STARTING WORK ON {0} ################\n".format(self.object_name))
+        self.write_to_log_and_print(f'############### STARTING WORK ON {self.object_name} ################\n')
 
         with log_file_output(self.object_name):
             self.dataset = make_dn_per_contrast(CHARISData(glob(fileset)))  # function adds dn_per_contrast attribute
 
-        self.write_to_log_and_print("###### DONE BUILDING CHARISData OBJECT FOR {0} #######".format(self.object_name))
+        self.write_to_log_and_print(f'###### DONE BUILDING CHARISData OBJECT FOR {self.object_name} #######')
 
-        self.fake_fluxes = fake_fluxes
-        self.fake_seps = fake_seps
+        self.fake_fluxes = np.array(fake_fluxes)
+        self.fake_seps = np.array(fake_seps)
         self.fake_fwhm = fake_fwhm
-        self.fake_PAs = fake_PAs
+        self.fake_PAs = np.array(fake_PAs)
 
         self.trials = []
+        # START OF IF/ELSE AND FOR LOOPS FOR BUILDING TRIALS #
         if not isinstance(batched, tuple):
             for ani in annuli:
                 for subsec in subsections:
@@ -630,44 +642,37 @@ class TestDataset:
                                          dn_per_contrast=self.dataset.dn_per_contrast,
                                          wln_um=self.dataset.wvs, highpass=hp,
                                          length=self.dataset.input.shape[1]))
-
+        # END OF IF/ELSE AND FOR LOOPS #
         self.mode = mode
-        self.write_to_log_and_print("############ DONE BUILDING TRIALS FOR {0} ############".format(self.object_name))
+        self.overwrite = overwrite
+        self.write_to_log_and_print(f'############ DONE BUILDING TRIALS FOR {self.object_name} ############')
 
     def write_to_log(self, words, write_type='a'):
-        with open('{0}/log.txt'.format(self.object_name), write_type) as log_file:
+        with open(f'{self.object_name}/log.txt', write_type) as log_file:
             log_file.write(words)
 
     def write_to_log_and_print(self, words, write_type='a'):
-        with open('{0}/log.txt'.format(self.object_name), write_type) as log_file:
+        with open(f'{self.object_name}/log.txt', write_type) as log_file:
             log_file.write('\n' + words)
         print(words)
 
     def inject_fakes(self):
-        if len(self.fake_fluxes) == len(self.fake_seps):  # regular like tutorial
+        if not isinstance(self.fake_fluxes[0], np.ndarray):  # regular like tutorial
             for fake_flux, sep in zip(self.fake_fluxes, self.fake_seps):
                 flux_to_inject = fake_flux * self.dataset.dn_per_contrast  # UNcalibrating it
                 for pa in self.fake_PAs:
                     inject_planet(frames=self.dataset.input, centers=self.dataset.centers,
                                   inputflux=flux_to_inject, astr_hdrs=self.dataset.wcs, radius=sep, pa=pa,
                                   fwhm=self.fake_fwhm)
-        elif len(self.fake_fluxes) % len(self.fake_seps) == 0:  # multiple tiers of planets
-            groupsize = len(self.fake_seps)
-            numgroups = int(len(self.fake_fluxes) / groupsize)
-            fluxes = [self.fake_fluxes[i * groupsize: (i + 1) * groupsize] for i in range(numgroups)]
-            pas = [[self.fake_PAs[i * (groupsize - 1) + j] for i in range(groupsize)] for j in range(numgroups)]
-            for i in range(numgroups):
-                for fake_flux, sep in zip(fluxes[i], self.fake_seps):
+        else:  # multiple tiers of planets
+            for fluxgroup, pagroup in zip(self.fake_fluxes, self.fake_PAs):
+                for fake_flux, sep in zip(fluxgroup, self.fake_seps):
                     flux_to_inject = fake_flux * self.dataset.dn_per_contrast  # UNcalibrating it
-                    for pa in pas[i]:
+                    for pa in pagroup:
                         inject_planet(frames=self.dataset.input, centers=self.dataset.centers,
                                       inputflux=flux_to_inject, astr_hdrs=self.dataset.wcs, radius=sep,
                                       pa=pa, fwhm=self.fake_fwhm)
-        else:
-            self.write_to_log_and_print("inject_fakes function called, but fake_fluxes and fake_seps are not "
-                                        "compatible, so no injection occurred.")
-
-        self.write_to_log_and_print("############ DONE INJECTING FAKES FOR {0} ############".format(self.object_name))
+        self.write_to_log_and_print(f'############ DONE INJECTING FAKES FOR {self.object_name} ############')
 
     def run_KLIP_on_data_without_fakes(self, numthreads):
         if not os.path.exists(self.object_name):
@@ -678,17 +683,18 @@ class TestDataset:
         number_of_klip = len(self.trials)
 
         self.write_to_log_and_print('####### BEGINNING KLIP ON DATA WITHOUT FAKES #######\n'
-                                    '####### Number of KLIP Runs To Complete: {0} #######\n'.format(number_of_klip))
+                                    f'####### Number of KLIP Runs To Complete: {number_of_klip} #######\n')
 
         prevtime = time()
         for klip_runs, trial in enumerate(self.trials):  # klip_runs indicates how many have been previously completed
-            # NOT GOING TO OVERWRITE PREVIOUS KLIP OUTPUT
-            filename = self.object_name + '/klipped_cubes_Nfakes' + self.object_name + '_withoutfakes_' + \
-                       trial.klip_parameters + f'-KL{trial.numbasis}-speccube.fits'
-            if os.path.exists(filename):
-                self.write_to_log_and_print(f"{filename} ALREADY EXISTS -- continuing without running KLIP on this "
-                                            f"set of parameters")
-                continue
+            if not self.overwrite:
+                # not going to overwrite previous output
+                filename = self.object_name + '/klipped_cubes_Nfakes' + self.object_name + '_withoutfakes_' + \
+                           trial.klip_parameters + f'-KL{trial.numbasis}-speccube.fits'
+                if os.path.exists(filename):
+                    self.write_to_log_and_print(f"{filename} ALREADY EXISTS -- continuing without running KLIP on this "
+                                                f"set of parameters")
+                    continue
 
             with log_file_output(self.object_name):
                 klip_dataset(self.dataset, outputdir=self.object_name + '/klipped_cubes_Nfakes',
@@ -703,7 +709,7 @@ class TestDataset:
             elif (klip_runs + 1) % 20 == 0:
                 currenttime = time()
                 minutes_per_run = round(((currenttime - prevtime) / 60) / 20, 2)
-                self.write_to_log_and_print(f'####### {0}/{1} KLIP Runs Complete ({2}%) -- avg speed: {3} '
+                self.write_to_log_and_print('####### {0}/{1} KLIP Runs Complete ({2}%) -- avg speed: {3} '
                                             'min/run #######'.format(klip_runs + 1, number_of_klip, round(float(
                     klip_runs + 1) / float(number_of_klip) * 100, 1), minutes_per_run))
                 prevtime = time()
@@ -717,17 +723,18 @@ class TestDataset:
         number_of_klip = len(self.trials)
 
         self.write_to_log_and_print('####### BEGINNING KLIP ON DATA WITH FAKES #######\n'
-                                    '####### Number of KLIP Runs To Complete: {0} #######\n'.format(number_of_klip))
+                                    f'####### Number of KLIP Runs To Complete: {number_of_klip} #######\n')
 
         prevtime = time()
         for klip_runs, trial in enumerate(self.trials):  # klip_runs indicates how many have been previously completed
-            # NOT GOING TO OVERWRITE PREVIOUS KLIP OUTPUT
-            filename = self.object_name + '/klipped_cubes_Wfakes' + self.object_name + '_withfakes_' + \
-                       trial.klip_parameters + f'-KL{trial.numbasis}-speccube.fits'
-            if os.path.exists(filename):
-                self.write_to_log_and_print(f"{filename} ALREADY EXISTS -- continuing without running KLIP on this "
-                                            f"set of parameters")
-                continue
+            if not self.overwrite:
+                # not going to oveerwrite previous output
+                filename = self.object_name + '/klipped_cubes_Wfakes' + self.object_name + '_withfakes_' + \
+                           trial.klip_parameters + f'-KL{trial.numbasis}-speccube.fits'
+                if os.path.exists(filename):
+                    self.write_to_log_and_print(f"{filename} ALREADY EXISTS -- continuing without running KLIP on this "
+                                                f"set of parameters")
+                    continue
 
             with log_file_output(self.object_name):
                 klip_dataset(self.dataset, outputdir=self.object_name + '/klipped_cubes_Wfakes',
@@ -763,9 +770,15 @@ class TestDataset:
 
         trial_strings = [t.rebuild_string for t in self.trials]
 
-        if __name__ == 'parameter_test_infrastructure':
-            with Pool(numthreads) as pool:
-                pool.map(contrast_measurement, trial_strings)
+        if datasetwithfakes:
+            if __name__ == 'parameter_test_infrastructure':
+                with Pool(numthreads) as pool:
+                    pool.map(contrast_measurement, trial_strings)
+        else:  # right now, parallelization only supports using default arguments (where datasetwithfakes=True)
+            for i, trial in enumerate(self.trials):
+                trial.get_contrast(contains_fakes=datasetwithfakes)
+                if (i + 1) % 100 == 0:
+                    print(f'# DONE WITH CONTRAST FOR {i + 1} TRIALS')
 
         if run_planet_detection:
             self.write_to_log_and_print(f'### DONE WITH CONTRAST FOR {self.object_name}. BEGINNING DETECTION ###')
@@ -773,10 +786,11 @@ class TestDataset:
             self.write_to_log_and_print(f'### DONE WITH CONTRAST FOR {self.object_name}. ###')
 
         if run_planet_detection:
-            if __name__ == 'parameter_test_infrastructure':
-                with Pool(numthreads) as pool:
-                    pool.map(planet_detection, trial_strings)
+            # at the moment, can't parallelize because planet detection already utilizes (a little) parallelization
+            for i, trial in enumerate(self.trials):
+                trial.detect_planets(datasetwithfakes=datasetwithfakes)
+                if (i + 1) % 100 == 0:
+                    print(f'# DONE WITH DETECTION FOR {i + 1} TRIALS #')
 
         if run_planet_detection:
-            self.write_to_log_and_print(f"\n############## DONE WITH CONTRAST AND DETECTION FOR {self.object_name} "
-                                        f"##############")
+            self.write_to_log_and_print(f"\n############## DONE WITH DETECTION FOR {self.object_name} ##############")
