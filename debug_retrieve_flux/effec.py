@@ -3,7 +3,7 @@ import pandas as pd
 from glob import glob
 
 direc = sys.argv[1]
-files = glob(f'{direc}/*.xlsx')
+files = glob(f'../{direc}/*.xlsx')
 
 good = 0
 bad = 0
