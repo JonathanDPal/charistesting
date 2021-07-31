@@ -16,7 +16,7 @@ from astropy.wcs.wcs import FITSFixedWarning
 
 # General Set-Up
 fileset0 =  # string to be passed into glob
-mask0 =  # mask(s) in [x-pos, y-pos]
+mask0 =  # location(s) of science targets in [x-pos, y-pos]
 object_name0 =  # string
 
 # Setting Up Lists/Tuples For KLIP
@@ -35,9 +35,9 @@ mode =  # One of the following: 'ADI', 'SDI', 'ADI+SDI'
 max_numthreads =  # integer or None
 
 # Setting Up For Fake Planets
-fake_fluxes =  # List of Floats
-fake_seps =  # List of Integers
-fake_PAs =  # List of Integers
+fake_fluxes =  # List(s) of Floats
+fake_seps =  # List(s) of Integers
+fake_PAs =  # List(s) of Integers
 
 # Specifying Which Things to Do/Not Do (set to either True or False) #
 # Most of the time, the four values below should be set to True
