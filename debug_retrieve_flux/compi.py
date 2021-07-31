@@ -1,6 +1,6 @@
 import numpy as np
 
-with open('../r2s.txt') as file:
+with open('r2s.txt') as file:
     lines = [line for line in file]
 
 fulldata = {str(sep): {str(pa): [] for pa in [19, 79, 139, 199, 259, 319]} for sep in [20, 40, 60]}
