@@ -12,7 +12,7 @@ automatically.
 1) 2D Heatmaps showing the average SNR of injected 
    planets as a function of annuli, subsections, 
    and movement.
-2) Heatmaps showing the average maximum SNR of 
+2) 2D Heatmaps showing the average maximum SNR of 
    anything in the image as a function of annuli,
    subsections, and movement.
 3) ROC curves showing the relationship between 
