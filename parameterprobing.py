@@ -15,39 +15,40 @@ from astropy.wcs.wcs import FITSFixedWarning
 # see https://docs.google.com/document/d/1yX0l96IZs1IxxKCRmriVSAQM3KFGF9U1-FnpJXhcLXo/edit?usp=sharing for help
 
 # General Set-Up
-fileset0 = 'HR8799_cubes/*.fits'
-mask0 = [[128, 152], [157, 137], [129, 70]]
-object_name0 = 'HR8799'
+fileset0 =  # string to be passed into glob
+mask0 =  # mask(s) in [x-pos, y-pos]
+object_name0 =  # string
 
 # Setting Up Lists/Tuples For KLIP
-annuli = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
-subsections = [2, 4, 6]
-movement = [0.0, 0.5, 1.0, 1.5, 2.0]
-spectrum = [None]
-numbasis = [10, 15, 20, 25, 35, 40, 50, 60]
-corr_smooth = [0.0, 0.5, 1.0, 2.0]
-highpass = [False]
+annuli =  # list of integers
+subsections =  # list of integers
+movement =  # list of floats
+spectrum =  # either None or 'methane'
+numbasis =  # list of integers
+corr_smooth =  # list of floats
+highpass =  # list of floats or booleans
 
 # Setting Mode For KLIP
-mode = 'ADI+SDI'  # Exactly ONE (not a list or tuple) or the following: 'ADI', 'SDI', 'ADI+SDI'
+mode =  # One of the following: 'ADI', 'SDI', 'ADI+SDI'
 
 # Maximum Number of Threads to Use (set to None to use maximum computer capacity)
-max_numthreads = 65
+max_numthreads =  # integer or None
 
 # Setting Up For Fake Planets
-fake_fluxes = [5e-4, 5e-5, 5e-6, 1e-4, 1e-5, 1e-6]  # List of Float(s)
-fake_seps = [20, 40, 60]  # List of Integer(s)
-fake_PAs = [19, 79, 139, 199, 259, 319]  # List of Integer(s)
+fake_fluxes =  # List of Floats
+fake_seps =  # List of Integers
+fake_PAs =  # List of Integers
 
-# Specifying Which Things to Do/Not Do #
+# Specifying Which Things to Do/Not Do (set to either True or False) #
 # Most of the time, the four values below should be set to True
-put_in_fakes = True
-run_KLIP_on_dataset_with_fakes = True  # if no fakes are injected, this will just be a dataset without fakes
-get_contrast = False  # won't be calibrated if no fake planets are injected
-get_planet_detections_from_dataset_with_fakes = False
-# Most of the time, these two values below should be set to False
-run_KLIP_on_dataset_without_fakes = False
-get_planet_detections_from_dataset_without_fakes = False
+put_in_fakes =
+run_KLIP_on_dataset_with_fakes =   # if no fakes are injected, this will just be a dataset without fakes
+get_contrast =   # won't be calibrated if no fake planets are injected
+get_planet_detections_from_dataset_with_fakes =
+# Most of the time, these three values below should be set to False
+run_KLIP_on_dataset_without_fakes =
+get_planet_detections_from_dataset_without_fakes =
+overwrite =  # whether or not to replace existing files if they exist
 
 ######################
 # END OF USER INPUTS #
@@ -71,14 +72,6 @@ if not isinstance(mode, str):
                     "https://docs.google.com/document/d/1yX0l96IZs1IxxKCRmriVSAQM3KFGF9U1-FnpJXhcLXo/edit?usp"
                     "=sharing for help")
 
-# Checking Fake Planet Stuff
-for param in [[fake_fluxes, 'fake_fluxes'], [fake_seps, 'fake_seps'], [fake_PAs, 'fake_PAs']]:
-    if isinstance(param[0], (list, tuple)):
-        if not len(fake_fluxes) % len(fake_seps) == 0:
-            raise ValueError("The lengths of fake_fluxes and fake_seps must be the same.")
-    else:
-        if put_in_fakes:
-            raise ValueError("put_in_fakes is set to true, but {0} is not a list or tuple.".format(param[1]))
 
 # SYNTHESIZING USER INPUTS INTO A COUPLE ADDITIONAL BOOLEANS #
 detect_planets = get_planet_detections_from_dataset_with_fakes or get_planet_detections_from_dataset_without_fakes
@@ -121,7 +114,7 @@ with fits.open(glob(fileset0)[0]) as hdulist:
 td0 = TestDataset(fileset=fileset0, object_name=object_name0, mask_xy=mask0, fake_fluxes=fake_fluxes,
                   fake_seps=fake_seps, annuli=annuli, subsections=subsections, movement=movement, numbasis=numbasis,
                   corr_smooth=corr_smooth, highpass=highpass, spectrum=spectrum, mode=mode, fake_PAs=fake_PAs,
-                  fake_fwhm=fake_fwhm0, batched=batched)
+                  fake_fwhm=fake_fwhm0, batched=batched, overwrite=overwrite)
 
 # Have TestDataset 0 Run Each Part
 # if we want KLIP output of data without fakes, we need to run KLIP before injecting planets
@@ -143,5 +136,5 @@ remaining_time = time_elapsed - (hours * 3600)
 minutes = int(floor(remaining_time / 60))
 seconds = round(remaining_time - minutes * 60)
 
-td0.write_to_log_and_print("##################### TIME ELAPSED: {0} Hours, {1} Minutes, {2} Seconds "
-                           "#####################".format(hours, minutes, seconds))
+td0.write_to_log_and_print(f'##################### TIME ELAPSED: {hours} Hours, {minutes} Minutes, {seconds} Seconds '
+                           '#####################')
