@@ -15,6 +15,14 @@
       <excludeFolder url="file://$MODULE_DIR$/results/HD1160/max_heatmap" />
       <excludeFolder url="file://$MODULE_DIR$/results/HD1160/mean_heatmap" />
       <excludeFolder url="file://$MODULE_DIR$/results/HD1160/ROC-inpreso" />
+      <excludeFolder url="file://$MODULE_DIR$/debug_retrieve_flux/retrievals" />
+      <excludeFolder url="file://$MODULE_DIR$/debug_retrieve_flux/retrievals_companion" />
+      <excludeFolder url="file://$MODULE_DIR$/debug_retrieve_flux/retrievals_entireHD1160" />
+      <excludeFolder url="file://$MODULE_DIR$/debug_retrieve_flux/retrievals_firsttry" />
+      <excludeFolder url="file://$MODULE_DIR$/debug_retrieve_flux/retrievals_secondtry" />
+      <excludeFolder url="file://$MODULE_DIR$/debug_retrieve_flux/retrievals_ye" />
+      <excludeFolder url="file://$MODULE_DIR$/debug_retrieve_flux/retrievalsAIRY" />
+      <excludeFolder url="file://$MODULE_DIR$/debug_retrieve_flux/retrivals_fluxcustom_xy_set_by_max_pixel" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.9 (Research)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
