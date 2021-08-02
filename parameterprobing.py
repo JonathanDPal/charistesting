@@ -1,3 +1,4 @@
+import numpy as np
 from parameter_test_infrastructure import *
 from time import time
 from numpy import floor
@@ -58,25 +59,28 @@ overwrite =  # whether or not to replace existing files if they exist
 # CHECKING USER INPUTS #
 ########################
 
-# Making Sure This Group of Parameters Are In The Form of a List
 for param in [[annuli, 'annuli'], [subsections, 'subsections'], [movement, 'movement'], [spectrum, 'spectrum'],
               [corr_smooth, 'corr_smooth'], [highpass, 'highpass']]:
-    if not isinstance(param[0], (list, tuple)):
+    if not isinstance(param[0], (list, tuple, np.ndarray)):
         raise TypeError(f"{param[1]} needs to be a list. Check input. See "
                         "https://docs.google.com/document/d/1yX0l96IZs1IxxKCRmriVSAQM3KFGF9U1-FnpJXhcLXo/edit?usp"
                         "=sharing for help")
 
-# Checking Mode -- Common Mistake is Inputting Mode as a List/Tuple Like Other Params
+# Common Mistake is Inputting Mode as a List/Tuple Like Other Params
 if not isinstance(mode, str):
     raise TypeError("Mode needs to be a string. Check input. See "
                     "https://docs.google.com/document/d/1yX0l96IZs1IxxKCRmriVSAQM3KFGF9U1-FnpJXhcLXo/edit?usp"
                     "=sharing for help")
 
+if overwrite not in [True, False]:
+    raise TypeError("Overwrite needs to be either True or False. Check input.")
+
 
 # SYNTHESIZING USER INPUTS INTO A COUPLE ADDITIONAL BOOLEANS #
 detect_planets = get_planet_detections_from_dataset_with_fakes or get_planet_detections_from_dataset_without_fakes
 if put_in_fakes:
-    datasetwithfakes = True
+    datasetwithfakes = True  # this will indicate later on to use KLIP output with fakes in it for contrast
+    # measurement and planet detection
 else:
     datasetwithfakes = False
 get_contrast_and_detections = get_contrast or detect_planets
