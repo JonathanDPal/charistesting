@@ -80,8 +80,7 @@ def valuefinder(filename, param):
         return values
 
 
-# direc = sys.argv[1]
-direc = 'HR8799'
+direc = sys.argv[1]
 klip_outputs = glob(f'{direc}/klipped_cubes_Wfakes/*.fits')
 completed = [valuefinder(file, 'all') for file in klip_outputs]
 

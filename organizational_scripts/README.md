@@ -2,9 +2,10 @@ I used these four scripts to help me out with keeping
 everything organized properly.
 
 check.py: This script searched through a top level 
-output directory (HR8799 specifically in this case), 
+output directory indicated by command line argument, 
 then indicated how many parameter combinations had
-been completed and how many were left.
+been completed and how many were left, based on hard
+coded values for each parameter.
 
 injection_locations.py: This script will take in some
 hard coded suggestions for position angles and 
