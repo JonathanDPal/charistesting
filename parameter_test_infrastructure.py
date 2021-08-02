@@ -177,7 +177,7 @@ def retrieve_planet_flux(frame, pa, sep, output_wcs, dataset_center, dataset_fwh
     """
     Identifies the peak flux of a planet by fitting a 2-dimensional Gaussian function.
     ---
-    Args:
+    Required Args:
         frame (2D ndarray): An image from a KLIP output which has been calibrated
         pa (float/int): The position angle of the planet whose flux we are retrieving. Used to calculate theta. If
                         theta is specified, this value will not be used (so you can just input None).
@@ -185,15 +185,16 @@ def retrieve_planet_flux(frame, pa, sep, output_wcs, dataset_center, dataset_fwh
         output_wcs (astropy.wcs.WCS object): Only output_wcs.cd is what will be used, so this attribute must be
                                              present (and correct).
         dataset_center (list): List of form [x-pos, ypos] specifying the center of the star's PSF.
-        dataset_fwhm: The FWHM associated with the observations.
+        dataset_fwhm (float): The FWHM associated with the observations.
+    Optional Args (very rare to need to use these):
         theta (float): Default: None. The counterclockwise angle in degrees from the x-axis at which the planet is
                        located. If None, will be calculated using pa and output_wcs.
-        guess_peak_flux: Default: None. Guess for the peak flux of the planet. If None, will calculate a guess based on
-                         the values in the area of the image around the planet.
+        guess_peak_flux (float): Default: None. Guess for the peak flux of the planet. If None, will calculate a guess
+                                 based on the values in the area of the image around the planet.
         force_fwhm (bool): Default: False. If set to True, the curve fitter will be forced to use dataset_fwhm to
                            calculate sigma on the gaussian model. Setting to True is HIGHLY DISCOURAGED because in
-                           most cases so far, it has been impossible to fit a gaussian model to the data with this
-                           as the FWHM, so usually the scipy.optimize.curve_fit function just silently returns
+                           most cases so far, it has been impossible to fit a Gaussian model to the data with this
+                           as the FWHM, so  the scipy.optimize.curve_fit function will just silently return
                            whatever was put in as the guess for all params.
         searchradius (int): Default: None. If None, will use the FWHM as the radius.
         return_all (bool): Default: False. If True, function will return all parameters -- either (peakflux, fwhm,
@@ -202,11 +203,13 @@ def retrieve_planet_flux(frame, pa, sep, output_wcs, dataset_center, dataset_fwh
                           other returns.
     ---
     Returns:
-        Always returns the peak flux. If return_all or return_r2 is True, additional values will be returned. If
-        return_all is True, then after the peak flux, a tuple of all the optimal parameters will be returned. If
-        return_r2 is True, then the last return value will be the r^2 of the fit.
-    """
+        By default, just returns peak flux.
 
+        If return_all or return_r2 is True, additional values will be returned. If return_all is True,
+        then the first argument  will be a tuple of all of the optimal parameters (the first of which is the peak
+        flux) instead of just the peak flux. If return_r2 is True, then it will follow after whatever the first
+        argument is.
+    """
     def get_r2(actual_vals, predictions):
         ssr = np.sum([(actual_val - prediction) ** 2 for actual_val, prediction in zip(actual_vals, predictions)])
         sst = np.sum([(actual_val - np.mean(actual_vals)) ** 2 for actual_val in actual_vals])
@@ -217,10 +220,10 @@ def retrieve_planet_flux(frame, pa, sep, output_wcs, dataset_center, dataset_fwh
         sigma = Fwhm / (2 * np.sqrt(2 * np.log(2)))
         return peak * np.exp(-((y-y0) ** 2 + (x-x0) ** 2) / (2 * sigma ** 2)) + offset
 
-    def gaussian_force_fwhm(xy_fwhm, peak, offset):
+    def gaussian_force_fwhm(xy_fwhm, peak, offset, y0, x0):
         y, x, Fwhm = xy_fwhm
         sigma = Fwhm / (2 * np.sqrt(2 * np.log(2)))
-        return peak * np.exp(-(y ** 2 + x ** 2) / (2 * sigma ** 2)) + offset
+        return peak * np.exp(-((y-y0) ** 2 + (x-x0) ** 2) / (2 * sigma ** 2)) + offset
 
     if theta is None:
         theta = convert_pa_to_image_polar(pa, output_wcs)
@@ -228,11 +231,10 @@ def retrieve_planet_flux(frame, pa, sep, output_wcs, dataset_center, dataset_fwh
     if searchradius is None:
         searchradius = int(np.ceil(dataset_fwhm))
 
-    y0 = int(round(sep * np.sin(np.radians(theta)) + dataset_center[1]))
-    x0 = int(round(sep * np.cos(np.radians(theta)) + dataset_center[0]))
+    y0 = int(round(sep * np.sin(np.deg2rad(theta)) + dataset_center[1]))
+    x0 = int(round(sep * np.cos(np.deg2rad(theta)) + dataset_center[0]))
 
-    searchbox = np.copy(frame[y0 - searchradius: y0 + searchradius + 1,
-                                    x0 - searchradius: x0 + searchradius + 1])
+    searchbox = np.copy(frame[y0 - searchradius: y0 + searchradius + 1, x0 - searchradius: x0 + searchradius + 1])
     searchbox[np.where(np.isnan(searchbox))] = 0
 
     uppery, upperx = searchbox.shape
@@ -253,7 +255,8 @@ def retrieve_planet_flux(frame, pa, sep, output_wcs, dataset_center, dataset_fwh
 
     if guess_peak_flux is None:
         # if None, starting guess (default 1) will be outside of the boundaries we specify, yielding an error
-        guess_peak_flux = np.max(data_to_fit) * 0.9  # optimal peak flux is usually pretty close to brightest pixel
+        guess_peak_flux = np.max(data_to_fit) * 0.9  # optimal peak flux is usually pretty close to brightest pixel,
+        # but we don't want to have our guess be all the way at the upper bound (the brightest pixel), so using 90%
 
     if force_fwhm:
         guesses = [guess_peak_flux, 0]
@@ -263,7 +266,7 @@ def retrieve_planet_flux(frame, pa, sep, output_wcs, dataset_center, dataset_fwh
         # flux by multiple orders of magnitude.
         bounds = ((0, -np.inf), (np.max(data_to_fit), np.inf))  # offset has no lower or upper bound
     else:
-        guesses = [guess_peak_flux, dataset_fwhm, 0, 0, 0]
+        guesses = [guess_peak_flux, dataset_fwhm, 0, 0, 0]  # zeros are for offset, y0, and x0
         # FWHM cannot be less than zero; x and y center cannot be adjusted by more than 3 pixels in any direction
         bounds = ((0, 0, -np.inf, -3, -3), (np.max(data_to_fit), np.inf, np.inf, 3, 3))
 
@@ -284,13 +287,15 @@ def retrieve_planet_flux(frame, pa, sep, output_wcs, dataset_center, dataset_fwh
     else:
         if return_r2:
             if force_fwhm:
-                predictions = [gaussian_force_fwhm((y, x, fwhm), optimalparams[0], optimalparams[1])
+                predictions = [gaussian_force_fwhm((y, x, fwhm), optimalparams[0], optimalparams[1],
+                                                   optimalparams[2], optimalparams[3])
                                for y, x in zip(yvals, xvals)]
             else:
                 predictions = [gaussian((y, x), optimalparams[0], optimalparams[1], optimalparams[2],
                                         optimalparams[3], optimalparams[4])
                                for y, x in zip(yvals, xvals)]
             r2 = get_r2(actual_vals=data_to_fit, predictions=predictions)
+
         if return_all:
             if return_r2:
                 return optimalparams, r2
@@ -502,11 +507,7 @@ class Trial:
                                                                     f'/{self.klip_parameters}_KL' \
                                                                     f'{self.numbasis[filepath_index]}' \
                                                                     f'_{wavelength}um_contrast.csv'
-                cal_contrast_output_filepath = self.object_name + f'/calibrated_contrast/{self.klip_parameters}_KL' \
-                                                                  f'{self.numbasis[filepath_index]}' \
-                                                                  f'_{wavelength}um_contrast.csv'
 
-                # If Already Done, Then Don't Do It Again
                 if not override:
                     if os.path.exists(uncal_contrast_output_filepath):
                         continue
@@ -570,7 +571,9 @@ class Trial:
                 df['Uncalibrated Contrast'] = contrast
                 df.to_csv(uncal_contrast_output_filepath)
 
-                # If Already Done, Then Don't Do It Again
+                cal_contrast_output_filepath = self.object_name + f'/calibrated_contrast/{self.klip_parameters}_KL' \
+                                                                  f'{self.numbasis[filepath_index]}' \
+                                                                  f'_{wavelength}um_contrast.csv'
                 if not override:
                     if os.path.exists(cal_contrast_output_filepath):
                         continue
