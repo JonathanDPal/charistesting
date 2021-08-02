@@ -6,7 +6,7 @@ from pyklip.instruments.CHARIS import CHARISData
 from copy import copy
 from pyklip.parallelized import klip_dataset
 from pyklip.klip import meas_contrast, _rotate_wcs_hdr
-from pyklip.fakes import inject_planet, retrieve_planet_flux
+from pyklip.fakes import inject_planet
 from pyklip.kpp.utils.mathfunc import gauss2d
 from pyklip.kpp.metrics.crossCorr import calculate_cc
 from pyklip.kpp.stat.statPerPix_utils import get_image_stat_map_perPixMasking
@@ -170,6 +170,134 @@ def parameter_set_batcher(batchindex, batchsize, args):
     newparams = params[startingindex:finalindex]
 
     return newparams
+
+
+def retrieve_planet_flux(frame, pa, sep, output_wcs, dataset_center, dataset_fwhm, theta=None, guess_peak_flux=None,
+                         force_fwhm=False, searchradius=None, return_all=False, return_r2=False):
+    """
+    Identifies the peak flux of a planet by fitting a 2-dimensional Gaussian function.
+    ---
+    Args:
+        frame (2D ndarray): An image from a KLIP output which has been calibrated
+        pa (float/int): The position angle of the planet whose flux we are retrieving. Used to calculate theta. If
+                        theta is specified, this value will not be used (so you can just input None).
+        sep (float/int): The seperation of the planet whose flux we are retreiving.
+        output_wcs (astropy.wcs.WCS object): Only output_wcs.cd is what will be used, so this attribute must be
+                                             present (and correct).
+        dataset_center (list): List of form [x-pos, ypos] specifying the center of the star's PSF.
+        dataset_fwhm: The FWHM associated with the observations.
+        theta (float): Default: None. The counterclockwise angle in degrees from the x-axis at which the planet is
+                       located. If None, will be calculated using pa and output_wcs.
+        guess_peak_flux: Default: None. Guess for the peak flux of the planet. If None, will calculate a guess based on
+                         the values in the area of the image around the planet.
+        force_fwhm (bool): Default: False. If set to True, the curve fitter will be forced to use dataset_fwhm to
+                           calculate sigma on the gaussian model. Setting to True is HIGHLY DISCOURAGED because in
+                           most cases so far, it has been impossible to fit a gaussian model to the data with this
+                           as the FWHM, so usually the scipy.optimize.curve_fit function just silently returns
+                           whatever was put in as the guess for all params.
+        searchradius (int): Default: None. If None, will use the FWHM as the radius.
+        return_all (bool): Default: False. If True, function will return all parameters -- either (peakflux, fwhm,
+                           offset) if force_fwhm is False or (peakflux, offset) if force_fwhm is True.
+        return_r2 (bool): Default: False. If True, function will return r^2 for the fitted parameters in addition to
+                          other returns.
+    ---
+    Returns:
+        Always returns the peak flux. If return_all or return_r2 is True, additional values will be returned. If
+        return_all is True, then after the peak flux, a tuple of all the optimal parameters will be returned. If
+        return_r2 is True, then the last return value will be the r^2 of the fit.
+    """
+
+    def get_r2(actual_vals, predictions):
+        ssr = np.sum([(actual_val - prediction) ** 2 for actual_val, prediction in zip(actual_vals, predictions)])
+        sst = np.sum([(actual_val - np.mean(actual_vals)) ** 2 for actual_val in actual_vals])
+        return 1 - float(ssr) / float(sst)
+
+    def gaussian(xy, peak, Fwhm, offset, y0, x0):
+        y, x = xy
+        sigma = Fwhm / (2 * np.sqrt(2 * np.log(2)))
+        return peak * np.exp(-((y-y0) ** 2 + (x-x0) ** 2) / (2 * sigma ** 2)) + offset
+
+    def gaussian_force_fwhm(xy_fwhm, peak, offset):
+        y, x, Fwhm = xy_fwhm
+        sigma = Fwhm / (2 * np.sqrt(2 * np.log(2)))
+        return peak * np.exp(-(y ** 2 + x ** 2) / (2 * sigma ** 2)) + offset
+
+    if theta is None:
+        theta = convert_pa_to_image_polar(pa, output_wcs)
+
+    if searchradius is None:
+        searchradius = int(np.ceil(dataset_fwhm))
+
+    y0 = int(round(sep * np.sin(np.radians(theta)) + dataset_center[1]))
+    x0 = int(round(sep * np.cos(np.radians(theta)) + dataset_center[0]))
+
+    searchbox = np.copy(frame[y0 - searchradius: y0 + searchradius + 1,
+                                    x0 - searchradius: x0 + searchradius + 1])
+    searchbox[np.where(np.isnan(searchbox))] = 0
+
+    uppery, upperx = searchbox.shape
+
+    # building out arrays so that we get a full coordinate system when they are zipped together
+    yvals, xvals = np.arange(0, uppery, 1.0) - searchradius, np.arange(0, upperx, 1.0) - searchradius
+    numyvals, numxvals = len(yvals), len(xvals)
+    yvals = np.array(list(yvals) * numxvals)
+    xvals = np.array([[xval] * numyvals for xval in xvals]).flatten()
+
+    vals = [searchbox[int(y + searchradius), int(x + searchradius)] for y, x in zip(yvals, xvals)]
+
+    # narrowing down search to just get stuff within the search radius
+    vals_w_distances = pd.DataFrame({'vals': vals, 'distance squared': [y ** 2 + x ** 2 for y, x in zip(yvals, xvals)],
+                                     'y': yvals, 'x': xvals})
+    within_search_radius = vals_w_distances[vals_w_distances['distance squared'] <= searchradius ** 2]
+    data_to_fit, yvals, xvals = within_search_radius['vals'], within_search_radius['y'], within_search_radius['x']
+
+    if guess_peak_flux is None:
+        # if None, starting guess (default 1) will be outside of the boundaries we specify, yielding an error
+        guess_peak_flux = np.max(data_to_fit) * 0.9  # optimal peak flux is usually pretty close to brightest pixel
+
+    if force_fwhm:
+        guesses = [guess_peak_flux, 0]
+        # peak flux cannot be less than zero or greater than the brightest pixel in the image. upper bound on flux is
+        # relatively strict here (as opposed to using star flux as an upper bound, for example) since negative
+        # values in the image due to KLIP oversubtraction can cause Gaussian model to be super sharp and overestimate
+        # flux by multiple orders of magnitude.
+        bounds = ((0, -np.inf), (np.max(data_to_fit), np.inf))  # offset has no lower or upper bound
+    else:
+        guesses = [guess_peak_flux, dataset_fwhm, 0, 0, 0]
+        # FWHM cannot be less than zero; x and y center cannot be adjusted by more than 3 pixels in any direction
+        bounds = ((0, 0, -np.inf, -3, -3), (np.max(data_to_fit), np.inf, np.inf, 3, 3))
+
+    if force_fwhm:
+        fwhmlist = np.array([dataset_fwhm] * numxvals * numyvals)
+        coordinates = (yvals, xvals, fwhmlist)
+        optimalparams, covariance_matrix = curve_fit(f=gaussian_force_fwhm, xdata=coordinates, ydata=data_to_fit,
+                                                     p0=guesses, bounds=bounds)
+    else:
+        coordinates = (yvals, xvals)
+        optimalparams, covariance_matrix = curve_fit(f=gaussian, xdata=coordinates, ydata=data_to_fit, p0=guesses,
+                                                     bounds=bounds)
+
+    if not (return_all or return_r2):  # most of the time this is going to be end of function
+        return optimalparams[0]  # just the peak flux
+
+    # this section is just intended to be available for getting more information if needed to assess model & fit
+    else:
+        if return_r2:
+            if force_fwhm:
+                predictions = [gaussian_force_fwhm((y, x, fwhm), optimalparams[0], optimalparams[1])
+                               for y, x in zip(yvals, xvals)]
+            else:
+                predictions = [gaussian((y, x), optimalparams[0], optimalparams[1], optimalparams[2],
+                                        optimalparams[3], optimalparams[4])
+                               for y, x in zip(yvals, xvals)]
+            r2 = get_r2(actual_vals=data_to_fit, predictions=predictions)
+        if return_all:
+            if return_r2:
+                return optimalparams, r2
+            else:
+                return optimalparams
+        else:
+            return optimalparams[0], r2
 
 
 ####################################################################################
@@ -413,7 +541,7 @@ class Trial:
                     for sep in self.fake_seps:
                         fake_planet_fluxes = []
                         for pa in pas:
-                            fake_flux = retrieve_planet_flux(frame, dataset_center, output_wcs, sep, pa, searchrad=7)
+                            fake_flux = retrieve_planet_flux(frame, pa, sep, output_wcs, dataset_center, dataset_fwhm)
                             fake_planet_fluxes.append(fake_flux)
                         retrieved_fluxes.append(np.mean(fake_planet_fluxes))
 
