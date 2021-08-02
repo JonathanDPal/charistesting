@@ -3,6 +3,7 @@ Cookbooks/
 Reference Papers/
 pyklip/
 results/
+debug_retrieve_flux/
 *.pdf
 *.png
 *.fits
