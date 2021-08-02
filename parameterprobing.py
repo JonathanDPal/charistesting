@@ -59,10 +59,28 @@ overwrite =  # whether or not to replace existing files if they exist
 # CHECKING USER INPUTS #
 ########################
 
+# Converting into list format if single value given and sanitizing format
+if isinstance(annuli, (int, float)):
+    annuli = [int(annuli)]
+else:
+    annuli = [int(a) for a in annuli]
+if isinstance(subsections, (int, float)):
+    subsections = [int(subsections)]
+if isinstance(movement, (int, float)):
+    movement = [float(movement)]
+if isinstance(spectrum, (NoneType, str)):
+    spectrum = [spectrum]
+if isinstance(numbasis, (int, float)):
+    numbasis = [int(numbasis)]
+if isinstance(corr_smooth, (int, float)):
+    corr_smooth = [float(corr_smooth)]
+if isinstance(highpass, (bool, int, float)):
+    highpass = [float(highpass) if not isinstance(highpass, bool) else highpass]
+
 for param in [[annuli, 'annuli'], [subsections, 'subsections'], [movement, 'movement'], [spectrum, 'spectrum'],
               [corr_smooth, 'corr_smooth'], [highpass, 'highpass']]:
     if not isinstance(param[0], (list, tuple, np.ndarray)):
-        raise TypeError(f"{param[1]} needs to be a list. Check input. See "
+        raise TypeError(f"{param[1]} cannot be coerced into a list. Check input. See "
                         "https://docs.google.com/document/d/1yX0l96IZs1IxxKCRmriVSAQM3KFGF9U1-FnpJXhcLXo/edit?usp"
                         "=sharing for help")
 
