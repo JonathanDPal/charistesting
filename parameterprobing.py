@@ -62,8 +62,6 @@ overwrite =  # whether or not to replace existing files if they exist
 # Converting into list format if single value given and sanitizing format
 if isinstance(annuli, (int, float)):
     annuli = [int(annuli)]
-else:
-    annuli = [int(a) for a in annuli]
 if isinstance(subsections, (int, float)):
     subsections = [int(subsections)]
 if isinstance(movement, (int, float)):
