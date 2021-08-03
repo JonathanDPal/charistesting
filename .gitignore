@@ -2,6 +2,7 @@ detections/
 Cookbooks/
 Reference Papers/
 pyklip/
+pyklip_full/
 results/
 debug_retrieve_flux/
 *.pdf
