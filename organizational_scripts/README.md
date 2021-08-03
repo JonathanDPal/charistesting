@@ -15,6 +15,10 @@ target(s). Then it will determine whether everything
 is at least 2 FWHMs apart or not. If not, then 
 locations of planet injections should be tweaked. 
 
+move_and_delete.py: I used this script when using
+Notre Dame's computer clusters so that I could automate
+the file transfer while I was away at home on vacation.
+
 nextparams.py: This script searched through a top level
 directory, then suggested a set of parameter 
 combinations which had not yet been completed. Since
