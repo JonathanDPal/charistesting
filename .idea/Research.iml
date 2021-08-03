@@ -26,6 +26,8 @@
       <excludeFolder url="file://$MODULE_DIR$/pyklip_full/pyklip.egg-info" />
       <excludeFolder url="file://$MODULE_DIR$/pyklip_full/" />
       <excludeFolder url="file://$MODULE_DIR$/pyklip/" />
+      <excludeFolder url="file://$MODULE_DIR$/retrievals" />
+      <excludeFolder url="file://$MODULE_DIR$/retrievalsB" />
     </content>
     <orderEntry type="jdk" jdkName="Python 3.9 (Research)" jdkType="Python SDK" />
     <orderEntry type="sourceFolder" forTests="false" />
