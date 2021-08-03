@@ -35,6 +35,9 @@ mode =  # One of the following: 'ADI', 'SDI', 'ADI+SDI'
 # Maximum Number of Threads to Use (set to None to use maximum computer capacity)
 max_numthreads =  # integer or None
 
+# If True, we'll use the version of pyKLIP which uses less memory
+memorylite =  # True or False
+
 # Setting Up For Fake Planets
 fake_fluxes =  # List(s) of Floats
 fake_seps =  # List(s) of Integers
@@ -131,7 +134,7 @@ with fits.open(glob(fileset0)[0]) as hdulist:
 td0 = TestDataset(fileset=fileset0, object_name=object_name0, mask_xy=mask0, fake_fluxes=fake_fluxes,
                   fake_seps=fake_seps, annuli=annuli, subsections=subsections, movement=movement, numbasis=numbasis,
                   corr_smooth=corr_smooth, highpass=highpass, spectrum=spectrum, mode=mode, fake_PAs=fake_PAs,
-                  fake_fwhm=fake_fwhm0, batched=batched, overwrite=overwrite)
+                  fake_fwhm=fake_fwhm0, batched=batched, overwrite=overwrite, memorylite=memorylite)
 
 # Have TestDataset 0 Run Each Part
 # if we want KLIP output of data without fakes, we need to run KLIP before injecting planets

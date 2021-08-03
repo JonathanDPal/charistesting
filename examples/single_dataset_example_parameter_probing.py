@@ -34,6 +34,9 @@ mode = 'ADI+SDI'  # One of the following: 'ADI', 'SDI', 'ADI+SDI'
 # Maximum Number of Threads to Use (set to None to use maximum computer capacity)
 max_numthreads = None  # integer or None
 
+# If True, we'll use the version of pyKLIP which uses less memory
+memorylite = False # True or False
+
 # Setting Up For Fake Planets
 # in this example, there is two tiers of planets, 6 injected at each seperation (18 total fake planets)
 fake_fluxes = [[5e-3, 5e-4, 5e-5], [1e-3, 1e-4, 1e-5]]  # List(s) of Floats

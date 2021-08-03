@@ -708,7 +708,7 @@ class TestDataset:
     pyklip.instruments.CHARIS) and then create an instance of Trial for each set of KLIP parameters to be looked at.
     """
     def __init__(self, fileset, object_name, mask_xy, fake_fluxes, fake_seps, annuli, subsections, movement,
-                 numbasis, corr_smooth, highpass, spectrum, fake_fwhm, fake_PAs, mode, batched, overwrite):
+                 numbasis, corr_smooth, highpass, spectrum, fake_fwhm, fake_PAs, mode, batched, overwrite, memorylite):
         self.object_name = object_name
         self.mask_xy = mask_xy
 
@@ -776,6 +776,7 @@ class TestDataset:
         # END OF IF/ELSE AND FOR LOOPS #
         self.mode = mode
         self.overwrite = overwrite
+        self.memorylite = memorylite
         self.write_to_log_and_print(f'############ DONE BUILDING TRIALS FOR {self.object_name} ############')
 
     def write_to_log(self, words, write_type='a'):
@@ -832,7 +833,8 @@ class TestDataset:
                              fileprefix=self.object_name + '_withoutfakes_' + trial.klip_parameters,
                              annuli=trial.annuli, subsections=trial.subsections, movement=trial.movement,
                              numbasis=trial.numbasis, spectrum=trial.spectrum, corr_smooth=trial.corr_smooth,
-                             highpass=trial.highpass, mode=self.mode, numthreads=numthreads, verbose=True)
+                             highpass=trial.highpass, mode=self.mode, numthreads=numthreads, verbose=True,
+                             lite=self.memorylite)
 
             # Update Every 20 or When Completely Done
             if klip_runs + 1 == len(self.trials):
@@ -872,7 +874,8 @@ class TestDataset:
                              fileprefix=self.object_name + '_withfakes_' + trial.klip_parameters,
                              annuli=trial.annuli, subsections=trial.subsections, movement=trial.movement,
                              numbasis=trial.numbasis, spectrum=trial.spectrum, corr_smooth=trial.corr_smooth,
-                             highpass=trial.highpass, mode=self.mode, numthreads=numthreads, verbose=True)
+                             highpass=trial.highpass, mode=self.mode, numthreads=numthreads, verbose=True,
+                             lite=self.memorylite)
 
             # Update Every 20 or When Completely Done
             if klip_runs + 1 == len(self.trials):
