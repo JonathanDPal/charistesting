@@ -5,6 +5,7 @@ pyklip/
 pyklip_full/
 results/
 debug_retrieve_flux/
+retrievals*/
 *.pdf
 *.png
 *.fits
