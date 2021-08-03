@@ -6,6 +6,7 @@ pyklip_full/
 results/
 debug_retrieve_flux/
 retrievals*/
+.idea/
 *.pdf
 *.png
 *.fits
