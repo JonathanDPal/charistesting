@@ -669,9 +669,9 @@ class Trial:
 
             injected = []  # going to be an additional column of candidates DataFrame
             for d1, d2 in zip(distances_from_targets, distances_from_fakes):
-                if d1 < self.fake_fwhm:
+                if d1 < self.fake_fwhm * 1.5:
                     injected.append("Science Target")
-                elif d2 < self.fake_fwhm:
+                elif d2 < self.fake_fwhm * 1.5:
                     injected.append(True)
                 else:
                     injected.append(False)
