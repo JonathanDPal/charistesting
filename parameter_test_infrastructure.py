@@ -589,7 +589,11 @@ class Trial:
 
                 # Always Going to Save Uncalibrated Contrast
                 if not os.path.exists(self.object_name + '/uncalibrated_contrast'):
-                    os.mkdir(self.object_name + '/uncalibrated_contrast')
+                    try:
+                        os.mkdir(self.object_name + '/uncalibrated_contrast')
+                    except FileExistsError:
+                        # unnecessary 99% of the time, but once in a blue moon, I run into issues with this on Condor
+                        pass
                 df = pd.DataFrame()
                 df['Seperation'] = contrast_seps
                 df['Uncalibrated Contrast'] = contrast
@@ -612,7 +616,11 @@ class Trial:
                 # If Contrast Was Calibrated, Then Save It
                 if contains_fakes:
                     if not os.path.exists(self.object_name + '/calibrated_contrast'):
-                        os.mkdir(self.object_name + '/calibrated_contrast')
+                        try:
+                            os.mkdir(self.object_name + '/calibrated_contrast')
+                        except FileExistsError:
+                            # unnecessary 99% of the time, but once in a blue moon, I run into issues with this on Condor
+                            pass
                     df = pd.DataFrame()
                     df['Seperation'] = contrast_seps
                     df['Calibrated Contrast'] = correct_contrast
@@ -738,7 +746,11 @@ class TestDataset:
         self.mask_xy = mask_xy
 
         if not os.path.exists(self.object_name):
-            os.mkdir(self.object_name)
+            try:
+                os.mkdir(self.object_name)
+            except FileExistsError:
+                # unnecessary 99% of the time, but once in a blue moon, I run into issues with this on Condor
+                pass
 
         self.write_to_log(f'Title for Set: {object_name}', 'w')
         self.write_to_log(f'\nFileset: {fileset}')
@@ -833,9 +845,17 @@ class TestDataset:
 
     def run_KLIP_on_data_without_fakes(self, numthreads):
         if not os.path.exists(self.object_name):
-            os.mkdir(self.object_name)
+            try:
+                os.mkdir(self.object_name)
+            except FileExistsError:
+                # unnecessary 99% of the time, but once in a blue moon, I run into issues with this on Condor
+                pass
         if not os.path.exists(self.object_name + '/klipped_cubes_Nfakes'):
-            os.mkdir(self.object_name + '/klipped_cubes_Nfakes')
+            try:
+                os.mkdir(self.object_name + '/klipped_cubes_Nfakes')
+            except FileExistsError:
+                # unnecessary 99% of the time, but once in a blue moon, I run into issues with this on Condor
+                pass
 
         number_of_klip = len(self.trials)
 
@@ -874,9 +894,17 @@ class TestDataset:
 
     def run_KLIP_on_data_with_fakes(self, numthreads):
         if not os.path.exists(self.object_name):
-            os.mkdir(self.object_name)
+            try:
+                os.mkdir(self.object_name)
+            except FileExistsError:
+                # unnecessary 99% of the time, but once in a blue moon, I run into issues with this on Condor
+                pass
         if not os.path.exists(self.object_name + '/klipped_cubes_Wfakes'):
-            os.mkdir(self.object_name + '/klipped_cubes_Wfakes')
+            try:
+                os.mkdir(self.object_name + '/klipped_cubes_Wfakes')
+            except FileExistsError:
+                # unnecessary 99% of the time, but once in a blue moon, I run into issues with this on Condor
+                pass
 
         number_of_klip = len(self.trials)
 
@@ -915,11 +943,23 @@ class TestDataset:
 
     def contrast_and_detection(self, run_planet_detection=True, datasetwithfakes=True, numthreads=65):
         if not os.path.exists(self.object_name + '/detections') and run_planet_detection:
-            os.mkdir(self.object_name + '/detections')
+            try:
+                os.mkdir(self.object_name + '/detections')
+            except FileExistsError:
+                # unnecessary 99% of the time, but once in a blue moon, I run into issues with this on Condor
+                pass
         if not os.path.exists(self.object_name + '/calibrated_contrast') and datasetwithfakes:
-            os.mkdir(self.object_name + '/calibrated_contrast')
+            try:
+                os.mkdir(self.object_name + '/calibrated_contrast')
+            except FileExistsError:
+                # unnecessary 99% of the time, but once in a blue moon, I run into issues with this on Condor
+                pass
         if not os.path.exists(self.object_name + '/uncalibrated_contrast'):
-            os.mkdir(self.object_name + '/uncalibrated_contrast')
+            try:
+                os.mkdir(self.object_name + '/uncalibrated_contrast')
+            except FileExistsError:
+                # unnecessary 99% of the time, but once in a blue moon, I run into issues with this on Condor
+                pass
 
         if run_planet_detection:
             self.write_to_log_and_print(f"\n############## BEGINNING CONTRAST AND DETECTION FOR {self.object_name} "
