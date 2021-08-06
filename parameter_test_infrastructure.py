@@ -16,8 +16,9 @@ import sys
 import os
 from contextlib import contextmanager
 import inspect
-from concurrent.futures import ProcessPoolExecutor as Pool
+from multiprocessing.pool import Pool
 from time import time
+from scipy.optimize import curve_fit
 
 
 ####################
