@@ -3,7 +3,7 @@ from astropy.wcs import WCS
 import numpy as np
 from glob import glob
 from pyklip.instruments.CHARIS import CHARISData
-from copy import copy
+from copy import copy, deepcopy
 from pyklip.parallelized import klip_dataset
 from pyklip.klip import meas_contrast, _rotate_wcs_hdr
 from pyklip.fakes import inject_planet
@@ -330,6 +330,12 @@ class Trial:
         self.object_name = object_name
         self.mask_xy = mask_xy
 
+        # when rebuilding from string,
+        if not isinstance(movement, float):
+            movement = float(movement)
+        if not isinstance(corr_smooth, float):
+            corr_smooth = float(corr_smooth)
+
         # KLIP params used (all are specific values except for numbasis which is still a list of values at this point)
         # By specific, I mean, for example, self.annuli=9 as opposed to self.annuli=[3, 5, 7, 9, 11], like you would
         # see in the self.annuli attribute of TestDataset
@@ -503,9 +509,11 @@ class Trial:
                 dataset_center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
                 dataset_fwhm, dataset_iwa, dataset_owa = FWHMIOWA_calculator(hdulist)
                 output_wcs = WCS(hdulist[0].header, naxis=[1, 2])
-                _rotate_wcs_hdr(output_wcs, self.rot_angs[wavelength_index], flipx=self.flipx)
 
-            for wavelength_index in range(cube.shape[0]):  # making measurements at every wavelengthw
+            for wavelength_index in range(cube.shape[0]):  # making measurements at every wavelength
+                local_output_wcs = deepcopy(output_wcs)
+                _rotate_wcs_hdr(local_output_wcs, self.rot_angs[wavelength_index], flipx=self.flipx)
+
                 # Taking Slice of Cube and Calibrating It
                 frame = cube[wavelength_index] / self.dn_per_contrast[wavelength_index]
 
@@ -550,7 +558,8 @@ class Trial:
                     for sep in self.fake_seps:
                         fake_planet_fluxes = []
                         for pa in pas:
-                            fake_flux = retrieve_planet_flux(frame, pa, sep, output_wcs, dataset_center, dataset_fwhm)
+                            fake_flux = retrieve_planet_flux(frame, pa, sep, local_output_wcs, dataset_center,
+                                                             dataset_fwhm)
                             fake_planet_fluxes.append(fake_flux)
                         retrieved_fluxes.append(np.mean(fake_planet_fluxes))
 
