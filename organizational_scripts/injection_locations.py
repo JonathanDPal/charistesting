@@ -1,12 +1,25 @@
 import numpy as np
 from astropy.io import fits
 import pandas as pd
+from pyklip.klip import define_annuli_bounds
 
 
+num_annuli = []  # a list of all values for annuli intended to be used
+num_subsections = []  # a list of all values for subsections intended to be used
 pas = []
 seps = []
 science_target_locs = []  # in form [x, y] or [[x1,y1], [x2,y2], ...]
 file_with_sat_spots = ''  # a extracted datacube (NOT a KLIP output) with satellite spots written in to header
+
+
+def define_subsection_bounds(sbs):
+    """
+    Taken verbatim from pyklip.parallelized.klip_dataset()
+    """
+    dphi = 2 * np.pi / subsections
+    phi_bounds = [[dphi * phi_i - np.pi, dphi * (phi_i + 1) - np.pi] for phi_i in range(sbs)]
+    phi_bounds[-1][1] = np.pi
+    return phi_bounds
 
 
 def pasep_to_xy(PAs, seps):
@@ -35,7 +48,10 @@ def xy_to_pasep(xs, ys):
 
 def FWHMIOWA_calculator(speccubefile, filtname=None):
     """
-    Finds FWHM, IWA, and OWA for a opened CHARIS data cube.
+    This used to calculate FWHM based on the central wavelength, but we found that the equation for that calculation
+    was faulty, so at this point, it just spits back 3.5 as the FWHM. Just kept in this format to minimize the
+    number of edits needed and also to permit modifications in the future such that we can have different FWHMs for
+    different central wavelengths.
     """
     wavelengths = {'j': 1200e-9, 'h': 1550e-9, 'k': 2346e-9, 'broadband': 1550e-9}
     if filtname is None:
@@ -43,9 +59,12 @@ def FWHMIOWA_calculator(speccubefile, filtname=None):
     else:
         wavelength = wavelengths[str.lower(filtname)]
     D = 8
+    # In the future, we'll probably have FWHM look something like this:
+    # fwhms = {'j': {fwhm1}, 'h': {fwhm2}, 'k':{fwhm3}, 'broadband': 3.5}
+    # FWHM = fwhms[wavelength]
     lenslet_scale = 0.0162
     field_radius = 1.035
-    FWHM = 2 * 1.22 * wavelength / D * 206265 / lenslet_scale
+    FWHM = 3.5
     IWA = 5
     OWA = (field_radius / lenslet_scale) - FWHM
 
@@ -99,8 +118,8 @@ for _, row0 in df.iterrows():
 
 df['closest distance squared'] = min_distance_sq_column
 
-if np.min(min_distance_sq_column) < 2 * dataset_fwhm:
+if np.min(min_distance_sq_column) < ((2 * dataset_fwhm) ** 2):
     print("Some things are too close together. See information below")
     print(df)
-else:
-    print("Everything is at least 2 FWHMs apart!")
+
+
