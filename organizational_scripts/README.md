@@ -1,4 +1,4 @@
-I used these four scripts to help me out with keeping 
+I used these five scripts to help me out with keeping 
 everything organized properly.
 
 check.py: This script searched through a top level 
