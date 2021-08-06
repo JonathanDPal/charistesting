@@ -794,7 +794,7 @@ class TestDataset:
                                          numbasis=numbasis, spectrum=spec, corr_smooth=cs,
                                          fake_PAs=self.fake_PAs, fake_fluxes=self.fake_fluxes,
                                          fake_fwhm=self.fake_fwhm, fake_seps=self.fake_seps,
-                                         rot_angs=dataset.PAs, flipx=dataset.flipx,
+                                         rot_angs=self.dataset.PAs, flipx=self.dataset.flipx,
                                          dn_per_contrast=self.dataset.dn_per_contrast,
                                          wln_um=self.dataset.wvs, highpass=hp,
                                          length=self.dataset.input.shape[1]))
