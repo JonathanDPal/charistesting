@@ -22,3 +22,6 @@ fake_seps.
 6. Add some stuff so that if fake planets would otherwise
 be injected on annuli/subsection boundaries, they get
 tweaked slighly automatically.
+
+7. Add a _verbose_ attribute for TestDataset so that log
+files can be super decluttered if people want that.
