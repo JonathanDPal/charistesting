@@ -621,7 +621,7 @@ class Trial:
                         try:
                             os.mkdir(self.object_name + '/calibrated_contrast')
                         except FileExistsError:
-                            # unnecessary 99% of the time, but once in a blue moon, I run into issues with this on Condor
+                            # unnecessary 99% of the time, but once in a blue moon, problem shows up on Condor
                             pass
                     df = pd.DataFrame()
                     df['Seperation'] = contrast_seps
