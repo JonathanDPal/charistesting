@@ -388,7 +388,14 @@ class Trial:
         for i in range(len(params)):
             array = False
             if type(params[i]) == np.ndarray:
-                params[i] = list(params[i])
+                if np.ndim(params[i]) == 2:
+                    params[i] = [list(subarray) for subarray in params[i]]
+                elif np.ndim(params[i]) == 1:
+                    params[i] = list(params[i])
+                else:
+                    raise Warning(f'If you are going to run parallelized contrast, then it will fail due to having a '
+                                  f'3+ dimensional numpy array as one of the arguments. The problematic argument is '
+                                  f'{params[i]}')
                 array = True
             if type(params[i]) == list:
                 list_in_list = []
