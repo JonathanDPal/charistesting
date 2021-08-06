@@ -40,7 +40,7 @@ def log_file_output(directory, write_type='a'):
 
 def FWHMIOWA_calculator(speccubefile, filtname=None):
     """
-    Finds FWHM, IWA, and OWA for a opened CHARIS data cube.
+    Returns
     """
     wavelengths = {'j': 1200e-9, 'h': 1550e-9, 'k': 2346e-9, 'broadband': 1550e-9}
     if filtname is None:
@@ -50,7 +50,7 @@ def FWHMIOWA_calculator(speccubefile, filtname=None):
     D = 8
     lenslet_scale = 0.0162
     field_radius = 1.035
-    FWHM = 2 * 1.22 * wavelength / D * 206265 / lenslet_scale
+    FWHM = 3.5
     IWA = 5
     OWA = (field_radius / lenslet_scale) - FWHM
 
@@ -210,6 +210,7 @@ def retrieve_planet_flux(frame, pa, sep, output_wcs, dataset_center, dataset_fwh
         flux) instead of just the peak flux. If return_r2 is True, then it will follow after whatever the first
         argument is.
     """
+
     def get_r2(actual_vals, predictions):
         ssr = np.sum([(actual_val - prediction) ** 2 for actual_val, prediction in zip(actual_vals, predictions)])
         sst = np.sum([(actual_val - np.mean(actual_vals)) ** 2 for actual_val in actual_vals])
@@ -218,12 +219,12 @@ def retrieve_planet_flux(frame, pa, sep, output_wcs, dataset_center, dataset_fwh
     def gaussian(xy, peak, Fwhm, offset, y0, x0):
         y, x = xy
         sigma = Fwhm / (2 * np.sqrt(2 * np.log(2)))
-        return peak * np.exp(-((y-y0) ** 2 + (x-x0) ** 2) / (2 * sigma ** 2)) + offset
+        return peak * np.exp(-((y - y0) ** 2 + (x - x0) ** 2) / (2 * sigma ** 2)) + offset
 
     def gaussian_force_fwhm(xy_fwhm, peak, offset, y0, x0):
         y, x, Fwhm = xy_fwhm
         sigma = Fwhm / (2 * np.sqrt(2 * np.log(2)))
-        return peak * np.exp(-((y-y0) ** 2 + (x-x0) ** 2) / (2 * sigma ** 2)) + offset
+        return peak * np.exp(-((y - y0) ** 2 + (x - x0) ** 2) / (2 * sigma ** 2)) + offset
 
     if theta is None:
         theta = convert_pa_to_image_polar(pa, output_wcs)
@@ -356,7 +357,7 @@ class Trial:
         # String Identifying Parameters Used (Used Later For Saving Contrast Info)
         self.klip_parameters = str(annuli) + 'Annuli_' + str(subsections) + 'Subsections_' + str(movement) + \
                                'Movement_' + str(spectrum) + 'Spectrum_' + str(corr_smooth) + 'Smooth_' + str(
-                                highpass) + 'Highpass_'
+            highpass) + 'Highpass_'
 
         # Filepaths to KLIPped Datacubes
         self.filepaths_Wfakes = [self.object_name + '/klipped_cubes_Wfakes/' + self.object_name + '_withfakes_' +
@@ -366,11 +367,12 @@ class Trial:
 
         # Filepath to Save Planet Detection Output To
         self.filepath_detections_prefixes = [self.object_name + f'/detections/{self.klip_paarameters}_KL{nb}_SNR-'
-                                                                 for nb in self.numbasis]
+                                             for nb in self.numbasis]
 
         # Can Rebuild Class From This String
         params = [object_name, mask_xy, annuli, subsections, movement, numbasis, spectrum, corr_smooth,
-                  fake_PAs, fake_fluxes, fake_fwhm, fake_seps, dn_per_contrast, wln_um, highpass, length, rot_angs]
+                  fake_PAs, fake_fluxes, fake_fwhm, fake_seps, rot_angs, flipx, dn_per_contrast, wln_um, highpass,
+                  length]
         modifiedparams = []
         for i in range(len(params)):
             array = False
@@ -707,6 +709,7 @@ class TestDataset:
     The main object which the user will interact with. Will load in CHARIS fileset into CHARISData class (see
     pyklip.instruments.CHARIS) and then create an instance of Trial for each set of KLIP parameters to be looked at.
     """
+
     def __init__(self, fileset, object_name, mask_xy, fake_fluxes, fake_seps, annuli, subsections, movement,
                  numbasis, corr_smooth, highpass, spectrum, fake_fwhm, fake_PAs, mode, batched, overwrite, memorylite):
         self.object_name = object_name
