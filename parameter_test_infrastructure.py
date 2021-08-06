@@ -6,7 +6,7 @@ from pyklip.instruments.CHARIS import CHARISData
 from copy import copy, deepcopy
 from pyklip.parallelized import klip_dataset
 from pyklip.klip import meas_contrast, _rotate_wcs_hdr
-from pyklip.fakes import inject_planet
+from pyklip.fakes import inject_planet, convert_pa_to_image_polar
 from pyklip.kpp.utils.mathfunc import gauss2d
 from pyklip.kpp.metrics.crossCorr import calculate_cc
 from pyklip.kpp.stat.statPerPix_utils import get_image_stat_map_perPixMasking
@@ -346,11 +346,10 @@ class Trial:
         self.spectrum = spectrum
         self.corr_smooth = corr_smooth
 
-        # set up as NumPy arrays so that we can take advantage of the flatten() method later on
-        self.fake_PAs = np.array(fake_PAs)
-        self.fake_fluxes = np.array(fake_fluxes)
+        self.fake_PAs = fake_PAs
+        self.fake_fluxes = fake_fluxes
         self.fake_fwhm = fake_fwhm
-        self.fake_seps = np.array(fake_seps)
+        self.fake_seps = fake_seps
 
         # Needed to Replicate Rotation for Fake Planet Retrieval
         self.rot_angs = rot_angs
@@ -553,7 +552,7 @@ class Trial:
                         pas = self.fake_PAs
                         fluxes = self.fake_fluxes
                     else:  # i.e., multiple tiers
-                        pas = self.fake_PAs[0]  # use highest tier planets (we want brightest ones for calibration)
+                        pas = self.fake_PAs[0]  # using highest tier planets for calibration)
                         fluxes = self.fake_fluxes[0]
                     for sep in self.fake_seps:
                         fake_planet_fluxes = []
@@ -567,7 +566,7 @@ class Trial:
 
                 # Applying Mask to Fake Planets
                 if contains_fakes:
-                    fakelocs = pasep_to_xy(self.fake_PAs.flatten(), self.fake_seps.flatten())
+                    fakelocs = pasep_to_xy(np.array(self.fake_PAs).flatten(), np.array(self.fake_seps).flatten())
                     for fl in fakelocs:
                         x_pos = fl[0] + dataset_center[0]  # moving it into correct coordinate system
                         y_pos = fl[1] + dataset_center[1]
