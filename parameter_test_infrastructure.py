@@ -40,7 +40,10 @@ def log_file_output(directory, write_type='a'):
 
 def FWHMIOWA_calculator(speccubefile, filtname=None):
     """
-    Returns
+    This used to calculate FWHM based on the central wavelength, but we found that the equation for that calculation
+    was faulty, so at this point, it just spits back 3.5 as the FWHM. Just kept in this format to minimize the
+    number of edits needed and also to permit modifications in the future such that we can have different FWHMs for
+    different central wavelengths.
     """
     wavelengths = {'j': 1200e-9, 'h': 1550e-9, 'k': 2346e-9, 'broadband': 1550e-9}
     if filtname is None:
@@ -48,6 +51,9 @@ def FWHMIOWA_calculator(speccubefile, filtname=None):
     else:
         wavelength = wavelengths[str.lower(filtname)]
     D = 8
+    # In the future, we'll probably have FWHM look something like this:
+    # fwhms = {'j': {fwhm1}, 'h': {fwhm2}, 'k':{fwhm3}, 'broadband': 3.5}
+    # FWHM = fwhms[wavelength]
     lenslet_scale = 0.0162
     field_radius = 1.035
     FWHM = 3.5
