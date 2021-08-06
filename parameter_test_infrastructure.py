@@ -283,13 +283,15 @@ def retrieve_planet_flux(frame, pa, sep, output_wcs, dataset_center, dataset_fwh
         coordinates = (yvals, xvals, fwhmlist)
         optimalparams, covariance_matrix = curve_fit(f=gaussian_force_fwhm, xdata=coordinates, ydata=data_to_fit,
                                                      p0=guesses, bounds=bounds)
+        zeropt = optimalparams[1]
     else:
         coordinates = (yvals, xvals)
         optimalparams, covariance_matrix = curve_fit(f=gaussian, xdata=coordinates, ydata=data_to_fit, p0=guesses,
                                                      bounds=bounds)
+        zeropt = optimalparams[2]
 
     if not (return_all or return_r2):  # most of the time this is going to be end of function
-        return optimalparams[0]  # just the peak flux
+        return optimalparams[0] - zeropt  # just the peak flux
 
     # this section is just intended to be available for getting more information if needed to assess model & fit
     else:
