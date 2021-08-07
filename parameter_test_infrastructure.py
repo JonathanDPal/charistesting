@@ -677,7 +677,9 @@ class Trial:
 
             candidate_locations = zip(candidates['x'], candidates['y'])  # where stuff was detected
 
-            if not isinstance(self.mask_xy[0], (list, tuple)):
+            if self.mask_xy is None:
+                self.mask_xy = [[250, 250]]  # nothing gets identified as science target
+            elif not isinstance(self.mask_xy[0], (list, tuple)):
                 self.mask_xy = [self.mask_xy]  # making it a list of a list so that it can get iterated over properly
 
             distances_from_fakes = []  # going to be an additional column of candidates DataFrame
