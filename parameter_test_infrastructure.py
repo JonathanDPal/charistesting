@@ -281,13 +281,23 @@ def retrieve_planet_flux(frame, pa, sep, output_wcs, dataset_center, dataset_fwh
     if force_fwhm:
         fwhmlist = np.array([dataset_fwhm] * numxvals * numyvals)
         coordinates = (yvals, xvals, fwhmlist)
-        optimalparams, covariance_matrix = curve_fit(f=gaussian_force_fwhm, xdata=coordinates, ydata=data_to_fit,
-                                                     p0=guesses, bounds=bounds)
+        try:
+            optimalparams, covariance_matrix = curve_fit(f=gaussian_force_fwhm, xdata=coordinates, ydata=data_to_fit,
+                                                         p0=guesses, bounds=bounds)
+        except ValueError:  # sometimes running into issues with using np.max(data_to_fit) as upper bound (why?)
+            bounds = ((0, -np.inf), (1, np.inf))
+            optimalparams, covariance_matrix = curve_fit(f=gaussian_force_fwhm, xdata=coordinates, ydata=data_to_fit,
+                                                         p0=guesses, bounds=bounds)
         zeropt = optimalparams[1]
     else:
         coordinates = (yvals, xvals)
-        optimalparams, covariance_matrix = curve_fit(f=gaussian, xdata=coordinates, ydata=data_to_fit, p0=guesses,
-                                                     bounds=bounds)
+        try:
+            optimalparams, covariance_matrix = curve_fit(f=gaussian, xdata=coordinates, ydata=data_to_fit, p0=guesses,
+                                                         bounds=bounds)
+        except ValueError:  # sometimes running into issues with using np.max(data_to_fit) as upper bound (why?)
+            bounds = ((0, 0, -np.inf, -3, -3), (1, np.inf, np.inf, 3, 3))
+            optimalparams, covariance_matrix = curve_fit(f=gaussian, xdata=coordinates, ydata=data_to_fit, p0=guesses,
+                                                         bounds=bounds)
         zeropt = optimalparams[2]
 
     if not (return_all or return_r2):  # most of the time this is going to be end of function
