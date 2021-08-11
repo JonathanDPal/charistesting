@@ -180,7 +180,7 @@ def parameter_set_batcher(batchindex, batchsize, args):
 
 
 def retrieve_planet_flux(frame, pa, sep, output_wcs, dataset_center, dataset_fwhm, theta=None, guess_peak_flux=None,
-                         force_fwhm=False, searchradius=None, return_all=False, return_r2=False):
+                         force_fwhm=False, searchradius=None):
     """
     Identifies the peak flux of a planet by fitting a 2-dimensional Gaussian function.
     ---
@@ -217,12 +217,6 @@ def retrieve_planet_flux(frame, pa, sep, output_wcs, dataset_center, dataset_fwh
         flux) instead of just the peak flux. If return_r2 is True, then it will follow after whatever the first
         argument is.
     """
-
-    def get_r2(actual_vals, predictions):
-        ssr = np.sum([(actual_val - prediction) ** 2 for actual_val, prediction in zip(actual_vals, predictions)])
-        sst = np.sum([(actual_val - np.mean(actual_vals)) ** 2 for actual_val in actual_vals])
-        return 1 - float(ssr) / float(sst)
-
     def gaussian(xy, peak, Fwhm, offset, y0, x0):
         y, x = xy
         sigma = Fwhm / (2 * np.sqrt(2 * np.log(2)))
@@ -261,68 +255,44 @@ def retrieve_planet_flux(frame, pa, sep, output_wcs, dataset_center, dataset_fwh
     within_search_radius = vals_w_distances[vals_w_distances['distance squared'] <= searchradius ** 2]
     data_to_fit, yvals, xvals = within_search_radius['vals'], within_search_radius['y'], within_search_radius['x']
 
-    if guess_peak_flux is None:
-        # if None, starting guess (default 1) will be outside of the boundaries we specify, yielding an error
-        guess_peak_flux = np.max(data_to_fit) * 0.9  # optimal peak flux is usually pretty close to brightest pixel,
-        # but we don't want to have our guess be all the way at the upper bound (the brightest pixel), so using 90%
+    allneg = np.max(data_to_fit) < 0
 
-    if force_fwhm:
-        guesses = [guess_peak_flux, 0]
-        # peak flux cannot be less than zero or greater than the brightest pixel in the image. upper bound on flux is
-        # relatively strict here (as opposed to using star flux as an upper bound, for example) since negative
-        # values in the image due to KLIP oversubtraction can cause Gaussian model to be super sharp and overestimate
-        # flux by multiple orders of magnitude.
-        bounds = ((0, -np.inf), (np.max(data_to_fit), np.inf))  # offset has no lower or upper bound
+    if allneg:
+        # just making this as a definition (if all negative, then contrast sucks, so nothing can be detected). We're
+        # defining this as zero since we divide by this to get calibrated contrast, so this would be contrast=infinity
+        return 0
     else:
-        guesses = [guess_peak_flux, dataset_fwhm, 0, 0, 0]  # zeros are for offset, y0, and x0
-        # FWHM cannot be less than zero; x and y center cannot be adjusted by more than 3 pixels in any direction
-        bounds = ((0, 0, -np.inf, -3, -3), (np.max(data_to_fit), np.inf, np.inf, 3, 3))
+        if guess_peak_flux is None:
+            # if None, starting guess (default 1) will be outside of the boundaries we specify, yielding an error
+            guess_peak_flux = np.max(data_to_fit) * 0.9  # optimal peak flux is usually pretty close to brightest pixel,
+            # but we don't want to have our guess be all the way at the upper bound (the brightest pixel), so using 90%
 
-    if force_fwhm:
-        fwhmlist = np.array([dataset_fwhm] * numxvals * numyvals)
-        coordinates = (yvals, xvals, fwhmlist)
-        try:
-            optimalparams, covariance_matrix = curve_fit(f=gaussian_force_fwhm, xdata=coordinates, ydata=data_to_fit,
-                                                         p0=guesses, bounds=bounds)
-        except ValueError:  # sometimes running into issues with using np.max(data_to_fit) as upper bound (why?)
-            bounds = ((0, -np.inf), (1, np.inf))
-            optimalparams, covariance_matrix = curve_fit(f=gaussian_force_fwhm, xdata=coordinates, ydata=data_to_fit,
-                                                         p0=guesses, bounds=bounds)
-        zeropt = optimalparams[1]
-    else:
-        coordinates = (yvals, xvals)
-        try:
-            optimalparams, covariance_matrix = curve_fit(f=gaussian, xdata=coordinates, ydata=data_to_fit, p0=guesses,
-                                                         bounds=bounds)
-        except ValueError:  # sometimes running into issues with using np.max(data_to_fit) as upper bound (why?)
-            bounds = ((0, 0, -np.inf, -3, -3), (1, np.inf, np.inf, 3, 3))
-            optimalparams, covariance_matrix = curve_fit(f=gaussian, xdata=coordinates, ydata=data_to_fit, p0=guesses,
-                                                         bounds=bounds)
-        zeropt = optimalparams[2]
-
-    if not (return_all or return_r2):  # most of the time this is going to be end of function
-        return optimalparams[0] - zeropt  # just the peak flux
-
-    # this section is just intended to be available for getting more information if needed to assess model & fit
-    else:
-        if return_r2:
-            if force_fwhm:
-                predictions = [gaussian_force_fwhm((y, x, fwhm), optimalparams[0], optimalparams[1],
-                                                   optimalparams[2], optimalparams[3])
-                               for y, x in zip(yvals, xvals)]
-            else:
-                predictions = [gaussian((y, x), optimalparams[0], optimalparams[1], optimalparams[2],
-                                        optimalparams[3], optimalparams[4])
-                               for y, x in zip(yvals, xvals)]
-            r2 = get_r2(actual_vals=data_to_fit, predictions=predictions)
-
-        if return_all:
-            if return_r2:
-                return optimalparams, r2
-            else:
-                return optimalparams
+        if force_fwhm:
+            guesses = [guess_peak_flux, 0]
+            # peak flux cannot be less than zero or greater than the brightest pixel in the image. upper bound on
+            # flux is relatively strict here (as opposed to using star flux as an upper bound, for example) since
+            # negative values in the image due to KLIP oversubtraction can cause Gaussian model to be super sharp and
+            # overestimate flux by multiple orders of magnitude.
+            bounds = ((0, -np.inf), (np.max(data_to_fit), np.inf))  # offset has no lower or upper bound
         else:
-            return optimalparams[0], r2
+            guesses = [guess_peak_flux, dataset_fwhm, 0, 0, 0]  # zeros are for offset, y0, and x0
+            # FWHM cannot be less than zero; x and y center cannot be adjusted by more than 3 pixels in any direction
+            bounds = ((0, 0, -np.inf, -3, -3), (np.max(data_to_fit), np.inf, np.inf, 3, 3))
+
+        if force_fwhm:
+            fwhmlist = np.array([dataset_fwhm] * numxvals * numyvals)
+            coordinates = (yvals, xvals, fwhmlist)
+            optimalparams, covariance_matrix = curve_fit(f=gaussian_force_fwhm, xdata=coordinates, ydata=data_to_fit,
+                                                         p0=guesses, bounds=bounds)
+            zeropt = optimalparams[1]
+        else:
+            coordinates = (yvals, xvals)
+            optimalparams, covariance_matrix = curve_fit(f=gaussian, xdata=coordinates, ydata=data_to_fit, p0=guesses,
+                                                         bounds=bounds)
+            zeropt = optimalparams[2]
+
+        if not (return_all or return_r2):  # most of the time this is going to be end of function
+            return optimalparams[0] - zeropt  # just the peak flux
 
 
 ####################################################################################
