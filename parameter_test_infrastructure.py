@@ -593,7 +593,10 @@ class Trial:
                     correct_contrast = np.copy(contrast)
                     for j, sep in enumerate(contrast_seps):
                         closest_throughput_index = np.argmin(np.abs(sep - self.fake_seps))
-                        correct_contrast[j] /= algo_throughput[closest_throughput_index]
+                        if algo_throughput == 0:
+                            correct_contrast[j] = np.inf
+                        else:
+                            correct_contrast[j] /= algo_throughput[closest_throughput_index]
 
                 # If Contrast Was Calibrated, Then Save It
                 if contains_fakes:
