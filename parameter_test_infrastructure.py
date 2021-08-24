@@ -204,18 +204,9 @@ def retrieve_planet_flux(frame, pa, sep, output_wcs, dataset_center, dataset_fwh
                            as the FWHM, so  the scipy.optimize.curve_fit function will just silently return
                            whatever was put in as the guess for all params.
         searchradius (int): Default: None. If None, will use the FWHM as the radius.
-        return_all (bool): Default: False. If True, function will return all parameters -- either (peakflux, fwhm,
-                           offset) if force_fwhm is False or (peakflux, offset) if force_fwhm is True.
-        return_r2 (bool): Default: False. If True, function will return r^2 for the fitted parameters in addition to
-                          other returns.
     ---
     Returns:
         By default, just returns peak flux.
-
-        If return_all or return_r2 is True, additional values will be returned. If return_all is True,
-        then the first argument  will be a tuple of all of the optimal parameters (the first of which is the peak
-        flux) instead of just the peak flux. If return_r2 is True, then it will follow after whatever the first
-        argument is.
     """
     def gaussian(xy, peak, Fwhm, offset, y0, x0):
         y, x = xy
@@ -255,7 +246,7 @@ def retrieve_planet_flux(frame, pa, sep, output_wcs, dataset_center, dataset_fwh
     within_search_radius = vals_w_distances[vals_w_distances['distance squared'] <= searchradius ** 2]
     data_to_fit, yvals, xvals = within_search_radius['vals'], within_search_radius['y'], within_search_radius['x']
 
-    allneg = np.max(data_to_fit) < 0
+    allneg = (np.max(data_to_fit) < 0)  # boolean value
 
     if allneg:
         # just making this as a definition (if all negative, then contrast sucks, so nothing can be detected). We're
@@ -291,8 +282,7 @@ def retrieve_planet_flux(frame, pa, sep, output_wcs, dataset_center, dataset_fwh
                                                          bounds=bounds)
             zeropt = optimalparams[2]
 
-        if not (return_all or return_r2):  # most of the time this is going to be end of function
-            return optimalparams[0] - zeropt  # just the peak flux
+        return optimalparams[0] - zeropt  # peak flux
 
 
 ####################################################################################
@@ -313,11 +303,9 @@ class Trial:
         self.object_name = object_name
         self.mask_xy = mask_xy
 
-        # when rebuilding from string,
-        if not isinstance(movement, float):
-            movement = float(movement)
-        if not isinstance(corr_smooth, float):
-            corr_smooth = float(corr_smooth)
+        # for when rebuilding from string
+        movement = float(movement)
+        corr_smooth = float(corr_smooth)
 
         # KLIP params used (all are specific values except for numbasis which is still a list of values at this point)
         # By specific, I mean, for example, self.annuli=9 as opposed to self.annuli=[3, 5, 7, 9, 11], like you would
@@ -363,10 +351,10 @@ class Trial:
         self.filepath_detections_prefixes = [self.object_name + f'/detections/{self.klip_parameters}_KL{nb}_SNR-'
                                              for nb in self.numbasis]
 
-        # Can Rebuild Class From This String
-        params = [object_name, mask_xy, annuli, subsections, movement, numbasis, spectrum, corr_smooth,
-                  fake_PAs, fake_fluxes, fake_fwhm, fake_seps, rot_angs, flipx, dn_per_contrast, wln_um, highpass,
-                  length]
+        # Building a String Which Contains All of the Information For Rebuilding the Trial Instance (this gets used for
+        # parallelization)
+        params = [object_name, mask_xy, annuli, subsections, movement, numbasis, spectrum, corr_smooth, fake_PAs,
+                  fake_fluxes, fake_fwhm, fake_seps, rot_angs, flipx, dn_per_contrast, wln_um, highpass, length]
         modifiedparams = []
         for i in range(len(params)):
             array = False
@@ -593,7 +581,8 @@ class Trial:
                     correct_contrast = np.copy(contrast)
                     for j, sep in enumerate(contrast_seps):
                         closest_throughput_index = np.argmin(np.abs(sep - self.fake_seps))
-                        if algo_throughput == 0:
+                        if algo_throughput == 0:  # this would only occur if there are only negative values near all
+                            # fake planet injection loccations
                             correct_contrast[j] = np.inf
                         else:
                             correct_contrast[j] /= algo_throughput[closest_throughput_index]
