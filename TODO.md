@@ -25,8 +25,3 @@ tweaked slighly automatically.
 
 7. Add a _verbose_ attribute for TestDataset so that log
 files can be super decluttered if people want that.
-
-8. Figure out why you're getting weird ValueErrors on
-retrieve_planet_flux function -- "ValueError: 
-Each lower bound must be strictly less than each 
-upper bound." Using np.max(data_to_fit) as UB.
