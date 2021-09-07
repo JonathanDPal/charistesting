@@ -1,3 +1,4 @@
+import os
 import sys
 import numpy as np
 from glob import glob
@@ -22,7 +23,7 @@ def paramvaluesfinder(param):
     paramline = None
     fluxes = None
     pas = None
-    with open(os.path.realpath('../log.txt')) as logfile:
+    with open(os.path.realpath('/log.txt')) as logfile:
         for line in logfile:
             if str.lower(param) != 'ni':
                 if str.lower(param) in str.lower(line):
@@ -161,6 +162,7 @@ direc = sys.argv[1]
 klip_outputs = glob(f'{direc}/klipped_cubes_Wfakes/*.fits')
 completed = [valuefinder(file, 'all') for file in klip_outputs]
 
+os.chdir(direc)
 annuli = paramvaluesfinder('annuli')
 subsections = paramvaluesfinder('subsections')
 movement = paramvaluesfinder('movement')
