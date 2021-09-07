@@ -193,7 +193,7 @@ def retrieve_planet_flux(frame, pa, sep, output_wcs, dataset_center, dataset_fwh
                                              present (and correct).
         dataset_center (list): List of form [x-pos, ypos] specifying the center of the star's PSF.
         dataset_fwhm (float): The FWHM associated with the observations.
-    Optional Args (very rare to need to use these):
+    Optional Args:
         theta (float): Default: None. The counterclockwise angle in degrees from the x-axis at which the planet is
                        located. If None, will be calculated using pa and output_wcs.
         guess_peak_flux (float): Default: None. Guess for the peak flux of the planet. If None, will calculate a guess
@@ -201,12 +201,12 @@ def retrieve_planet_flux(frame, pa, sep, output_wcs, dataset_center, dataset_fwh
         force_fwhm (bool): Default: False. If set to True, the curve fitter will be forced to use dataset_fwhm to
                            calculate sigma on the gaussian model. Setting to True is HIGHLY DISCOURAGED because in
                            most cases so far, it has been impossible to fit a Gaussian model to the data with this
-                           as the FWHM, so  the scipy.optimize.curve_fit function will just silently return
+                           as the FWHM, so the scipy.optimize.curve_fit function will just silently return
                            whatever was put in as the guess for all params.
-        searchradius (int): Default: None. If None, will use the FWHM as the radius.
+        searchradius (int): Default: None. If None, will use np.ceil(dataset_fwhm) as the search radius.
     ---
     Returns:
-        By default, just returns peak flux.
+        Returns peak flux. If all values within search radius are negative, then the function will return 0.
     """
     def gaussian(xy, peak, Fwhm, offset, y0, x0):
         y, x = xy
@@ -488,22 +488,22 @@ class Trial:
                 output_wcs = WCS(hdulist[0].header, naxis=[1, 2])
 
             for wavelength_index in range(cube.shape[0]):  # making measurements at every wavelength
+                # if not overriding, then check to see if file exists
+                wavelength = round(self.wln_um[wavelength_index], 2)  # in microns
+                uncal_contrast_output_filepath = self.object_name + f'/uncalibrated_contrast' \
+                                                                    f'/{self.klip_parameters}_KL' \
+                                                                    f'{self.numbasis[filepath_index]}' \
+                                                                    f'_{wavelength}um_contrast.csv'
+                if not override:
+                    if os.path.exists(uncal_contrast_output_filepath):
+                        continue
+
+                # need to rotate WCS so that we are looking in right spot using the pyKLIP function for it
                 local_output_wcs = deepcopy(output_wcs)
                 _rotate_wcs_hdr(local_output_wcs, self.rot_angs[wavelength_index], flipx=self.flipx)
 
                 # Taking Slice of Cube and Calibrating It
                 frame = cube[wavelength_index] / self.dn_per_contrast[wavelength_index]
-
-                wavelength = round(self.wln_um[wavelength_index], 2)  # in microns
-
-                uncal_contrast_output_filepath = self.object_name + f'/uncalibrated_contrast' \
-                                                                    f'/{self.klip_parameters}_KL' \
-                                                                    f'{self.numbasis[filepath_index]}' \
-                                                                    f'_{wavelength}um_contrast.csv'
-
-                if not override:
-                    if os.path.exists(uncal_contrast_output_filepath):
-                        continue
 
                 # Applying Mask to Science Target If Location Specified
                 if isinstance(self.mask_xy, (list, tuple)):
@@ -581,8 +581,8 @@ class Trial:
                     correct_contrast = np.copy(contrast)
                     for j, sep in enumerate(contrast_seps):
                         closest_throughput_index = np.argmin(np.abs(sep - self.fake_seps))
-                        if algo_throughput == 0:  # this would only occur if there are only negative values near all
-                            # fake planet injection loccations
+                        if np.sum(algo_throughput) == 0:  # this would only occur if there are only negative values
+                            # near all fake planet injection loccations
                             correct_contrast[j] = np.inf
                         else:
                             correct_contrast[j] /= algo_throughput[closest_throughput_index]
@@ -733,8 +733,8 @@ class TestDataset:
         param_names = ['Annuli', 'Subsections', 'Movement', 'Numbasis', 'Corr_Smooth', 'Highpass', 'Spectrum',
                        'Mode', 'Fake Fluxes', 'Fake Seps', 'Fake PAs', 'Fake FWHM']
         params = [annuli, subsections, movement, numbasis, corr_smooth, highpass, spectrum]
-        number_of_trials = np.prod([len(p) for p in params])
-        self.write_to_log(f'\nNumber of Trials: {number_of_trials}')
+        number_of_paramcombos = np.prod([len(p) for p in params])
+        self.write_to_log(f'\nNumber of Parameter Combinations: {number_of_paramcombos}')
 
         for param in [mode, fake_fluxes, fake_seps, fake_PAs, fake_fwhm]:
             params.append(param)
@@ -840,6 +840,15 @@ class TestDataset:
 
         prevtime = time()
         for klip_runs, trial in enumerate(self.trials):  # klip_runs indicates how many have been previously completed
+            # Update Every 20
+            if klip_runs != 0 and klip_runs % 20 == 0:
+                currenttime = time()
+                minutes_per_run = round(((currenttime - prevtime) / 60) / 20, 2)
+                self.write_to_log_and_print('####### {0}/{1} KLIP Runs Complete ({2}%) -- avg speed: {3} '
+                                            'min/run #######'.format(klip_runs + 1, number_of_klip, round(float(
+                    klip_runs + 1) / float(number_of_klip) * 100, 1), minutes_per_run))
+                prevtime = time()
+
             if not self.overwrite:
                 # not going to overwrite previous output
                 filename = self.object_name + '/klipped_cubes_Nfakes' + self.object_name + '_withoutfakes_' + \
@@ -857,16 +866,9 @@ class TestDataset:
                              highpass=trial.highpass, mode=self.mode, numthreads=numthreads, verbose=True,
                              lite=self.memorylite)
 
-            # Update Every 20 or When Completely Done
-            if klip_runs + 1 == len(self.trials):
+            # Update If Completely Done
+            if (klip_runs + 1) == len(self.trials):
                 self.write_to_log_and_print("\n### DONE WITH KLIP ON DATA WITH FAKES ###")
-            elif (klip_runs + 1) % 20 == 0:
-                currenttime = time()
-                minutes_per_run = round(((currenttime - prevtime) / 60) / 20, 2)
-                self.write_to_log_and_print('####### {0}/{1} KLIP Runs Complete ({2}%) -- avg speed: {3} '
-                                            'min/run #######'.format(klip_runs + 1, number_of_klip, round(float(
-                    klip_runs + 1) / float(number_of_klip) * 100, 1), minutes_per_run))
-                prevtime = time()
 
     def run_KLIP_on_data_with_fakes(self, numthreads):
         if not os.path.exists(self.object_name):
