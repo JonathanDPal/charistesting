@@ -20,7 +20,7 @@ fileset0 =  # string to be passed into glob
 mask0 =  # location(s) of science targets in [x-pos, y-pos]
 object_name0 =  # string
 
-# Setting Up Lists/Tuples For KLIP
+# Setting Up Lists/Tuples For KLIP (if reading from text file, then set them to whatever and they'll get modified)
 annuli =  # list of integers
 subsections =  # list of integers
 movement =  # list of floats
@@ -49,10 +49,14 @@ put_in_fakes =
 run_KLIP_on_dataset_with_fakes =   # if no fakes are injected, this will just be a dataset without fakes
 get_contrast =   # won't be calibrated if no fake planets are injected
 get_planet_detections_from_dataset_with_fakes =
-# Most of the time, these three values below should be set to False
+# Most of the time, these five values below should be set to False
+read_from_text_file =  # gives option to read in a list of parameters to work with from a text file (see help doc for
+# formatting on it)
+text_file =  # if reading from text file, then specify file here in string format (if you aren't using one,
+# then just set to None or whatever else; it won't get used.
 run_KLIP_on_dataset_without_fakes =
 get_planet_detections_from_dataset_without_fakes =
-overwrite =  # whether or not to replace existing files if they exist
+overwrite =   # whether or not to replace existing files if they exist
 
 ######################
 # END OF USER INPUTS #
@@ -61,6 +65,10 @@ overwrite =  # whether or not to replace existing files if they exist
 ########################
 # CHECKING USER INPUTS #
 ########################
+
+# Reading From Text File if that is approach to getting parmater values
+if read_from_text_file:
+    annuli, subsections, movement, spectrum, numbasis, corr_smooth, highpass = params_from_text_file(text_file)
 
 # Converting into list format if single value given and sanitizing format
 if isinstance(annuli, (int, float)):
