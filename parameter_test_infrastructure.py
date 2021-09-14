@@ -285,6 +285,33 @@ def retrieve_planet_flux(frame, pa, sep, output_wcs, dataset_center, dataset_fwh
         return optimalparams[0] - zeropt  # peak flux
 
 
+def params_from_text_file(paramsfile):
+    annuli, subsections, movement, spectrum, numbasis, corr_smooth, highpass = [list() for _ in range(7)]
+    lines = [line for line in paramsfile]
+    for line in lines:
+        ann, sbs, mov, spec, nb, cs, hp = [p.replace(' ', '') for p in line.split(',')]
+        ann, sbs, nb = int(ann), int(sbs), int(nb)
+        mov, cs = float(mov), float(cs)
+        if spec.lower() == 'none':
+            spec = None
+        if hp.lower() == 'true':
+            hp = True
+        elif hp.lower() == 'false':
+            hp = False
+        else:
+            hp = float(hp)
+        annuli.append(ann)
+        sbs.append(sbs)
+        movement.append(mov)
+        spectrum.append(spec)
+        numbasis.append(nb)
+        corr_smooth.append(cs)
+        highpass.append(hp)
+
+    return annuli, subsections, movement, spectrum, numbasis, corr_smooth, highpass
+
+
+
 ####################################################################################
 # TestDataset Will Manage a List of Trials (one for each group of KLIP Parameters) #
 ####################################################################################
@@ -717,7 +744,8 @@ class TestDataset:
     """
 
     def __init__(self, fileset, object_name, mask_xy, fake_fluxes, fake_seps, annuli, subsections, movement,
-                 numbasis, corr_smooth, highpass, spectrum, fake_fwhm, fake_PAs, mode, batched, overwrite, memorylite):
+                 numbasis, corr_smooth, highpass, spectrum, fake_fwhm, fake_PAs, mode, batched, overwrite,
+                 memorylite, build_all_combos):
         self.object_name = object_name
         self.mask_xy = mask_xy
 
@@ -755,31 +783,44 @@ class TestDataset:
 
         self.trials = []
         # START OF IF/ELSE AND FOR LOOPS FOR BUILDING TRIALS #
-        if not isinstance(batched, tuple):
-            for ani in annuli:
-                for subsec in subsections:
-                    for mov in movement:
-                        for spec in spectrum:
-                            for cs in corr_smooth:
-                                for hp in highpass:
-                                    self.trials.append(Trial(object_name=self.object_name, mask_xy=self.mask_xy,
-                                                             annuli=ani, subsections=subsec, movement=mov,
-                                                             numbasis=numbasis, spectrum=spec, corr_smooth=cs,
-                                                             fake_PAs=self.fake_PAs, fake_fluxes=self.fake_fluxes,
-                                                             fake_fwhm=self.fake_fwhm, fake_seps=self.fake_seps,
-                                                             rot_angs=self.dataset.PAs, flipx=self.dataset.flipx,
-                                                             dn_per_contrast=self.dataset.dn_per_contrast,
-                                                             wln_um=self.dataset.wvs, highpass=hp,
-                                                             length=self.dataset.input.shape[1]))
+        if build_all_combos:
+            if not isinstance(batched, tuple):
+                for ani in annuli:
+                    for subsec in subsections:
+                        for mov in movement:
+                            for spec in spectrum:
+                                for cs in corr_smooth:
+                                    for hp in highpass:
+                                        self.trials.append(Trial(object_name=self.object_name, mask_xy=self.mask_xy,
+                                                                 annuli=ani, subsections=subsec, movement=mov,
+                                                                 numbasis=numbasis, spectrum=spec, corr_smooth=cs,
+                                                                 fake_PAs=self.fake_PAs, fake_fluxes=self.fake_fluxes,
+                                                                 fake_fwhm=self.fake_fwhm, fake_seps=self.fake_seps,
+                                                                 rot_angs=self.dataset.PAs, flipx=self.dataset.flipx,
+                                                                 dn_per_contrast=self.dataset.dn_per_contrast,
+                                                                 wln_um=self.dataset.wvs, highpass=hp,
+                                                                 length=self.dataset.input.shape[1]))
+            else:
+                args = [annuli, subsections, movement, spectrum, corr_smooth, highpass]
+                _, batchindex, batchsize = batched
+                paramset = parameter_set_batcher(batchindex, batchsize, args)
+                for params in paramset:
+                    ani, subsec, mov, spec, cs, hp = params
+                    self.trials.append(Trial(object_name=self.object_name, mask_xy=self.mask_xy,
+                                             annuli=ani, subsections=subsec, movement=mov,
+                                             numbasis=numbasis, spectrum=spec, corr_smooth=cs,
+                                             fake_PAs=self.fake_PAs, fake_fluxes=self.fake_fluxes,
+                                             fake_fwhm=self.fake_fwhm, fake_seps=self.fake_seps,
+                                             rot_angs=self.dataset.PAs, flipx=self.dataset.flipx,
+                                             dn_per_contrast=self.dataset.dn_per_contrast,
+                                             wln_um=self.dataset.wvs, highpass=hp,
+                                             length=self.dataset.input.shape[1]))
         else:
-            args = [annuli, subsections, movement, spectrum, corr_smooth, highpass]
-            _, batchindex, batchsize = batched
-            paramset = parameter_set_batcher(batchindex, batchsize, args)
-            for params in paramset:
-                ani, subsec, mov, spec, cs, hp = params
+            for ani, subsec, mov, spec, nb, cs, hp in zip(annuli, subsections, movement, spectrum, corr_smooth,
+                                                         highpass):
                 self.trials.append(Trial(object_name=self.object_name, mask_xy=self.mask_xy,
                                          annuli=ani, subsections=subsec, movement=mov,
-                                         numbasis=numbasis, spectrum=spec, corr_smooth=cs,
+                                         numbasis=[nb], spectrum=spec, corr_smooth=cs,
                                          fake_PAs=self.fake_PAs, fake_fluxes=self.fake_fluxes,
                                          fake_fwhm=self.fake_fwhm, fake_seps=self.fake_seps,
                                          rot_angs=self.dataset.PAs, flipx=self.dataset.flipx,
