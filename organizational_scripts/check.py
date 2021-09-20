@@ -188,3 +188,8 @@ for ann in annuli:
                                 n += 1
 print(c)
 print(n)
+
+with open(f'{direc}/remainingparams.txt', 'w') as file:
+    for incompleteparams in nc:
+        ann, sbs, mov, spec, nb, cs, hp = incompleteparams
+        file.write(f'{ann},{sbs},{mov},{spec},{nb},{cs},{hp}\n')
