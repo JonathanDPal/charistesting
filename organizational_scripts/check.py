@@ -23,7 +23,7 @@ def paramvaluesfinder(param):
     paramline = None
     fluxes = None
     pas = None
-    with open(os.path.realpath('/log.txt')) as logfile:
+    with open(os.path.realpath('log.txt')) as logfile:
         for line in logfile:
             if str.lower(param) != 'ni':
                 if str.lower(param) in str.lower(line):
