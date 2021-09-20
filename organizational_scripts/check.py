@@ -162,6 +162,7 @@ direc = sys.argv[1]
 klip_outputs = glob(f'{direc}/klipped_cubes_Wfakes/*.fits')
 completed = [valuefinder(file, 'all') for file in klip_outputs]
 
+olddirec = os.getcwd()
 os.chdir(direc)
 annuli = paramvaluesfinder('annuli')
 subsections = paramvaluesfinder('subsections')
@@ -189,6 +190,7 @@ for ann in annuli:
 print(c)
 print(n)
 
+os.chdir(olddirec)
 with open(f'{direc}/remainingparams.txt', 'w') as file:
     for incompleteparams in nc:
         ann, sbs, mov, spec, nb, cs, hp = incompleteparams
