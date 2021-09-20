@@ -816,17 +816,33 @@ class TestDataset:
                                              wln_um=self.dataset.wvs, highpass=hp,
                                              length=self.dataset.input.shape[1]))
         else:
-            for ani, subsec, mov, spec, nb, cs, hp in zip(annuli, subsections, movement, spectrum, corr_smooth,
-                                                         highpass):
-                self.trials.append(Trial(object_name=self.object_name, mask_xy=self.mask_xy,
-                                         annuli=ani, subsections=subsec, movement=mov,
-                                         numbasis=[nb], spectrum=spec, corr_smooth=cs,
-                                         fake_PAs=self.fake_PAs, fake_fluxes=self.fake_fluxes,
-                                         fake_fwhm=self.fake_fwhm, fake_seps=self.fake_seps,
-                                         rot_angs=self.dataset.PAs, flipx=self.dataset.flipx,
-                                         dn_per_contrast=self.dataset.dn_per_contrast,
-                                         wln_um=self.dataset.wvs, highpass=hp,
-                                         length=self.dataset.input.shape[1]))
+            if not isinstance(batched, tuple):
+                for ani, subsec, mov, spec, nb, cs, hp in zip(annuli, subsections, movement, spectrum, corr_smooth,
+                                                             highpass):
+                    self.trials.append(Trial(object_name=self.object_name, mask_xy=self.mask_xy,
+                                             annuli=ani, subsections=subsec, movement=mov,
+                                             numbasis=[nb], spectrum=spec, corr_smooth=cs,
+                                             fake_PAs=self.fake_PAs, fake_fluxes=self.fake_fluxes,
+                                             fake_fwhm=self.fake_fwhm, fake_seps=self.fake_seps,
+                                             rot_angs=self.dataset.PAs, flipx=self.dataset.flipx,
+                                             dn_per_contrast=self.dataset.dn_per_contrast,
+                                             wln_um=self.dataset.wvs, highpass=hp,
+                                             length=self.dataset.input.shape[1]))
+            else:
+                args = [annuli, subsections, movement, spectrum, corr_smooth, highpass]
+                _, batchindex, batchsize = batched
+                paramset = [arg[batchindex:batchindex+batchsize] for arg in args]
+                for params in paramset:
+                    ani, subsec, mov, spec, cs, hp = params
+                    self.trials.append(Trial(object_name=self.object_name, mask_xy=self.mask_xy,
+                                             annuli=ani, subsections=subsec, movement=mov,
+                                             numbasis=numbasis, spectrum=spec, corr_smooth=cs,
+                                             fake_PAs=self.fake_PAs, fake_fluxes=self.fake_fluxes,
+                                             fake_fwhm=self.fake_fwhm, fake_seps=self.fake_seps,
+                                             rot_angs=self.dataset.PAs, flipx=self.dataset.flipx,
+                                             dn_per_contrast=self.dataset.dn_per_contrast,
+                                             wln_um=self.dataset.wvs, highpass=hp,
+                                             length=self.dataset.input.shape[1]))
         # END OF IF/ELSE AND FOR LOOPS #
         self.mode = mode
         self.overwrite = overwrite
