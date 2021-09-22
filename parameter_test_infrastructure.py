@@ -208,6 +208,7 @@ def retrieve_planet_flux(frame, pa, sep, output_wcs, dataset_center, dataset_fwh
     Returns:
         Returns peak flux. If all values within search radius are negative, then the function will return 0.
     """
+
     def gaussian(xy, peak, Fwhm, offset, y0, x0):
         y, x = xy
         sigma = Fwhm / (2 * np.sqrt(2 * np.log(2)))
@@ -312,7 +313,6 @@ def params_from_text_file(paramsfile):
         highpass.append(hp)
 
     return annuli, subsections, movement, spectrum, numbasis, corr_smooth, highpass
-
 
 
 ####################################################################################
@@ -821,7 +821,7 @@ class TestDataset:
         else:
             if not isinstance(batched, tuple):
                 for ani, subsec, mov, spec, nb, cs, hp in zip(annuli, subsections, movement, spectrum, corr_smooth,
-                                                             highpass):
+                                                              highpass):
                     self.trials.append(Trial(object_name=self.object_name, mask_xy=self.mask_xy,
                                              annuli=ani, subsections=subsec, movement=mov,
                                              numbasis=[nb], spectrum=spec, corr_smooth=cs,
