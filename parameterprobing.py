@@ -49,11 +49,7 @@ put_in_fakes =
 run_KLIP_on_dataset_with_fakes =   # if no fakes are injected, this will just be a dataset without fakes
 get_contrast =   # won't be calibrated if no fake planets are injected
 get_planet_detections_from_dataset_with_fakes =
-# Most of the time, these five values below should be set to False
-read_from_text_file =  # gives option to read in a list of parameters to work with from a text file (see help doc for
-# formatting on it)
-text_file =  # if reading from text file, then specify file here in string format (if you aren't using one,
-# then just set to None or whatever else; it won't get used.
+# Most of the time, these three values below should be set to False
 run_KLIP_on_dataset_without_fakes =
 get_planet_detections_from_dataset_without_fakes =
 overwrite =   # whether or not to replace existing files if they exist
@@ -65,10 +61,6 @@ overwrite =   # whether or not to replace existing files if they exist
 ########################
 # CHECKING USER INPUTS #
 ########################
-
-# Reading From Text File if that is approach to getting parmater values
-if read_from_text_file:
-    annuli, subsections, movement, spectrum, numbasis, corr_smooth, highpass = params_from_text_file(text_file)
 
 # Converting into list format if single value given and sanitizing format
 if isinstance(annuli, (int, float)):
@@ -100,7 +92,6 @@ if not isinstance(mode, str):
 if overwrite not in [True, False]:
     raise TypeError("Overwrite needs to be either True or False. Check input.")
 
-
 # SYNTHESIZING USER INPUTS INTO A COUPLE ADDITIONAL BOOLEANS #
 detect_planets = get_planet_detections_from_dataset_with_fakes or get_planet_detections_from_dataset_without_fakes
 if put_in_fakes:
@@ -109,7 +100,6 @@ if put_in_fakes:
 else:
     datasetwithfakes = False
 get_contrast_and_detections = get_contrast or detect_planets
-build_all_combos = not read_from_text_file
 
 # Selecting Batch if Needed (or providing link to instructions document)
 if len(sys.argv) != 1:
@@ -144,7 +134,7 @@ td0 = TestDataset(fileset=fileset0, object_name=object_name0, mask_xy=mask0, fak
                   fake_seps=fake_seps, annuli=annuli, subsections=subsections, movement=movement, numbasis=numbasis,
                   corr_smooth=corr_smooth, highpass=highpass, spectrum=spectrum, mode=mode, fake_PAs=fake_PAs,
                   fake_fwhm=fake_fwhm0, batched=batched, overwrite=overwrite, memorylite=memorylite,
-                  build_all_combos=build_all_combos)
+                  build_all_combos=True)
 
 # Have TestDataset 0 Run Each Part
 # if we want KLIP output of data without fakes, we need to run KLIP before injecting planets
