@@ -821,8 +821,8 @@ class TestDataset:
                                              length=self.dataset.input.shape[1]))
         else:
             if not isinstance(batched, tuple):
-                for ani, subsec, mov, spec, nb, cs, hp in zip(annuli, subsections, movement, spectrum, corr_smooth,
-                                                              highpass):
+                for ani, subsec, mov, spec, nb, cs, hp in zip(annuli, subsections, movement, spectrum,
+                                                              numbasis, corr_smooth, highpass):
                     self.trials.append(Trial(object_name=self.object_name, mask_xy=self.mask_xy,
                                              annuli=ani, subsections=subsec, movement=mov,
                                              numbasis=[nb], spectrum=spec, corr_smooth=cs,
