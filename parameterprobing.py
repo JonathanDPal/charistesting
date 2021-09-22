@@ -77,7 +77,7 @@ if isinstance(subsections, (int, float)):
     subsections = [int(subsections)]
 if isinstance(movement, (int, float)):
     movement = [float(movement)]
-if isinstance(spectrum, (type(None), str)):
+if isinstance(spectrum, (NoneType, str)):
     spectrum = [spectrum]
 if isinstance(numbasis, (int, float)):
     numbasis = [int(numbasis)]
