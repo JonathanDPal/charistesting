@@ -5,7 +5,11 @@ check.py: This script searched through a top level
 output directory indicated by command line argument, 
 then indicated how many parameter combinations had
 been completed and how many were left, based on hard
-coded values for each parameter.
+coded values for each parameter. It also creates a
+text file containing all the remaining parameter
+combinations, where each parameter combination is on
+one line, with individual parameters seperated by
+commas.
 
 injection_locations.py: This script will take in some
 hard coded suggestions for position angles and 
