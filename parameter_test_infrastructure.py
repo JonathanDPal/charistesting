@@ -831,7 +831,9 @@ class TestDataset:
             else:
                 args = [annuli, subsections, movement, spectrum, corr_smooth, highpass]
                 _, batchindex, batchsize = batched
-                paramset = [arg[batchindex:batchindex+batchsize] for arg in args]
+                startindex = batchsize * (batchindex - 1)  # 1-based indexing being passed in
+                endindex = startindex + batchsize
+                paramset = [arg[startindex: endindex] for arg in args]
                 for params in paramset:
                     ani, subsec, mov, spec, cs, hp = params
                     self.trials.append(Trial(object_name=self.object_name, mask_xy=self.mask_xy,
