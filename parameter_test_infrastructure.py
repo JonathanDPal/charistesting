@@ -306,7 +306,7 @@ def params_from_text_file(paramsfile):
         else:
             hp = float(hp)
         annuli.append(ann)
-        sbs.append(sbs)
+        subsections.append(sbs)
         movement.append(mov)
         spectrum.append(spec)
         numbasis.append(nb)
