@@ -90,6 +90,11 @@ def valuefinder(filename, param):
         return values
 
 
+reference_score = 0
+for reference in reference_contrast:
+    _, reference_val = reference
+    reference_score += np.log10(reference_val)
+
 annuli, subsections, movement, numbasis, corr_smooth, highpass, score = list(), list(), list(), list(), list(), \
                                                                         list(), list()
 for file in contrastfiles:
@@ -105,13 +110,13 @@ for file in contrastfiles:
     contrast = df['Calibrated Contrast']
     seps = df['Seperation']
 
-    sum = 0
+    score_sum = 0
     for reference in reference_contrast:
-        sep, reference_value = reference
+        sep, _ = reference
         closest_seperation_index = np.argmin(sep - seps)
-        sum += (reference_value / contrast[closest_seperation_index])
+        score_sum += (np.log10(contrast[closest_seperation_index]))
 
-    score.append((sum / len(reference_contrast)) * 100)  # taking average value and multiplying by 100
+    score.append((score_sum / reference_score) * 100)
 
 finaldata = pd.DataFrame({'Annuli': annuli, 'Subsections': subsections, 'Movement': movement, 'Numbasis': numbasis,
                           'Corr_Smooth': corr_smooth, 'Highpass': highpass, 'Score': score})
