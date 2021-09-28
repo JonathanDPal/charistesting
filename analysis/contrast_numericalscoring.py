@@ -3,7 +3,8 @@ from glob import glob
 import sys
 import pandas as pd
 
-reference_contrast = []  # some values that are the standard everything is judged against
+reference_contrast = [(20, 1e-5), (40, 5e-5), (60, 1e-6)]  # some values that are the standard everything is judged
+# against (first value is seperation, second is standard value for that seperation)
 
 contrastfiles = glob(f'{sys.argv[1]}/calibrated_contrast/*.csv')
 
@@ -102,6 +103,18 @@ for file in contrastfiles:
 
     df = pd.read_csv(file)
     contrast = df['Calibrated Contrast']
+    seps = df['Seperation']
 
+    sum = 0
+    for reference in reference_contrast:
+        sep, reference_value = reference
+        closest_seperation_index = np.argmin(sep - seps)
+        sum += (reference_value / contrast[closest_seperation_index])
 
+    score.append(sum / len(reference_contrast))  # taking average value
 
+with open(f'{sys.argv[1]}/contrast_scores.csv', 'w') as file:
+    file.write('Annuli,Subsections,Movement,Spectrum,Numbasis,Corr_Smooth,Highpass,Score\n')
+    for ann, sbs, mov, spec, nb, cs, hp, sco in zip(annuli, subsections, movement, numbasis, corr_smooth, highpass,
+                                                     score):
+        file.write(f'{ann},{sbs},{mov},{spec},{nb},{cs},{hp},{sco}\n')
