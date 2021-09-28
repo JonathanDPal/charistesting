@@ -111,10 +111,9 @@ for file in contrastfiles:
         closest_seperation_index = np.argmin(sep - seps)
         sum += (reference_value / contrast[closest_seperation_index])
 
-    score.append(sum / len(reference_contrast))  # taking average value
+    score.append((sum / len(reference_contrast)) * 100)  # taking average value and multiplying by 100
 
-with open(f'{sys.argv[1]}/contrast_scores.csv', 'w') as file:
-    file.write('Annuli,Subsections,Movement,Spectrum,Numbasis,Corr_Smooth,Highpass,Score\n')
-    for ann, sbs, mov, spec, nb, cs, hp, sco in zip(annuli, subsections, movement, numbasis, corr_smooth, highpass,
-                                                     score):
-        file.write(f'{ann},{sbs},{mov},{spec},{nb},{cs},{hp},{sco}\n')
+finaldata = pd.DataFrame({'Annuli': annuli, 'Subsections': subsections, 'Movement': movement, 'Numbasis': numbasis,
+                          'Corr_Smooth': corr_smooth, 'Highpass': highpass, 'Score': score})
+sorted_by_score = finaldata.sort_values(by='Score', ascending=False)
+sorted_by_score.to_csv('contrast_scores.csv')
