@@ -5,11 +5,8 @@ import pandas as pd
 
 reference_contrast = [(20, 1e-5), (40, 5e-6), (60, 1e-6)]  # some values that are the standard everything is judged
 # against (first value is seperation, second is standard value for that seperation)
-
 total_injected = 18
-
-injected_fluxes = [(20, 2e-4, 1e-4), (40, 1e-4, 5e-5), (60, 5e-5, 1e-5)]
-
+injected_fluxes = [(20, (2e-4, 1e-4)), (40, (1e-4, 5e-5)), (60, (5e-5, 1e-5))]
 detectionsfiles = glob(f'{sys.argv[1]}/detections/*.csv')
 
 
@@ -94,6 +91,22 @@ def valuefinder(filename, param):
         return values
 
 
+reference_planets_snr = []
+for reference, inj_flux in zip(reference_contrast, injected_fluxes):
+    _, ref_contrast = reference
+    ref_contrast /= 5  # stuff above is 5 sigma contrast
+    _, fluxes = inj_flux
+    for flux in fluxes:
+        for _ in range(int(total_injected / (len(injected_fluxes) * len(fluxes)))):
+            reference_planets_snr.append(flux / ref_contrast)
+snr_values = np.arange(start=2, stop=np.ceil(np.max(reference_planets_snr)), step=1)
+ref_individual_scores = list()
+for snr in snr_values:
+    tp = len([ref_snr for ref_snr in reference_planets_snr if ref_snr >= snr])
+    ind_score = snr * (tp / total_injected)
+    ref_individual_scores.append(ind_score)
+reference_score = np.mean(ref_individual_scores)
+
 annuli, subsections, movement, numbasis, corr_smooth, highpass, score = list(), list(), list(), list(), list(), \
                                                                         list(), list()
 for file in detectionsfiles:
@@ -107,11 +120,11 @@ for file in detectionsfiles:
 
     df = pd.read_csv(file)
     df = df[df['Injected'] != 'Science Target']  # ignoring science targets for scoring
-    snrvals = np.flip(np.arange(start=2, stop=50, step=1))
+    snrvals = np.arange(start=2, stop=np.ceil(df['SNR Value'].max()), step=1)
 
     individual_scores = list()
     for snr in snrvals:
-        df1 = df[df['SNR Value'] > snr]
+        df1 = df[df['SNR Value'] >= snr]
         inj = list(df1['Injected'])
         tp = 0
         fp = 0
@@ -130,7 +143,7 @@ for file in detectionsfiles:
             individual_scores.append(ind_score)
 
     cumulative_score = np.mean(individual_scores)
-    score.append(cumulative_score)
+    score.append(cumulative_score / reference_score * 100)
 
 finaldata = pd.DataFrame({'Annuli': annuli, 'Subsections': subsections, 'Movement': movement, 'Numbasis': numbasis,
                           'Corr_Smooth': corr_smooth, 'Highpass': highpass, 'Score': score})
