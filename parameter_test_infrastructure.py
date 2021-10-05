@@ -966,9 +966,10 @@ class TestDataset:
             with log_file_output(self.object_name):
                 klip_dataset(self.dataset, outputdir=self.object_name + '/klipped_cubes_Wfakes',
                              fileprefix=self.object_name + '_withfakes_' + trial.klip_parameters,
-                             annuli=trial.annuli, subsections=trial.subsections, movement=trial.movement,
-                             numbasis=trial.numbasis, spectrum=trial.spectrum, corr_smooth=trial.corr_smooth,
-                             highpass=trial.highpass, mode=self.mode, numthreads=numthreads, verbose=True,
+                             annuli=deepcopy(trial.annuli), subsections=deepcopy(trial.subsections),
+                             movement=deepcopy(trial.movement), numbasis=deepcopy(trial.numbasis),
+                             spectrum=deepcopy(trial.spectrum), corr_smooth=deepcopy(trial.corr_smooth),
+                             highpass=deepcopy(trial.highpass), mode=self.mode, numthreads=numthreads, verbose=True,
                              lite=self.memorylite)
 
             # Update Every 20 or When Completely Done
@@ -1018,7 +1019,7 @@ class TestDataset:
             for i, trial in enumerate(self.trials):
                 trial.get_contrast(contains_fakes=datasetwithfakes)
                 if (i + 1) % 100 == 0:
-                    print(f'# DONE WITH CONTRAST FOR {i + 1} TRIALS')
+                    print(f'# DONE WITH CONTRAST FOR {i + 1} TRIALS #')
 
         if run_planet_detection:
             self.write_to_log_and_print(f'### DONE WITH CONTRAST FOR {self.object_name}. BEGINNING DETECTION ###')
