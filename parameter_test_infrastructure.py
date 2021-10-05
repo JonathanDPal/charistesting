@@ -762,16 +762,23 @@ class TestDataset:
 
         self.write_to_log(f'Title for Set: {object_name}', 'w')
         self.write_to_log(f'\nFileset: {fileset}')
-        param_names = ['Annuli', 'Subsections', 'Movement', 'Numbasis', 'Corr_Smooth', 'Highpass', 'Spectrum',
-                       'Mode', 'Fake Fluxes', 'Fake Seps', 'Fake PAs', 'Fake FWHM']
-        params = [annuli, subsections, movement, numbasis, corr_smooth, highpass, spectrum]
-        number_of_paramcombos = np.prod([len(p) for p in params])
-        self.write_to_log(f'\nNumber of Parameter Combinations: {number_of_paramcombos}')
 
-        for param in [mode, fake_fluxes, fake_seps, fake_PAs, fake_fwhm]:
-            params.append(param)
-        for name, param in zip(param_names, params):
-            self.write_to_log(f'\n{name}: {param}')
+        if build_all_combos:
+            param_names = ['Annuli', 'Subsections', 'Movement', 'Numbasis', 'Corr_Smooth', 'Highpass', 'Spectrum',
+                           'Mode', 'Fake Fluxes', 'Fake Seps', 'Fake PAs', 'Fake FWHM']
+            params = [annuli, subsections, movement, numbasis, corr_smooth, highpass, spectrum]
+            number_of_paramcombos = np.prod([len(p) for p in params])
+            self.write_to_log(f'\nNumber of Parameter Combinations: {number_of_paramcombos}')
+
+            for param in [mode, fake_fluxes, fake_seps, fake_PAs, fake_fwhm]:
+                params.append(param)
+            for name, param in zip(param_names, params):
+                self.write_to_log(f'\n{name}: {param}')
+        else:  # don't want to write in all values if using text file (could be tens of thousands)
+            param_names = ['KLIP Parameters:' 'Mode', 'Fake Fluxes', 'Fake Seps', 'Fake PAs', 'Fake FWHM']
+            params = ['from a text file', mode, fake_fluxes, fake_seps, fake_PAs, fake_fwhm]
+            for name, param in zip(param_names, params):
+                self.write_to_log(f'\n{name}: {param}')
 
         self.write_to_log_and_print(f'############### STARTING WORK ON {self.object_name} ################\n')
 
