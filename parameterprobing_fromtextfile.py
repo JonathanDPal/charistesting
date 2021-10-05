@@ -78,7 +78,7 @@ if isinstance(highpass, (bool, int, float)):
 for param in [[annuli, 'annuli'], [subsections, 'subsections'], [movement, 'movement'], [spectrum, 'spectrum'],
               [corr_smooth, 'corr_smooth'], [highpass, 'highpass']]:
     if not isinstance(param[0], (list, tuple, np.ndarray)):
-        raise TypeError(f"{param[1]} could not be coerced into a list safely. Check input. See "
+        raise TypeError(f"{param[1]} cannot be coerced into a list safely. Check input. See "
                         "https://docs.google.com/document/d/1yX0l96IZs1IxxKCRmriVSAQM3KFGF9U1-FnpJXhcLXo/edit?usp"
                         "=sharing for help")
 
