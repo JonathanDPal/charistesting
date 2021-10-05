@@ -963,14 +963,6 @@ class TestDataset:
                     self.write_to_log_and_print(f"{filename} ALREADY EXISTS -- continuing without running KLIP on this "
                                                 f"set of parameters")
                     continue
-            print(f'Annuli: {trial.annuli}; {type(trial.annuli)}')
-            print(f'Subsections: {trial.subsections}; {type(trial.subsections)}')
-            print(f'Movement: {trial.movement}; {type(trial.movement)}')
-            print(f'Numbasis: {trial.numbasis}; {type(trial.numbasis)}')
-            print(f'Spectrum: {trial.spectrum}; {type(trial.spectrum)}')
-            print(f'Smoothing: {trial.corr_smooth}; {type(trial.corr_smooth)}')
-            print(f'Highpass: {trial.highpass}; {type(trial.highpass)}')
-            raise KeyboardInterrupt
 
             with log_file_output(self.object_name):
                 klip_dataset(self.dataset, outputdir=self.object_name + '/klipped_cubes_Wfakes',
