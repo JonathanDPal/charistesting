@@ -974,10 +974,9 @@ class TestDataset:
             with log_file_output(self.object_name):
                 klip_dataset(self.dataset, outputdir=self.object_name + '/klipped_cubes_Wfakes',
                              fileprefix=self.object_name + '_withfakes_' + trial.klip_parameters,
-                             annuli=deepcopy(trial.annuli), subsections=deepcopy(trial.subsections),
-                             movement=deepcopy(trial.movement), numbasis=deepcopy(trial.numbasis),
-                             spectrum=deepcopy(trial.spectrum), corr_smooth=deepcopy(trial.corr_smooth),
-                             highpass=deepcopy(trial.highpass), mode=self.mode, numthreads=numthreads, verbose=True,
+                             annuli=trial.annuli, subsections=trial.subsections, movement=trial.movement,
+                             numbasis=trial.numbasis, spectrum=trial.spectrum, corr_smooth=trial.corr_smooth,
+                             highpass=trial.highpass, mode=self.mode, numthreads=numthreads, verbose=True,
                              lite=self.memorylite)
 
             # Update Every 20 or When Completely Done
