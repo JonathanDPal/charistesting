@@ -843,7 +843,7 @@ class TestDataset:
                     ani, subsec, mov, nb, spec, cs, hp = params
                     self.trials.append(Trial(object_name=self.object_name, mask_xy=self.mask_xy,
                                              annuli=ani, subsections=subsec, movement=mov,
-                                             numbasis=nb, spectrum=spec, corr_smooth=cs,
+                                             numbasis=[nb], spectrum=spec, corr_smooth=cs,
                                              fake_PAs=self.fake_PAs, fake_fluxes=self.fake_fluxes,
                                              fake_fwhm=self.fake_fwhm, fake_seps=self.fake_seps,
                                              rot_angs=self.dataset.PAs, flipx=self.dataset.flipx,
