@@ -113,7 +113,7 @@ annuli, subsections, movement, spectrum, numbasis, corr_smooth, highpass, score 
 for file in detectionsfiles:
     ann, sbs, mov, spec, nb, cs, hp = valuefinder(file, 'all')
     annuli.append(ann)
-    sbs.append(sbs)
+    subsections.append(sbs)
     movement.append(mov)
     spectrum.append(spec)
     numbasis.append(nb)

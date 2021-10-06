@@ -100,7 +100,7 @@ annuli, subsections, movement, spectrum, numbasis, corr_smooth, highpass, scores
 for file in contrastfiles:
     ann, sbs, mov, spec, nb, cs, hp = valuefinder(file, 'all')
     annuli.append(ann)
-    sbs.append(sbs)
+    subsections.append(sbs)
     movement.append(mov)
     spectrum.append(spec)
     numbasis.append(nb)
