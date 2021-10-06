@@ -110,8 +110,8 @@ reference_score = np.mean(ref_individual_scores)
 
 annuli, subsections, movement, spectrum, numbasis, corr_smooth, highpass, score = list(), list(), list(), list(), \
                                                                                   list(), list(), list(), list()
-for file in detectionsfiles:
-    ann, sbs, mov, spec, nb, cs, hp = valuefinder(file, 'all')
+for dfile in detectionsfiles:
+    ann, sbs, mov, spec, nb, cs, hp = valuefinder(dfile, 'all')
     annuli.append(ann)
     subsections.append(sbs)
     movement.append(mov)
@@ -120,9 +120,12 @@ for file in detectionsfiles:
     corr_smooth.append(cs)
     highpass.append(hp)
 
-    df = pd.read_csv(file)
+    df = pd.read_csv(dfile)
     df = df[df['Injected'] != 'Science Target']  # ignoring science targets for scoring
-    snrvals = np.arange(start=2, stop=np.ceil(df['SNR Value'].max()), step=1)
+    try:
+        snrvals = np.arange(start=2, stop=np.ceil(df['SNR Value'].max()), step=1)
+    except ValueError:  # this means that the detections file is empty
+        continue
 
     individual_scores = list()
     for snr in snrvals:
@@ -137,9 +140,9 @@ for file in detectionsfiles:
                 elif str.lower(tf) == 'false':
                     fp += 1
             else:
-                if tf == True:
+                if tf is True:
                     tp += 1
-                elif tf == False:
+                elif tf is False:
                     fp += 1
         if tp == 0 and fp == 0:
             continue
@@ -154,7 +157,7 @@ for file in detectionsfiles:
     score.append(cumulative_score / reference_score * 100)
 
 finaldata = pd.DataFrame({'Annuli': annuli, 'Subsections': subsections, 'Movement': movement, 'Spectrum': spectrum,
-                          'Numbasis': numbasis,'Corr_Smooth': corr_smooth, 'Highpass': highpass, 'Score': score})
+                          'Numbasis': numbasis, 'Corr_Smooth': corr_smooth, 'Highpass': highpass, 'Score': score})
 sorted_by_score = finaldata.sort_values(by='Score', ascending=False)
 if not os.path.exists('numericalscoring'):
     os.mkdir('numericalscoring')
