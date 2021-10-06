@@ -111,15 +111,6 @@ reference_score = np.mean(ref_individual_scores)
 annuli, subsections, movement, spectrum, numbasis, corr_smooth, highpass, score = list(), list(), list(), list(), \
                                                                                   list(), list(), list(), list()
 for dfile in detectionsfiles:
-    ann, sbs, mov, spec, nb, cs, hp = valuefinder(dfile, 'all')
-    annuli.append(ann)
-    subsections.append(sbs)
-    movement.append(mov)
-    spectrum.append(spec)
-    numbasis.append(nb)
-    corr_smooth.append(cs)
-    highpass.append(hp)
-
     df = pd.read_csv(dfile)
     df = df[df['Injected'] != 'Science Target']  # ignoring science targets for scoring
     try:
@@ -155,6 +146,15 @@ for dfile in detectionsfiles:
 
     cumulative_score = np.mean(individual_scores)
     score.append(cumulative_score / reference_score * 100)
+
+    ann, sbs, mov, spec, nb, cs, hp = valuefinder(dfile, 'all')
+    annuli.append(ann)
+    subsections.append(sbs)
+    movement.append(mov)
+    spectrum.append(spec)
+    numbasis.append(nb)
+    corr_smooth.append(cs)
+    highpass.append(hp)
 
 finaldata = pd.DataFrame({'Annuli': annuli, 'Subsections': subsections, 'Movement': movement, 'Spectrum': spectrum,
                           'Numbasis': numbasis, 'Corr_Smooth': corr_smooth, 'Highpass': highpass, 'Score': score})
