@@ -1,6 +1,7 @@
 import numpy as np
 from glob import glob
 import sys
+import os
 import pandas as pd
 
 reference_contrast = [(20, 1e-5), (40, 5e-6), (60, 1e-6)]  # some values that are the standard everything is judged
@@ -107,13 +108,14 @@ for snr in snr_values:
     ref_individual_scores.append(ind_score)
 reference_score = np.mean(ref_individual_scores)
 
-annuli, subsections, movement, numbasis, corr_smooth, highpass, score = list(), list(), list(), list(), list(), \
-                                                                        list(), list()
+annuli, subsections, movement, spectrum, numbasis, corr_smooth, highpass, score = list(), list(), list(), list(), \
+                                                                                  list(), list(), list(), list()
 for file in detectionsfiles:
     ann, sbs, mov, spec, nb, cs, hp = valuefinder(file, 'all')
     annuli.append(ann)
     sbs.append(sbs)
     movement.append(mov)
+    spectrum.append(spec)
     numbasis.append(nb)
     corr_smooth.append(cs)
     highpass.append(hp)
@@ -145,7 +147,9 @@ for file in detectionsfiles:
     cumulative_score = np.mean(individual_scores)
     score.append(cumulative_score / reference_score * 100)
 
-finaldata = pd.DataFrame({'Annuli': annuli, 'Subsections': subsections, 'Movement': movement, 'Numbasis': numbasis,
-                          'Corr_Smooth': corr_smooth, 'Highpass': highpass, 'Score': score})
+finaldata = pd.DataFrame({'Annuli': annuli, 'Subsections': subsections, 'Movement': movement, 'Spectrum': spectrum,
+                          'Numbasis': numbasis,'Corr_Smooth': corr_smooth, 'Highpass': highpass, 'Score': score})
 sorted_by_score = finaldata.sort_values(by='Score', ascending=False)
-sorted_by_score.to_csv('snr_scores.csv')
+if not os.path.exists('numericalscoring'):
+    os.mkdir('numericalscoring')
+sorted_by_score.to_csv('numericalscoring/snr_scores.csv')

@@ -9,3 +9,4 @@ python meanheatmap.py annuli movement &
 python meanheatmap.py subsections movement &
 python snr_numericalscoring.py &
 python contrast_numericalscoring.py &
+python overall_numericalscoring.py "$1" "$2"

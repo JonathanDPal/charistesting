@@ -93,15 +93,16 @@ def valuefinder(filename, param):
 reference_score = 0
 for reference in reference_contrast:
     _, reference_val = reference
-    reference_score += np.log10(reference_val)
+    reference_score += np.log10(reference_val / 5)  # stuff above is 5 sigma contrast
 
-annuli, subsections, movement, numbasis, corr_smooth, highpass, score = list(), list(), list(), list(), list(), \
-                                                                        list(), list()
+annuli, subsections, movement, spectrum, numbasis, corr_smooth, highpass, scores = list(), list(), list(), list(), \
+                                                                                   list(), list(), list(), list()
 for file in contrastfiles:
     ann, sbs, mov, spec, nb, cs, hp = valuefinder(file, 'all')
     annuli.append(ann)
     sbs.append(sbs)
     movement.append(mov)
+    spectrum.append(spec)
     numbasis.append(nb)
     corr_smooth.append(cs)
     highpass.append(hp)
@@ -114,11 +115,13 @@ for file in contrastfiles:
     for reference in reference_contrast:
         sep, _ = reference
         closest_seperation_index = np.argmin(sep - seps)
-        score_sum += (np.log10(contrast[closest_seperation_index]))
+        score_sum += (np.log10(contrast[closest_seperation_index]) / 5)  # measures 5 sigma contrast
 
-    score.append((score_sum / reference_score) * 100)
+    scores.append((score_sum / reference_score) * 100)
 
-finaldata = pd.DataFrame({'Annuli': annuli, 'Subsections': subsections, 'Movement': movement, 'Numbasis': numbasis,
-                          'Corr_Smooth': corr_smooth, 'Highpass': highpass, 'Score': score})
+finaldata = pd.DataFrame({'Annuli': annuli, 'Subsections': subsections, 'Movement': movement, 'Spectrum': spectrum,
+                          'Numbasis': numbasis, 'Corr_Smooth': corr_smooth, 'Highpass': highpass, 'Score': scores})
 sorted_by_score = finaldata.sort_values(by='Score', ascending=False)
-sorted_by_score.to_csv('contrast_scores.csv')
+if not os.path.exists('numericalscoring'):
+    os.mkdir('numericalscoring')
+sorted_by_score.to_csv('numericalscoring/contrast_scores.csv')
