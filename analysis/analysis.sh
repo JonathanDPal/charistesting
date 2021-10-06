@@ -7,3 +7,5 @@ python maxheatmap.py subsections movement &
 python meanheatmap.py annuli subsections &
 python meanheatmap.py annuli movement &
 python meanheatmap.py subsections movement &
+python snr_numericalscoring.py &
+python contrast_numericalscoring.py &
