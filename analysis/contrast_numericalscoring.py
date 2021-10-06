@@ -6,7 +6,7 @@ import pandas as pd
 reference_contrast = [(20, 1e-5), (40, 5e-5), (60, 1e-6)]  # some values that are the standard everything is judged
 # against (first value is seperation, second is standard value for that seperation)
 
-contrastfiles = glob(f'{sys.argv[1]}/calibrated_contrast/*.csv')
+contrastfiles = glob('../calibrated_contrast/*.csv')
 
 
 def valuefinder(filename, param):

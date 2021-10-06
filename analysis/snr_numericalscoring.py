@@ -8,7 +8,7 @@ reference_contrast = [(20, 1e-5), (40, 5e-6), (60, 1e-6)]  # some values that ar
 # against (first value is seperation, second is standard value for that seperation)
 total_injected = 18
 injected_fluxes = [(20, (2e-4, 1e-4)), (40, (1e-4, 5e-5)), (60, (5e-5, 1e-5))]
-detectionsfiles = glob(f'{sys.argv[1]}/detections/*.csv')
+detectionsfiles = glob('../detections/*.csv')
 
 
 def valuefinder(filename, param):
