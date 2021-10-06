@@ -131,10 +131,16 @@ for file in detectionsfiles:
         tp = 0
         fp = 0
         for tf in inj:
-            if str.lower(tf) == 'true':
-                tp += 1
-            elif str.lower(tf) == 'false':
-                fp += 1
+            if type(tf) == str:
+                if str.lower(tf) == 'true':
+                    tp += 1
+                elif str.lower(tf) == 'false':
+                    fp += 1
+            else:
+                if tf == True:
+                    tp += 1
+                elif tf == False:
+                    fp += 1
         if tp == 0 and fp == 0:
             continue
         elif tp == 0 and fp > 0:
