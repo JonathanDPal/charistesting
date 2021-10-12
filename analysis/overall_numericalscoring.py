@@ -13,13 +13,29 @@ del snrdf['Unnamed: 0']
 contrastdf = pd.read_csv(contrastfile)
 del contrastdf['Unnamed: 0']
 
+
+def hp_fixer(hp):
+    """
+    Needed because highpass has multiple data types (bool & float)
+    """
+    if hp == 'True':
+        hp = True
+    elif hp == 'False':
+        hp = False
+    else:
+        hp = float(hp)
+    return hp
+
+
 for _, row in snrdf.iterrows():
     ann, sbs, mov, spec, nb, cs, hp, score = row
+    hp = hp_fixer(hp)
     params = (ann, sbs, mov, spec, nb, cs, hp)
     fulldata[params] = list()
     fulldata[params].append(score)
 for _, row in contrastdf.iterrows():
     ann, sbs, mov, spec, nb, cs, hp, score = row
+    hp = hp_fixer(hp)
     params = (ann, sbs, mov, spec, nb, cs, hp)
     fulldata[params].append(score)
 
@@ -38,6 +54,7 @@ for params, overall_score in zip(fulldata.keys(), fulldata.values()):
     if overall_score == 'skip':
         continue
     ann, sbs, mov, spec, nb, cs, hp = params
+    hp = hp_fixer(hp)
     annuli.append(ann)
     subsections.append(sbs)
     movement.append(mov)
