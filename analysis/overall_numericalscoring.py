@@ -37,14 +37,17 @@ for _, row in contrastdf.iterrows():
     ann, sbs, mov, spec, nb, cs, hp, score = row
     hp = hp_fixer(hp)
     params = (ann, sbs, mov, spec, nb, cs, hp)
-    fulldata[params].append(score)
+    try:
+        fulldata[params].append(score)
+    except KeyError:  # means params weren't in other DataFrame
+        continue
 
 for params in fulldata.keys():
     try:
         snrscore, contrastscore = fulldata[params]
         weighted_mean = (snrweight * snrscore + contrastweight * contrastscore) / (snrweight + contrastweight)
         fulldata[params] = weighted_mean
-    except ValueError:
+    except ValueError:  # means params weren't in both DataFrames
         fulldata[params] = 'skip'
 
 annuli, subsections, movement, spectrum, numbasis, corr_smooth, highpass, scores = list(), list(), list(), list(), \
