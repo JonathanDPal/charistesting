@@ -3,6 +3,7 @@ from glob import glob
 import sys
 import pandas as pd
 import pandas.errors
+import os
 
 reference_contrast = [(20, 1e-5), (40, 5e-5), (60, 1e-6)]  # some values that are the standard everything is judged
 # against (first value is seperation, second is standard value for that seperation)
