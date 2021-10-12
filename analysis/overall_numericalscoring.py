@@ -22,14 +22,19 @@ for _, row in contrastdf.iterrows():
     fulldata[params].append(score)
 
 for params in fulldata.keys():
-    snrscore, contrastscore = fulldata[params]
-    weighted_mean = (snrweight * snrscore + contrastweight * contrastscore) / (snrweight + contrastweight)
-    fulldata[params] = weighted_mean
+    try:
+        snrscore, contrastscore = fulldata[params]
+        weighted_mean = (snrweight * snrscore + contrastweight * contrastscore) / (snrweight + contrastweight)
+        fulldata[params] = weighted_mean
+    except ValueError:
+        fulldata[params] = 'skip'
 
 annuli, subsections, movement, spectrum, numbasis, corr_smooth, highpass, scores = list(), list(), list(), list(), \
                                                                                    list(), list(), list(), list()
 
 for params, overall_score in zip(fulldata.keys(), fulldata.values()):
+    if overall_score == 'skip':
+        continue
     ann, sbs, mov, spec, nb, cs, hp = params
     annuli.append(ann)
     subsections.append(sbs)
