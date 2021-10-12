@@ -9,7 +9,9 @@ contrastweight = float(sys.argv[2])
 
 fulldata = dict()
 snrdf = pd.read_csv(snrfile)
+del snrdf['Unnamed: 0']
 contrastdf = pd.read_csv(contrastfile)
+del contrastdf['Unnamed: 0']
 
 for _, row in snrdf.iterrows():
     ann, sbs, mov, spec, nb, cs, hp, score = row
