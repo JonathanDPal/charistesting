@@ -99,15 +99,6 @@ for reference in reference_contrast:
 annuli, subsections, movement, spectrum, numbasis, corr_smooth, highpass, scores = list(), list(), list(), list(), \
                                                                                    list(), list(), list(), list()
 for cfile in contrastfiles:
-    ann, sbs, mov, spec, nb, cs, hp = valuefinder(cfile, 'all')
-    annuli.append(ann)
-    subsections.append(sbs)
-    movement.append(mov)
-    spectrum.append(spec)
-    numbasis.append(nb)
-    corr_smooth.append(cs)
-    highpass.append(hp)
-
     try:
         df = pd.read_csv(cfile)
     except pandas.errors.EmptyDataError:
@@ -123,6 +114,15 @@ for cfile in contrastfiles:
         score_sum += (np.log10(contrast[closest_seperation_index]) / 5)  # measures 5 sigma contrast
 
     scores.append((score_sum / reference_score) * 100)
+
+    ann, sbs, mov, spec, nb, cs, hp = valuefinder(cfile, 'all')
+    annuli.append(ann)
+    subsections.append(sbs)
+    movement.append(mov)
+    spectrum.append(spec)
+    numbasis.append(nb)
+    corr_smooth.append(cs)
+    highpass.append(hp)
 
 finaldata = pd.DataFrame({'Annuli': annuli, 'Subsections': subsections, 'Movement': movement, 'Spectrum': spectrum,
                           'Numbasis': numbasis, 'Corr_Smooth': corr_smooth, 'Highpass': highpass, 'Score': scores})
