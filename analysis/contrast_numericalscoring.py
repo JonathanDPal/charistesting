@@ -2,6 +2,7 @@ import numpy as np
 from glob import glob
 import sys
 import pandas as pd
+import pandas.errors
 
 reference_contrast = [(20, 1e-5), (40, 5e-5), (60, 1e-6)]  # some values that are the standard everything is judged
 # against (first value is seperation, second is standard value for that seperation)
@@ -97,8 +98,8 @@ for reference in reference_contrast:
 
 annuli, subsections, movement, spectrum, numbasis, corr_smooth, highpass, scores = list(), list(), list(), list(), \
                                                                                    list(), list(), list(), list()
-for file in contrastfiles:
-    ann, sbs, mov, spec, nb, cs, hp = valuefinder(file, 'all')
+for cfile in contrastfiles:
+    ann, sbs, mov, spec, nb, cs, hp = valuefinder(cfile, 'all')
     annuli.append(ann)
     subsections.append(sbs)
     movement.append(mov)
@@ -107,7 +108,11 @@ for file in contrastfiles:
     corr_smooth.append(cs)
     highpass.append(hp)
 
-    df = pd.read_csv(file)
+    try:
+        df = pd.read_csv(cfile)
+    except pandas.errors.EmptyDataError:
+        print(f'{cfile} had no columns to parse. Will not be included in final CSV')
+        continue
     contrast = df['Calibrated Contrast']
     seps = df['Seperation']
 
