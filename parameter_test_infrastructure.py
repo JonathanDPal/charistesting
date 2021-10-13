@@ -247,7 +247,8 @@ def retrieve_planet_flux(frame, pa, sep, output_wcs, dataset_center, dataset_fwh
     within_search_radius = vals_w_distances[vals_w_distances['distance squared'] <= searchradius ** 2]
     data_to_fit, yvals, xvals = within_search_radius['vals'], within_search_radius['y'], within_search_radius['x']
 
-    allneg = (np.max(data_to_fit) < 0)  # boolean value
+    allneg = (np.max(data_to_fit) <= 0)  # boolean value; using <= instead of < since code will break if both upper
+    # bound and lower bound are 0 for flux
 
     if allneg:
         # just making this as a definition (if all negative, then contrast sucks, so nothing can be detected). We're
