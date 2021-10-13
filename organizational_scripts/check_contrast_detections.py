@@ -301,7 +301,7 @@ with open(f'{direc}/remainingdetectionsparams.txt', 'w') as file:
     for incompleteparams in nc:
         ann, sbs, mov, spec, nb, cs, hp = incompleteparams
         file.write(f'{ann},{sbs},{mov},{spec},{nb},{cs},{hp}\n')
-with open(f'{direc}/remainingcontrastparams.txt', 'w'):
+with open(f'{direc}/remainingcontrastparams.txt', 'w') as file:
     for incompleteparams2 in nnc:
         ann, sbs, mov, spec, nb, cs, hp, _ = incompleteparams2
         file.write(f'{ann},{sbs},{mov},{spec},{nb},{cs},{hp}\n')
