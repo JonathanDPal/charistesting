@@ -241,10 +241,25 @@ def valuefinder2(filename, param):
 
 
 direc = sys.argv[1]
-contrast_files = glob(f'{direc}/calibrated_contrast/*.csv')
-detection_files = glob(f'{direc}/detections/*.csv')
-contrast_completed = [valuefinder(file, 'all') for file in contrast_files]
-detection_completed = [valuefinder2(file, 'all') for file in detection_files]
+if len(sys.argv) > 2:
+    if sys.argv[2] == 'contrast':
+        look_at_contrast = True
+        look_at_detections = False
+    elif sys.argv[2] == 'detections':
+        look_at_contrast = False
+        look_at_detections = True
+    else:
+        raise ValueError('Second keyword argument should be either "contrast" or "detections"')
+else:
+    look_at_contrast, look_at_detections = True, True
+
+if look_at_contrast:
+    contrast_files = glob(f'{direc}/calibrated_contrast/*.csv')
+    contrast_completed = [valuefinder(file, 'all') for file in contrast_files]
+
+if look_at_detections:
+    detection_files = glob(f'{direc}/detections/*.csv')
+    detection_completed = [valuefinder2(file, 'all') for file in detection_files]
 
 olddirec = os.getcwd()
 os.chdir(direc)
@@ -256,52 +271,55 @@ corr_smooth = paramvaluesfinder('corr_smooth')
 highpass = paramvaluesfinder('highpass')
 wavelength = [float(f'{wvl}') for wvl in [1.16, 1.24, 1.28, 1.2, 1.33, 1.47, 1.52, 1.87, 1.8, 1.93, 2.0, 2.07, 2.14,
                                           2.21, 2.29, 2.37]]
+if look_at_contrast:
+    cc = 0
+    nn = 0
+    nnc = list()
+    for ann in annuli:
+        for sbs in subsections:
+            for mov in movement:
+                for spec in [None]:
+                    for nb in numbasis:
+                        for cs in corr_smooth:
+                            for hp in highpass:
+                                for wv in wavelength:
+                                    if [ann, sbs, mov, spec, nb, cs, hp, wv] in contrast_completed:
+                                        cc += 1
+                                    else:
+                                        nnc.append([ann, sbs, mov, spec, nb, cs, hp, wv])
+                                        nn += 1
+    print('Contrast Files:')
+    print(cc)
+    print(nn)
 
-cc = 0
-nn = 0
-nnc = list()
-for ann in annuli:
-    for sbs in subsections:
-        for mov in movement:
-            for spec in [None]:
-                for nb in numbasis:
-                    for cs in corr_smooth:
-                        for hp in highpass:
-                            for wv in wavelength:
-                                if [ann, sbs, mov, spec, nb, cs, hp, wv] in contrast_completed:
-                                    cc += 1
+if look_at_detections:
+    c = 0
+    n = 0
+    nc = list()
+    for ann in annuli:
+        for sbs in subsections:
+            for mov in movement:
+                for spec in [None]:
+                    for nb in numbasis:
+                        for cs in corr_smooth:
+                            for hp in highpass:
+                                if [ann, sbs, mov, spec, nb, cs, hp] in detection_completed:
+                                    c += 1
                                 else:
-                                    nnc.append([ann, sbs, mov, spec, nb, cs, hp, wv])
-                                    nn += 1
-
-c = 0
-n = 0
-nc = list()
-for ann in annuli:
-    for sbs in subsections:
-        for mov in movement:
-            for spec in [None]:
-                for nb in numbasis:
-                    for cs in corr_smooth:
-                        for hp in highpass:
-                            if [ann, sbs, mov, spec, nb, cs, hp] in detection_completed:
-                                c += 1
-                            else:
-                                nc.append([ann, sbs, mov, spec, nb, cs, hp])
-                                n += 1
-print('Contrast Files:')
-print(cc)
-print(nn)
-print('Detections Files:')
-print(c)
-print(n)
+                                    nc.append([ann, sbs, mov, spec, nb, cs, hp])
+                                    n += 1
+    print('Detections Files:')
+    print(c)
+    print(n)
 
 os.chdir(olddirec)
-with open(f'{direc}/remainingdetectionsparams.txt', 'w') as file:
-    for incompleteparams in nc:
-        ann, sbs, mov, spec, nb, cs, hp = incompleteparams
-        file.write(f'{ann},{sbs},{mov},{spec},{nb},{cs},{hp}\n')
-with open(f'{direc}/remainingcontrastparams.txt', 'w') as file:
-    for incompleteparams2 in nnc:
-        ann, sbs, mov, spec, nb, cs, hp, _ = incompleteparams2
-        file.write(f'{ann},{sbs},{mov},{spec},{nb},{cs},{hp}\n')
+if look_at_detections:
+    with open(f'{direc}/remainingdetectionsparams.txt', 'w') as file:
+        for incompleteparams in nc:
+            ann, sbs, mov, spec, nb, cs, hp = incompleteparams
+            file.write(f'{ann},{sbs},{mov},{spec},{nb},{cs},{hp}\n')
+if look_at_contrast:
+    with open(f'{direc}/remainingcontrastparams.txt', 'w') as file:
+        for incompleteparams2 in nnc:
+            ann, sbs, mov, spec, nb, cs, hp, _ = incompleteparams2
+            file.write(f'{ann},{sbs},{mov},{spec},{nb},{cs},{hp}\n')
