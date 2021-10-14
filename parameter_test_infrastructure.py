@@ -993,8 +993,7 @@ class TestDataset:
                     klip_runs + 1) / float(number_of_klip) * 100, 1), minutes_per_run))
                 prevtime = time()
 
-    def contrast_and_detection(self, run_contrast=True, run_planet_detection=True, datasetwithfakes=True,
-                               numthreads=65):
+    def contrast_and_detection(self, run_contrast=True, run_planet_detection=True, datasetwithfakes=True):
         if not os.path.exists(self.object_name + '/detections') and run_planet_detection:
             try:
                 os.mkdir(self.object_name + '/detections')
@@ -1022,18 +1021,11 @@ class TestDataset:
         elif run_planet_detection:
             self.write_to_log_and_print(f"\n############## BEGINNING DETECTIONS FOR {self.object_name} ##############")
 
-        trial_strings = [t.rebuild_string for t in self.trials]
-
         if run_contrast:
-            if datasetwithfakes:
-                if __name__ == 'parameter_test_infrastructure':
-                    with Pool(numthreads) as pool:
-                        pool.map(contrast_measurement, trial_strings)
-            else:  # right now, parallelization only supports using default arguments (where datasetwithfakes=True)
-                for i, trial in enumerate(self.trials):
-                    trial.get_contrast(contains_fakes=datasetwithfakes)
-                    if (i + 1) % 100 == 0:
-                        print(f'# DONE WITH CONTRAST FOR {i + 1} TRIALS #')
+            for i, trial in enumerate(self.trials):
+                trial.get_contrast(contains_fakes=datasetwithfakes)
+                if (i + 1) % 100 == 0:
+                    print(f'# DONE WITH CONTRAST FOR {i + 1} TRIALS #')
 
         if run_planet_detection and run_contrast:
             self.write_to_log_and_print(f'### DONE WITH CONTRAST FOR {self.object_name}. BEGINNING DETECTION ###')
