@@ -147,7 +147,7 @@ if run_KLIP_on_dataset_with_fakes:
     td0.run_KLIP_on_data_with_fakes(numthreads=max_numthreads)
 if get_contrast_and_detections:
     td0.contrast_and_detection(run_contrast=get_contrast, run_planet_detection=detect_planets,
-                               datasetwithfakes=datasetwithfakes, numthreads=max_numthreads)
+                               datasetwithfakes=datasetwithfakes)
 
 # Print Out Time Taken
 end0 = time()
