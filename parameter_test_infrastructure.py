@@ -750,7 +750,7 @@ class TestDataset:
 
     def __init__(self, fileset, object_name, mask_xy, fake_fluxes, fake_seps, annuli, subsections, movement,
                  numbasis, corr_smooth, highpass, spectrum, fake_fwhm, fake_PAs, mode, batched, overwrite,
-                 memorylite, build_all_combos):
+                 memorylite, build_all_combos, build_charis_data):
         self.object_name = object_name
         self.mask_xy = mask_xy
 
@@ -783,10 +783,12 @@ class TestDataset:
 
         self.write_to_log_and_print(f'############### STARTING WORK ON {self.object_name} ################\n')
 
-        with log_file_output(self.object_name):
-            self.dataset = make_dn_per_contrast(CHARISData(glob(fileset)))  # function adds dn_per_contrast attribute
+        if build_charis_data:
+            with log_file_output(self.object_name):
+                self.dataset = make_dn_per_contrast(CHARISData(glob(fileset)))  # function adds dn_per_contrast
+                # attribute
 
-        self.write_to_log_and_print(f'###### DONE BUILDING CHARISData OBJECT FOR {self.object_name} #######')
+            self.write_to_log_and_print(f'###### DONE BUILDING CHARISData OBJECT FOR {self.object_name} #######')
 
         self.fake_fluxes = np.array(fake_fluxes)
         self.fake_seps = np.array(fake_seps)

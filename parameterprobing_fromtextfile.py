@@ -66,7 +66,7 @@ if isinstance(subsections, (int, float)):
     subsections = [int(subsections)]
 if isinstance(movement, (int, float)):
     movement = [float(movement)]
-if isinstance(spectrum, (type(None), str)):
+if isinstance(spectrum, (NoneType, str)):
     spectrum = [spectrum]
 if isinstance(numbasis, (int, float)):
     numbasis = [int(numbasis)]
@@ -78,7 +78,7 @@ if isinstance(highpass, (bool, int, float)):
 for param in [[annuli, 'annuli'], [subsections, 'subsections'], [movement, 'movement'], [spectrum, 'spectrum'],
               [corr_smooth, 'corr_smooth'], [highpass, 'highpass']]:
     if not isinstance(param[0], (list, tuple, np.ndarray)):
-        raise TypeError(f"{param[1]} cannot be coerced into a list safely. Check input. See "
+        raise TypeError(f"{param[1]} could not be coerced into a list safely. Check input. See "
                         "https://docs.google.com/document/d/1yX0l96IZs1IxxKCRmriVSAQM3KFGF9U1-FnpJXhcLXo/edit?usp"
                         "=sharing for help")
 
@@ -97,6 +97,7 @@ if put_in_fakes:
 else:
     datasetwithfakes = False
 get_contrast_and_detections = get_contrast or detect_planets
+run_klip = run_KLIP_on_dataset_with_fakes or run_KLIP_on_dataset_without_fakes
 
 # Selecting Batch if Needed (or providing link to instructions document)
 if len(sys.argv) != 1:
@@ -131,13 +132,13 @@ td0 = TestDataset(fileset=fileset0, object_name=object_name0, mask_xy=mask0, fak
                   fake_seps=fake_seps, annuli=annuli, subsections=subsections, movement=movement, numbasis=numbasis,
                   corr_smooth=corr_smooth, highpass=highpass, spectrum=spectrum, mode=mode, fake_PAs=fake_PAs,
                   fake_fwhm=fake_fwhm0, batched=batched, overwrite=overwrite, memorylite=memorylite,
-                  build_all_combos=False)
+                  build_all_combos=True, build_charis_data=run_klip)
 
 # Have TestDataset 0 Run Each Part
 # if we want KLIP output of data without fakes, we need to run KLIP before injecting planets
 if run_KLIP_on_dataset_without_fakes:
     td0.run_KLIP_on_data_without_fakes(numthreads=max_numthreads)
-if put_in_fakes:
+if put_in_fakes and run_klip:
     td0.inject_fakes()
 if run_KLIP_on_dataset_with_fakes:
     td0.run_KLIP_on_data_with_fakes(numthreads=max_numthreads)
