@@ -146,9 +146,8 @@ td0 = TestDataset(fileset=fileset0, object_name=object_name0, mask_xy=mask0, fak
 # if we want KLIP output of data without fakes, we need to run KLIP before injecting planets
 if run_KLIP_on_dataset_without_fakes:
     td0.run_KLIP_on_data_without_fakes(numthreads=max_numthreads)
-if put_in_fakes and run_klip:
-    td0.inject_fakes()
 if run_KLIP_on_dataset_with_fakes:
+    td0.inject_fakes()
     td0.run_KLIP_on_data_with_fakes(numthreads=max_numthreads)
 if get_contrast_and_detections:
     td0.contrast_and_detection(run_contrast=get_contrast, run_planet_detection=detect_planets,
