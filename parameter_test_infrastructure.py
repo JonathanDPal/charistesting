@@ -658,62 +658,70 @@ class Trial:
                     continue
 
             # Actual Start of Process
-            with fits.open(filepath) as hdulist:
-                image = copy(hdulist[1].data)
-                center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
+            try:
+                with fits.open(filepath) as hdulist:
+                    image = copy(hdulist[1].data)
+                    center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
+                    corrupt_file = False
+            except OSError:  # occurs if the file is corrupt or empty
+                corrupt_file = True
 
-            x_grid, y_grid = np.meshgrid(np.arange(-10, 10), np.arange(-10, 10))
-            kernel_gauss = gauss2d(x_grid, y_grid)
+            if corrupt_file:
+                with open(f'{self.object_name}/corrupt_fits_files.txt', 'a') as f:
+                    f.write(f'{filepath}\n')
+            else:
+                x_grid, y_grid = np.meshgrid(np.arange(-10, 10), np.arange(-10, 10))
+                kernel_gauss = gauss2d(x_grid, y_grid)
 
-            # flat spectrum given here for generating cross-coorelated image so that pyKLIP collapses it into one
-            # image, instead of giving seperate images for each wavelength
-            image_cc = calculate_cc(image, kernel_gauss, spectrum=np.ones(len(image[0])), nans2zero=True)
+                # flat spectrum given here for generating cross-coorelated image so that pyKLIP collapses it into one
+                # image, instead of giving seperate images for each wavelength
+                image_cc = calculate_cc(image, kernel_gauss, spectrum=np.ones(len(image[0])), nans2zero=True)
 
-            SNR_map = get_image_stat_map_perPixMasking(image_cc, centroid=center, mask_radius=5, Dr=2, type='SNR')
+                SNR_map = get_image_stat_map_perPixMasking(image_cc, centroid=center, mask_radius=5, Dr=2, type='SNR')
 
-            candidates_table = point_source_detection(SNR_map, center, SNR_threshold, pix2as=1, mask_radius=15,
-                                                      maskout_edge=10, IWA=None, OWA=None)
+                candidates_table = point_source_detection(SNR_map, center, SNR_threshold, pix2as=1, mask_radius=15,
+                                                          maskout_edge=10, IWA=None, OWA=None)
 
-            candidates = pd.DataFrame(candidates_table, columns=['Index', 'SNR Value', 'PA', 'Sep (pix)',
-                                                                 'Sep (as)', 'x', 'y', 'row', 'col'])
+                candidates = pd.DataFrame(candidates_table, columns=['Index', 'SNR Value', 'PA', 'Sep (pix)',
+                                                                     'Sep (as)', 'x', 'y', 'row', 'col'])
 
-            fakelocs = pasep_to_xy(self.fake_PAs.flatten(), self.fake_seps.flatten())  # where planets were injected
+                fakelocs = pasep_to_xy(self.fake_PAs.flatten(), self.fake_seps.flatten())  # where planets were injected
 
-            candidate_locations = zip(candidates['x'], candidates['y'])  # where stuff was detected
+                candidate_locations = zip(candidates['x'], candidates['y'])  # where stuff was detected
 
-            if self.mask_xy is None:
-                self.mask_xy = [[250, 250]]  # nothing gets identified as science target
-            elif not isinstance(self.mask_xy[0], (list, tuple)):
-                self.mask_xy = [self.mask_xy]  # making it a list of a list so that it can get iterated over properly
+                if self.mask_xy is None:
+                    self.mask_xy = [[250, 250]]  # nothing gets identified as science target
+                elif not isinstance(self.mask_xy[0], (list, tuple)):
+                    self.mask_xy = [self.mask_xy]  # making it a list of a list so that it can get iterated over properly
 
-            distances_from_fakes = []  # going to be an additional column of candidates DataFrame
-            distances_from_targets = []  # going to be an additional column of candidates DataFrame
-            for c in candidate_locations:
-                distances = []
-                for fl in fakelocs:
-                    distances.append(distance(c, fl))
-                distances_from_fakes.append(np.min(distances))
-                distances2 = []
-                for mask in self.mask_xy:
-                    mask = np.array(mask) - np.array(center)  # aligning coordinate systems
-                    distances2.append(distance(c, mask))
-                distances_from_targets.append(np.min(distances2))
+                distances_from_fakes = []  # going to be an additional column of candidates DataFrame
+                distances_from_targets = []  # going to be an additional column of candidates DataFrame
+                for c in candidate_locations:
+                    distances = []
+                    for fl in fakelocs:
+                        distances.append(distance(c, fl))
+                    distances_from_fakes.append(np.min(distances))
+                    distances2 = []
+                    for mask in self.mask_xy:
+                        mask = np.array(mask) - np.array(center)  # aligning coordinate systems
+                        distances2.append(distance(c, mask))
+                    distances_from_targets.append(np.min(distances2))
 
-            injected = []  # going to be an additional column of candidates DataFrame
-            for d1, d2 in zip(distances_from_targets, distances_from_fakes):
-                if d1 < self.fake_fwhm * 1.5:
-                    injected.append("Science Target")
-                elif d2 < self.fake_fwhm * 1.5:
-                    injected.append(True)
-                else:
-                    injected.append(False)
+                injected = []  # going to be an additional column of candidates DataFrame
+                for d1, d2 in zip(distances_from_targets, distances_from_fakes):
+                    if d1 < self.fake_fwhm * 1.5:
+                        injected.append("Science Target")
+                    elif d2 < self.fake_fwhm * 1.5:
+                        injected.append(True)
+                    else:
+                        injected.append(False)
 
-            # appending more information to output for analysis later on
-            candidates['Distance From Fakes'] = distances_from_fakes
-            candidates['Distance From Targets'] = distances_from_targets
-            candidates['Injected'] = injected
+                # appending more information to output for analysis later on
+                candidates['Distance From Fakes'] = distances_from_fakes
+                candidates['Distance From Targets'] = distances_from_targets
+                candidates['Injected'] = injected
 
-            candidates.to_csv(output_filepath)
+                candidates.to_csv(output_filepath)
 
     def __eq__(self, other):
         """
@@ -783,7 +791,7 @@ class TestDataset:
 
         self.write_to_log_and_print(f'############### STARTING WORK ON {self.object_name} ################\n')
 
-        if build_charis_data:
+        if build_charis_data == 'true' or build_charis_data == 'temporary':
             with log_file_output(self.object_name):
                 self.dataset = make_dn_per_contrast(CHARISData(glob(fileset)))  # function adds dn_per_contrast
                 # attribute
@@ -838,10 +846,10 @@ class TestDataset:
                                              numbasis=[nb], spectrum=spec, corr_smooth=cs,
                                              fake_PAs=self.fake_PAs, fake_fluxes=self.fake_fluxes,
                                              fake_fwhm=self.fake_fwhm, fake_seps=self.fake_seps,
-                                             rot_angs=self.dataset.PAs, flipx=self.dataset.flipx,
-                                             dn_per_contrast=self.dataset.dn_per_contrast,
-                                             wln_um=self.dataset.wvs, highpass=hp,
-                                             length=self.dataset.input.shape[1]))
+                                             rot_angs=deepcopy(self.dataset.PAs), flipx=deepcopy(self.dataset.flipx),
+                                             dn_per_contrast=deepcopy(self.dataset.dn_per_contrast),
+                                             wln_um=deepcopy(self.dataset.wvs), highpass=hp,
+                                             length=deepcopy(self.dataset.input.shape[1])))
             else:
                 args = [annuli, subsections, movement, numbasis, spectrum, corr_smooth, highpass]
                 _, batchindex, batchsize = batched
@@ -856,15 +864,18 @@ class TestDataset:
                                              numbasis=[nb], spectrum=spec, corr_smooth=cs,
                                              fake_PAs=self.fake_PAs, fake_fluxes=self.fake_fluxes,
                                              fake_fwhm=self.fake_fwhm, fake_seps=self.fake_seps,
-                                             rot_angs=self.dataset.PAs, flipx=self.dataset.flipx,
-                                             dn_per_contrast=self.dataset.dn_per_contrast,
-                                             wln_um=self.dataset.wvs, highpass=hp,
-                                             length=self.dataset.input.shape[1]))
+                                             rot_angs=deepcopy(self.dataset.PAs), flipx=deepcopy(self.dataset.flipx),
+                                             dn_per_contrast=deepcopy(self.dataset.dn_per_contrast),
+                                             wln_um=deepcopy(self.dataset.wvs), highpass=hp,
+                                             length=deepcopy(self.dataset.input.shape[1])))
         # END OF IF/ELSE AND FOR LOOPS #
         self.mode = mode
         self.overwrite = overwrite
         self.memorylite = memorylite
         self.write_to_log_and_print(f'############ DONE BUILDING TRIALS FOR {self.object_name} ############')
+
+        if build_charis_data == 'temporary':  # removing from memory if just needed it for the rotation angles
+            self.dataset = None
 
     def write_to_log(self, words, write_type='a'):
         with open(f'{self.object_name}/log.txt', write_type) as log_file:
