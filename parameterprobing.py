@@ -100,7 +100,12 @@ if put_in_fakes:
 else:
     datasetwithfakes = False
 get_contrast_and_detections = get_contrast or detect_planets
-run_klip = run_KLIP_on_dataset_with_fakes or run_KLIP_on_dataset_without_fakes
+if run_KLIP_on_dataset_without_fakes or run_KLIP_on_dataset_with_fakes:
+    build_charis_data = 'true'
+elif get_contrast:
+    build_charis_data = 'temporary'
+else:
+    build_charis_data = 'false'
 
 # Selecting Batch if Needed (or providing link to instructions document)
 if len(sys.argv) != 1:
@@ -135,7 +140,7 @@ td0 = TestDataset(fileset=fileset0, object_name=object_name0, mask_xy=mask0, fak
                   fake_seps=fake_seps, annuli=annuli, subsections=subsections, movement=movement, numbasis=numbasis,
                   corr_smooth=corr_smooth, highpass=highpass, spectrum=spectrum, mode=mode, fake_PAs=fake_PAs,
                   fake_fwhm=fake_fwhm0, batched=batched, overwrite=overwrite, memorylite=memorylite,
-                  build_all_combos=True, build_charis_data=run_klip)
+                  build_all_combos=True, build_charis_data=build_charis_data)
 
 # Have TestDataset 0 Run Each Part
 # if we want KLIP output of data without fakes, we need to run KLIP before injecting planets
