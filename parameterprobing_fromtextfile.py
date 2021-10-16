@@ -99,10 +99,8 @@ else:
 get_contrast_and_detections = get_contrast or detect_planets
 if run_KLIP_on_dataset_without_fakes or run_KLIP_on_dataset_with_fakes:
     build_charis_data = 'true'
-elif get_contrast:
-    build_charis_data = 'temporary'
 else:
-    build_charis_data = 'false'
+    build_charis_data = 'temporary'
 
 # Selecting Batch if Needed (or providing link to instructions document)
 if len(sys.argv) != 1:
