@@ -269,8 +269,9 @@ movement = paramvaluesfinder('movement')
 numbasis = paramvaluesfinder('numbasis')
 corr_smooth = paramvaluesfinder('corr_smooth')
 highpass = paramvaluesfinder('highpass')
-wavelength = [float(f'{wvl}') for wvl in [1.16, 1.24, 1.28, 1.2, 1.33, 1.47, 1.52, 1.87, 1.8, 1.93, 2.0, 2.07, 2.14,
-                                          2.21, 2.29, 2.37]]
+wavelength = [float(f'{wvl}') for wvl in [1.16, 1.2, 1.24, 1.28, 1.33, 1.37, 1.42, 1.47, 1.52, 1.58, 1.63, 1.69,
+                                          1.74, 1.8, 1.87, 1.93, 2.0, 2.07, 2.14, 2.21, 2.29, 2.37]]
+
 if look_at_contrast:
     cc = 0
     nn = 0
