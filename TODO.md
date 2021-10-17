@@ -22,3 +22,7 @@ tweaked slighly automatically.
 
 6. Add a _verbose_ attribute for TestDataset so that log
 files can be super decluttered if people want that.
+
+7. Add an argument where people can disable the creation
+of a log file (in case just doing some quick fill in
+and don't want old log file overwritten)
