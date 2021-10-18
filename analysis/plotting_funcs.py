@@ -224,9 +224,13 @@ def max_value_heatmap(param1, param2, filepath_to_save, file_finder='*.csv'):
     for file in fileset:
         df = pd.read_csv(file)
         snr = df['SNR Value'].max()
-        p1 = valuefinder(file, param1[0])
-        p2 = valuefinder(file, param2[0])
-        full_data[p1][p2].append(snr)
+        if np.isnan(snr):
+            with open(f'{originalwd}/NaN_detection_files.txt', 'a') as f:
+                f.write(f'{file}\n')
+        else:
+            p1 = valuefinder(file, param1[0])
+            p2 = valuefinder(file, param2[0])
+            full_data[p1][p2].append(snr)
     for p1 in param1[1]:
         for p2 in param2[1]:
             p1 = str(p1)
@@ -260,7 +264,7 @@ def mean_value_heatmap(param1, param2, num_injections, filepath_to_save, file_fi
         df = pd.read_csv(file)
         injected = df[df["Injected"] == "True"]
         snrs = list(injected['SNR Value'])
-        missing = [0] * (len(injected['SNR Value']) - num_injections)  # heavily punishing non-detections
+        missing = [0] * (num_injections - len(injected['SNR Value']))  # treating non-detection as SNR = 0
         snr_avg = np.mean(snrs + missing)
         p1 = valuefinder(file, param1[0])
         p2 = valuefinder(file, param2[0])
