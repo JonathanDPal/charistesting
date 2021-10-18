@@ -273,7 +273,7 @@ def mean_value_heatmap(param1, param2, num_injections, filepath_to_save, file_fi
         snrs = list(injected['SNR Value'])
         missing = [0] * (num_injections - len(injected['SNR Value']))  # treating non-detection as SNR = 0
         snr_avg = np.mean(snrs + missing)
-        if isnan(snr_avg):
+        if np.isnan(snr_avg):
             with open(f'{originalwd}/empty_detection_files.txt', 'a') as f:
                 f.write(f'{file}\n')
         else:
