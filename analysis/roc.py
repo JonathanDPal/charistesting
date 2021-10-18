@@ -30,7 +30,11 @@ of2 = 'ROC/smooth_roc.png'
 of3 = 'ROC/numbasis_roc.png'
 
 if not os.path.exists('ROC'):
-    os.mkdir('ROC')
+    try:
+        os.mkdir('ROC')
+    except FileExistsError:  # if using analysis.sh, then very possible that two (simultaneous) scripts try to do
+        # this at almost the exact same time
+        pass
 
 if str.lower(param) == 'highpass':
     roc_generator(snr_vals, highpass, ni, of1)
