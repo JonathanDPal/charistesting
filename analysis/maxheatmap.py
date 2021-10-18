@@ -24,7 +24,10 @@ of2 = 'max_heatmap/ann-mov.png'
 of3 = 'max_heatmap/sbs-mov.png'
 
 if not os.path.exists('max_heatmap'):
-    os.mkdir('max_heatmap')
+    try:
+        os.mkdir('max_heatmap')
+    except FileExistsError:  # if multiple scripts running at once (eg, if using analysis.sh)
+        pass
 
 params = [str.lower(param) for param in sys.argv[1:]]
 

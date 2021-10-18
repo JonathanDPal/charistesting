@@ -25,7 +25,10 @@ of2 = 'mean_heatmap/ann-mov'
 of3 = 'mean_heatmap/sbs-mov'
 
 if not os.path.exists('mean_heatmap'):
-    os.mkdir('mean_heatmap')
+    try:
+        os.mkdir('mean_heatmap')
+    except FileExistsError:  # if multiple scripts running at once (eg, if using analysis.sh)
+        pass
 
 params = [str.lower(param) for param in sys.argv[1:]]
 
