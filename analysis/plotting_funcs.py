@@ -204,7 +204,6 @@ def roc_generator(snr_values, param1, num_injections, filepath_to_save, file_fin
                    'x', 'X', 'D', 'd', '|', '_']
         colors = list(mcolors.BASE_COLORS) + list(mcolors.TABLEAU_COLORS)
         plt.plot(x, y, label=val, marker=markers[i], color=colors[i])
-
     plt.xlabel('False Positives')
     plt.ylabel('True Positives')
     plt.title(f'ROC Curve as a Function of {param1[0]}')
@@ -230,7 +229,7 @@ def max_value_heatmap(param1, param2, filepath_to_save, file_finder='*.csv'):
         df = pd.read_csv(file)
         snr = df['SNR Value'].max()
         if np.isnan(snr):
-            with open(f'{originalwd}/NaN_detection_files.txt', 'a') as f:
+            with open(f'{originalwd}/empty_detection_files.txt', 'a') as f:
                 f.write(f'{file}\n')
         else:
             p1 = valuefinder(file, param1[0])
@@ -274,14 +273,13 @@ def mean_value_heatmap(param1, param2, num_injections, filepath_to_save, file_fi
         snrs = list(injected['SNR Value'])
         missing = [0] * (num_injections - len(injected['SNR Value']))  # treating non-detection as SNR = 0
         snr_avg = np.mean(snrs + missing)
-        p1 = valuefinder(file, param1[0])
-        p2 = valuefinder(file, param2[0])
-        try:
+        if isnan(snr_avg):
+            with open(f'{originalwd}/empty_detection_files.txt', 'a') as f:
+                f.write(f'{file}\n')
+        else:
+            p1 = valuefinder(file, param1[0])
+            p2 = valuefinder(file, param2[0])
             full_data[p1][p2].append(snr_avg)
-        except KeyError:
-            print(full_data)
-            print(p1, p2)
-            raise KeyError
     for p1 in param1[1]:
         for p2 in param2[1]:
             p01 = str(p1)
