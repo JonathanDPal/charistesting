@@ -30,10 +30,10 @@ if not os.path.exists('mean_heatmap'):
 params = [str.lower(param) for param in sys.argv[1:]]
 
 if 'annuli' in params and 'subsections' in params:
-    mean_value_heatmap(annuli, subsections, ni, name, of1)
+    mean_value_heatmap(annuli, subsections, ni, of1)
 elif 'annuli' in params and 'movement' in params:
-    mean_value_heatmap(annuli, movement, ni, name, of2)
+    mean_value_heatmap(annuli, movement, ni, of2)
 elif 'subsections' in params and 'movement' in params:
-    mean_value_heatmap(subsections, movement, ni, name, of3)
+    mean_value_heatmap(subsections, movement, ni, of3)
 else:
     raise ValueError(f'Sorry, script does not currently support params {params[0]} and {params[1]}')
