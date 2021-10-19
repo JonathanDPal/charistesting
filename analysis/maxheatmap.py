@@ -19,9 +19,9 @@ subsections = ('subsections', subsections_vals)
 movement = ('movement', movement_vals)
 
 # Output Filepaths
-of1 = 'max_heatmap/ann-sbs.png'
-of2 = 'max_heatmap/ann-mov.png'
-of3 = 'max_heatmap/sbs-mov.png'
+of1 = 'max_heatmap/ann-sbs-MAX.png'
+of2 = 'max_heatmap/ann-mov-MAX.png'
+of3 = 'max_heatmap/sbs-mov-MAX.png'
 
 if not os.path.exists('max_heatmap'):
     try:
