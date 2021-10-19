@@ -46,15 +46,20 @@ def FWHMIOWA_calculator(speccubefile, filtname=None):
     number of edits needed and also to permit modifications in the future such that we can have different FWHMs for
     different central wavelengths.
     """
-    wavelengths = {'j': 1200e-9, 'h': 1550e-9, 'k': 2346e-9, 'broadband': 1550e-9}
-    if filtname is None:
-        wavelength = wavelengths[str.lower(speccubefile[1].header['FILTNAME'])]
-    else:
-        wavelength = wavelengths[str.lower(filtname)]
-    D = 8
-    # In the future, we'll probably have FWHM look something like this:
+    #####
+    # If we were to make it formulaic again, it would look something like this:
+    # wavelengths = {'j': 1200e-9, 'h': 1550e-9, 'k': 2346e-9, 'broadband': 1550e-9}
+    # if filtname is None:
+    #     wavelength = wavelengths[str.lower(speccubefile[1].header['FILTNAME'])]
+    # else:
+    #     wavelength = wavelengths[str.lower(filtname)]
+    # D = 8
+    # FWHM = (some constant based on instrument characteristics) * wavelength / D
+    #########
+    # Another way to approach it would just be something like this (with wavelength coming from above stuff):
     # fwhms = {'j': {fwhm1}, 'h': {fwhm2}, 'k':{fwhm3}, 'broadband': 3.5}
     # FWHM = fwhms[wavelength]
+    ########
     lenslet_scale = 0.0162
     field_radius = 1.035
     FWHM = 3.5
@@ -122,7 +127,9 @@ def distance(xy1, xy2):
 
 def contrast_measurement(trial_string):
     """
-    Used for parallelization on contrast measurements.
+    Would be used for parallelization on contrast measurements. Not currently in use since some jankiness on Condor
+    was causing enough errors with contrast that parallelizaion on contrast was leaving behind loose daemons on the
+    system. Will probably be reintroduced later on
     """
     t = Trial.from_string(trial_string)
     t.get_contrast()
@@ -132,7 +139,7 @@ def planet_detection(trial_string):
     """
     Used for parallelization on planet detections. Not currently in use because the planet detection section of
     pyKLIP utilizes the multiprocessing process pool for computing SNR maps and multiprocessing cannot support
-    a pool inside of another pool.
+    a pool inside of another pool. (I might utilize a workaround on this later on)
     """
     t = Trial.from_string(trial_string)
     t.detect_planets()
@@ -608,19 +615,17 @@ class Trial:
                     if os.path.exists(cal_contrast_output_filepath):
                         continue
 
-                # Calibrating For KLIP Subtraction If Fakes Present
                 if contains_fakes:
+                    # Calibrating For KLIP Subtraction If Fakes Present
                     correct_contrast = np.copy(contrast)
                     for j, sep in enumerate(contrast_seps):
                         closest_throughput_index = np.argmin(np.abs(sep - self.fake_seps))
-                        if np.sum(algo_throughput) == 0:  # this would only occur if there are only negative values
-                            # near all fake planet injection loccations
-                            correct_contrast[j] = np.inf
+                        if algo_throughput[closest_throughput_index] == 0:  # this would only occur if there were only
+                            # negative values near all the fake planet injection loccations at the closest seperation
+                            correct_contrast[j] = np.inf  # i.e., divide by zero
                         else:
                             correct_contrast[j] /= algo_throughput[closest_throughput_index]
 
-                # If Contrast Was Calibrated, Then Save It
-                if contains_fakes:
                     if not os.path.exists(self.object_name + '/calibrated_contrast'):
                         try:
                             os.mkdir(self.object_name + '/calibrated_contrast')
@@ -652,7 +657,6 @@ class Trial:
 
             output_filepath = f'{self.filepath_detections_prefixes[filepath_index]}{SNR_threshold}.csv'
 
-            # Not going to redo a measurement already made
             if not override:
                 if os.path.exists(output_filepath):
                     continue
@@ -690,9 +694,10 @@ class Trial:
                 candidate_locations = zip(candidates['x'], candidates['y'])  # where stuff was detected
 
                 if self.mask_xy is None:
-                    self.mask_xy = [[250, 250]]  # nothing gets identified as science target
+                    self.mask_xy = [[1000, 1000]]  # nothing gets identified as science target
                 elif not isinstance(self.mask_xy[0], (list, tuple)):
-                    self.mask_xy = [self.mask_xy]  # making it a list of a list so that it can get iterated over properly
+                    self.mask_xy = [self.mask_xy]  # making it a list of a list so that it can get iterated over
+                    # properly
 
                 distances_from_fakes = []  # going to be an additional column of candidates DataFrame
                 distances_from_targets = []  # going to be an additional column of candidates DataFrame
