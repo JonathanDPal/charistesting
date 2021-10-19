@@ -8,6 +8,7 @@ debug_retrieve_flux/
 retrievals*/
 .idea/
 FURF/
+HD1160 Results/
 *.pdf
 *.png
 *.fits
