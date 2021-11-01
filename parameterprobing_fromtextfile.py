@@ -91,11 +91,6 @@ if overwrite not in [True, False]:
 
 # SYNTHESIZING USER INPUTS INTO A COUPLE ADDITIONAL BOOLEANS #
 detect_planets = get_planet_detections_from_dataset_with_fakes or get_planet_detections_from_dataset_without_fakes
-if put_in_fakes:
-    datasetwithfakes = True  # this will indicate later on to use KLIP output with fakes in it for contrast
-    # measurement and planet detection
-else:
-    datasetwithfakes = False
 get_contrast_and_detections = get_contrast or detect_planets
 if run_KLIP_on_dataset_without_fakes or run_KLIP_on_dataset_with_fakes:
     build_charis_data = 'true'
@@ -146,7 +141,7 @@ if run_KLIP_on_dataset_with_fakes:
     td0.run_KLIP_on_data_with_fakes(numthreads=max_numthreads)
 if get_contrast_and_detections:
     td0.contrast_and_detection(run_contrast=get_contrast, run_planet_detection=detect_planets,
-                               datasetwithfakes=datasetwithfakes)
+                               datasetwithfakes=put_in_fakes)
 
 # Print Out Time Taken
 end0 = time()
