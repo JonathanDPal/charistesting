@@ -527,7 +527,7 @@ class Trial:
                 output_wcs = WCS(hdulist[0].header, naxis=[1, 2])
 
             for wavelength_index in range(cube.shape[0]):  # making measurements at every wavelength
-                # if not overriding, then check to see if file exists
+                # if not overwriting, then check to see if file exists
                 wavelength = round(self.wln_um[wavelength_index], 2)  # in microns
                 uncal_contrast_output_filepath = self.object_name + f'/uncalibrated_contrast' \
                                                                     f'/{self.klip_parameters}_KL' \
