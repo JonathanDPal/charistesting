@@ -504,14 +504,14 @@ class Trial:
         return cls(p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12], p[13], p[14],
                    p[15], p[16], p[17])
 
-    def get_contrast(self, contains_fakes=True, override=False):
+    def get_contrast(self, contains_fakes=True, overwrite=False):
         """
         Measures contrast at a particular wavelength, then saves contrast data as a CSV. CSV file is saved from a
         Pandas DataFrame, which makes it easy to load the data back into a Pandas DataFrame later on for analysis.
         ---
         Args:
             contains_fakes (bool): Default: True. Whether to use data with fakes (True) or without fakes (False).
-            override (bool): Default: False. Whether or not to override filepath if output filepath already exists.
+            overwrite (bool): Default: False. Whether or not to override filepath if output filepath already exists.
         """
         if contains_fakes:
             filepaths = self.filepaths_Wfakes
@@ -533,8 +533,12 @@ class Trial:
                                                                     f'/{self.klip_parameters}_KL' \
                                                                     f'{self.numbasis[filepath_index]}' \
                                                                     f'_{wavelength}um_contrast.csv'
-                if not override:
-                    if os.path.exists(uncal_contrast_output_filepath):
+                cal_contrast_output_filepath = self.object_name + f'/calibrated_contrast/{self.klip_parameters}_KL' \
+                                                                  f'{self.numbasis[filepath_index]}' \
+                                                                  f'_{wavelength}um_contrast.csv'
+
+                if not overwrite:
+                    if os.path.exists(uncal_contrast_output_filepath) and os.path.exists(cal_contrast_output_filepath):
                         continue
 
                 # need to rotate WCS so that we are looking in right spot using the pyKLIP function for it
@@ -607,13 +611,6 @@ class Trial:
                 df['Seperation'] = contrast_seps
                 df['Uncalibrated Contrast'] = contrast
                 df.to_csv(uncal_contrast_output_filepath)
-
-                cal_contrast_output_filepath = self.object_name + f'/calibrated_contrast/{self.klip_parameters}_KL' \
-                                                                  f'{self.numbasis[filepath_index]}' \
-                                                                  f'_{wavelength}um_contrast.csv'
-                if not override:
-                    if os.path.exists(cal_contrast_output_filepath):
-                        continue
 
                 if contains_fakes:
                     # Calibrating For KLIP Subtraction If Fakes Present
@@ -1051,7 +1048,7 @@ class TestDataset:
         if run_planet_detection:
             # at the moment, can't parallelize because planet detection already utilizes (a little) parallelization
             for i, trial in enumerate(self.trials):
-                trial.detect_planets(datasetwithfakes=datasetwithfakes)
+                trial.detect_planets(datasetwithfakes=datasetwithfakes, override=self.overwrite)
                 if (i + 1) % 100 == 0:
                     print(f'# DONE WITH DETECTION FOR {i + 1} TRIALS #')
 
