@@ -8,7 +8,7 @@ import os
 reference_contrast = [(20, 1e-5), (40, 5e-5), (60, 1e-6)]  # some values that are the standard everything is judged
 # against (first value is seperation, second is standard value for that seperation)
 
-contrastfiles = glob('../calibrated_contrast/*.csv')
+contrastfiles = glob('../calibrated_contrast/*1.63um*.csv')
 
 
 def valuefinder(filename, param):
@@ -112,9 +112,15 @@ for cfile in contrastfiles:
     for reference in reference_contrast:
         sep, _ = reference
         closest_seperation_index = np.argmin(sep - seps)
-        score_sum += (np.log10(contrast[closest_seperation_index]) / 5)  # measures 5 sigma contrast
+        if contrast[closest_seperation_index] == -np.inf:
+            score_sum += -np.inf
+        else:
+            score_sum += (np.log10(contrast[closest_seperation_index]) / 5)  # measures 5 sigma contrast
 
-    scores.append((score_sum / reference_score) * 100)
+    if score_sum == -np.inf:
+        scores.append(-np.inf)
+    else:
+        scores.append((score_sum / reference_score) * 100)
 
     ann, sbs, mov, spec, nb, cs, hp = valuefinder(cfile, 'all')
     annuli.append(ann)
