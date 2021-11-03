@@ -4,8 +4,6 @@ import sys
 
 snr = pd.read_csv('numericalscoring/snr_scores.csv')
 contrast = pd.read_csv('numericalscoring/contrast_scores.csv')
-del snr['Unnamed: 0']
-del contrast['Unnamed: 0']
 
 if len(sys.argv) > 1:
     snrweight, contrastweight = sys.argv[1], sys.argv[2]
@@ -19,4 +17,7 @@ overall = snr.merge(contrast, how='outer', on=['Annuli', 'Subsections', 'Movemen
 overall['Overall Score'] = [(s * snrweight + c * contrastweight) / (snrweight + contrastweight)
                             for s, c in zip(overall['Score_snr'], overall['Score_contrast'])]
 
-overall.to_csv('numericalscoring/overall_scores.csv')
+sorted_by_score = overall.sort_values(by='Score', ascending=False)
+del sorted_by_score['Unnamed: 0']
+
+sorted_by_score.to_csv('numericalscoring/overall_scores.csv')
