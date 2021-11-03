@@ -224,6 +224,7 @@ def roc_generator(snr_values, param1, num_injections, filepath_to_save, file_fin
         os.chdir(originalwd)
         plt.savefig(filepath_to_save)
     else:
+        os.chdir(originalwd)
         df.to_csv(filepath_to_save, index=False)
 
 
