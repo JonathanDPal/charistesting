@@ -17,7 +17,5 @@ overall = snr.merge(contrast, how='outer', on=['Annuli', 'Subsections', 'Movemen
 overall['Overall Score'] = [(s * snrweight + c * contrastweight) / (snrweight + contrastweight)
                             for s, c in zip(overall['Score_snr'], overall['Score_contrast'])]
 
-sorted_by_score = overall.sort_values(by='Score', ascending=False)
-del sorted_by_score['Unnamed: 0']
-
-sorted_by_score.to_csv('numericalscoring/overall_scores.csv')
+sorted_by_score = overall.sort_values(by='Score', ascending=False, ignore_index=True)
+sorted_by_score.to_csv('numericalscoring/overall_scores.csv', index=False)

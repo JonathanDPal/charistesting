@@ -27,6 +27,5 @@ for _, row in df.iterrows():
 
 df['Compiled Score'] = totalscore
 
-sorted_by_score = df.sort_values(by='Compiled Score', ascending=False)
-del sorted_by_score['Unnamed: 0']
-sorted_by_score.to_csv('compiled_overall_numericalscores.csv')
+sorted_by_score = df.sort_values(by='Compiled Score', ascending=False, ignore_index=True)
+sorted_by_score.to_csv('compiled_overall_numericalscores.csv', index=False)
