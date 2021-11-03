@@ -26,3 +26,7 @@ files can be super decluttered if people want that.
 7. Add an argument where people can disable the creation
 of a log file (in case just doing some quick fill in
 and don't want old log file overwritten)
+
+8. Fix paramvaluesfinder in plotting_funcs.py such that it
+can accurately identify the number of planets injected if
+the flux/sep lists are lists of lists
