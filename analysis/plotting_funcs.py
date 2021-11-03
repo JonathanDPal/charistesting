@@ -161,9 +161,9 @@ def valuefinder(filename, param):
         return values
 
 
-def roc_generator(snr_values, param1, num_injections, filepath_to_save, file_finder='*.csv'):
+def roc_generator(snr_values, param1, num_injections, filepath_to_save, file_finder='*.csv', generate='plot'):
     """
-    Makes an ROC curve.
+    Makes an ROC curve or a table of the data that would be plotted on the ROC curve.
     ---
     Args:
         snr_values (list): SNR Values to plot
@@ -171,7 +171,10 @@ def roc_generator(snr_values, param1, num_injections, filepath_to_save, file_fin
         num_injections (int): Number of planets that got injected
         filepath_to_save (str): Where to save graph.
         file_finder (str): passed into glob to get all relevant files.
+        generate (str): either 'plot' or 'table' -- tells it what to generate
     """
+    if not (generate == 'plot' or generate == 'table'):
+        raise ValueError('generate argument is invalid. must be either "plot" or "table".')
     collection = {str(val): {str(snr): list() for snr in snr_values} for val in param1[1]}
     originalwd = os.getcwd()
     os.chdir(os.path.realpath('../detections/'))
@@ -189,6 +192,8 @@ def roc_generator(snr_values, param1, num_injections, filepath_to_save, file_fin
                 elif m is False or m == "False":
                     inj.append(False)
             collection[val][str(snr)].append([np.sum(inj), len(inj) - np.sum(inj)])
+    if generate == 'table':
+        df = pd.DataFrame(columns=['Param Value', 'SNR', 'Avg True Positives', 'Avg False Positives'])
     for i, val in enumerate(param1[1]):
         val = str(val)
         k = collection[val]
@@ -198,18 +203,28 @@ def roc_generator(snr_values, param1, num_injections, filepath_to_save, file_fin
             A = k[str(snr)]
             tp = np.sum([a[0] for a in A])
             fp = np.sum([a[1] for a in A])
-            y.append(tp / (num_injections * len(A)))
-            x.append(fp / (num_injections * len(A)))
-        markers = ['.', 'o', 'v', '^', '<', '>', '1', '2', '3', '4', '8', 's', 'p', 'P', '*', 'h', 'H', '+',
-                   'x', 'X', 'D', 'd', '|', '_']
-        colors = list(mcolors.BASE_COLORS) + list(mcolors.TABLEAU_COLORS)
-        plt.plot(x, y, label=val, marker=markers[i], color=colors[i])
-    plt.xlabel('False Positives')
-    plt.ylabel('True Positives')
-    plt.title(f'ROC Curve as a Function of {param1[0]}')
-    plt.legend(loc='lower right')
-    os.chdir(originalwd)
-    plt.savefig(filepath_to_save)
+            if generate == 'plot':
+                y.append(tp / (num_injections * len(A)))
+                x.append(fp / (num_injections * len(A)))
+            else:
+                tp /= len(A)
+                fp /= len(A)
+                newrow = {'Param Value': val, 'SNR': snr, 'Avg True Positives': tp, 'Avg False Positives': fp}
+                df.append(newrow, ignore_index=True)
+        if generate == 'plot':
+            markers = ['.', 'o', 'v', '^', '<', '>', '1', '2', '3', '4', '8', 's', 'p', 'P', '*', 'h', 'H', '+',
+                       'x', 'X', 'D', 'd', '|', '_']
+            colors = list(mcolors.BASE_COLORS) + list(mcolors.TABLEAU_COLORS)
+            plt.plot(x, y, label=val, marker=markers[i], color=colors[i])
+    if generate == 'plot':
+        plt.xlabel('False Positives')
+        plt.ylabel('True Positives')
+        plt.title(f'ROC Curve as a Function of {param1[0]}')
+        plt.legend(loc='lower right')
+        os.chdir(originalwd)
+        plt.savefig(filepath_to_save)
+    else:
+        df.to_csv(filepath_to_save, index=False)
 
 
 def max_value_heatmap(param1, param2, filepath_to_save, file_finder='*.csv'):

@@ -26,8 +26,11 @@ numbasis = ('KL', numbasis_vals)
 
 # Output Filepaths
 of1 = 'ROC/highpass_roc.png'
+of11 = 'ROC/highpass_table.csv'
 of2 = 'ROC/smooth_roc.png'
+of22 = 'ROC/smooth_table.csv'
 of3 = 'ROC/numbasis_roc.png'
+of33 = 'ROC/numbasis_table.csv'
 
 if not os.path.exists('ROC'):
     try:
@@ -38,7 +41,10 @@ if not os.path.exists('ROC'):
 
 if str.lower(param) == 'highpass':
     roc_generator(snr_vals, highpass, ni, of1)
+    roc_generator(snr_vals, highpass, ni, of11)
 elif str.lower(param) == 'smooth':
     roc_generator(snr_vals, smooth, ni, of2)
+    roc_generator(snr_vals, smooth, ni, of22)
 elif str.lower(param) == 'numbasis':
     roc_generator(snr_vals, numbasis, ni, of3)
+    roc_generator(snr_vals, numbasis, ni, of33)
