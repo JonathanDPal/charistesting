@@ -175,6 +175,7 @@ highpass = paramvaluesfinder('highpass')
 c = 0
 n = 0
 nc = list()
+ce = list()
 for ann in annuli:
     for sbs in subsections:
         for mov in movement:
@@ -183,6 +184,7 @@ for ann in annuli:
                     for cs in corr_smooth:
                         for hp in highpass:
                             if [ann, sbs, mov, spec, nb, cs, hp] in completed:
+                                ce.append([ann, sbs, mov, spec, nb, cs, hp])
                                 c += 1
                             else:
                                 nc.append([ann, sbs, mov, spec, nb, cs, hp])
@@ -195,3 +197,10 @@ with open(f'{direc}/remainingparams.txt', 'w') as file:
     for incompleteparams in nc:
         ann, sbs, mov, spec, nb, cs, hp = incompleteparams
         file.write(f'{ann},{sbs},{mov},{spec},{nb},{cs},{hp}\n')
+if len(sys.argv) > 2 and sys.argv[2] == 'complete':
+    with open(f'{direc}/completedparams.txt', 'w') as file:
+        for completeparams in ce:
+            ann, sbs, mov, spec, nb, cs, hp = completeparams
+            file.write(f'{ann},{sbs},{mov},{spec},{nb},{cs},{hp}\n')
+
+
