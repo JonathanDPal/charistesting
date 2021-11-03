@@ -3,6 +3,7 @@ from matplotlib import pyplot as plt
 import pandas as pd
 import numpy as np
 import os
+import sys
 
 # pandas gets mad at me if I try to do all of this in one line
 df1 = pd.read_csv('numericalscoring/overall_scores.csv')
@@ -15,4 +16,10 @@ plt.scatter(sscores, cscores)
 plt.xlabel('SNR Score')
 plt.ylabel('Contrast Score')
 plt.title(f'Contrast vs. SNR For {str.split(os.getcwd(), "/")[-2]}')
+
+if len(sys.argv) == 5:
+    xmin, xmax, ymin, ymax = sys.argv[1:]
+    plt.xlim([int(xmin), int(xmax)])
+    plt.ylim([int(ymin), int(ymax)])
+
 plt.savefig(f'{str.split(os.getcwd(), "/")[-2]}_con_vs_snr.png')
