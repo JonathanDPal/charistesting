@@ -268,6 +268,49 @@ def max_value_heatmap(param1, param2, filepath_to_save, file_finder='*.csv'):
     plt.savefig(filepath_to_save)
 
 
+def specific_target_heatmap(param1, param2, filepath_to_save, target_loc, file_finder='*.csv'):
+    """
+    Just shows the average value of a particular
+    Args:
+        param1: Should be tuple of form (str: name of parameter, list: values used for parameter)
+        param2: Should be tuple of form (str: name of parameter, list: values used for parameter)
+        filepath_to_save: string
+        target_loc: list of form [X, Y], w/ position of target post-KLIP (in pixels)
+        file_finder: str -- passed into glob to get all relevant (CSV) files.
+    """
+    originalwd = os.getcwd()
+    os.chdir(os.path.realpath('../detections/'))
+    fileset = glob(file_finder)
+    full_data = {str(a): {str(m): list() for m in reverse(param2[1])} for a in param1[1]}
+    X, Y = target_loc
+    for file in fileset:
+        df = pd.read_csv(file)
+        specific_target_df = df[((df['x'] - X) ** 2 + (df['y'] - Y) ** 2) < 9]  # within 3 pixels
+        if len(specific_target_df) == 0:
+            snr = 0
+        else:
+            snr = list(specific_target_df['SNR Value'])[0]
+        p1 = valuefinder(file, param1[0])
+        p2 = valuefinder(file, param2[0])
+        full_data[p1][p2].append(snr)
+    for p1 in param1[1]:
+        for p2 in param2[1]:
+            p1 = str(p1)
+            p2 = str(p2)
+            full_data[p1][p2] = np.mean(full_data[p1][p2])
+            full_data[p1][p2] = int(round(full_data[p1][p2]))
+    plot_snr = []
+    for p2 in param2[1]:
+        plot_snr.append([full_data[str(p1)][str(p2)] for p1 in param1[1]])
+    data_to_plot = pd.DataFrame(plot_snr, index=param2[1], columns=param1[1])
+    sns.heatmap(data_to_plot, annot=True, linewidths=0.2, fmt='d', cbar=False)
+    plt.xlabel(param1[0])
+    plt.ylabel(param2[0])
+    plt.title('Average SNR Value')
+    os.chdir(originalwd)
+    plt.savefig(filepath_to_save)
+
+
 def mean_value_heatmap(param1, param2, num_injections, filepath_to_save, file_finder='*.csv'):
     """
     Shows mean SNR of injected planets.
