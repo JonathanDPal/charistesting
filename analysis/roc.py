@@ -7,7 +7,7 @@ try:
     assert len(sys.argv) == 2  # the first argument in sys.argv is the name of the script ("roc.py")
 except AssertionError:
     raise ValueError('Incorrect number of arguments. Should have one argument: either "highpass", "smooth", '
-                     'or "numbasis".')
+                     '"numbasis", or "all"')
 
 param = sys.argv[1]  # parameter to look at (Highpass, Smooth, or Numbasis)
 
@@ -39,12 +39,12 @@ if not os.path.exists('ROC'):
         # this at almost the exact same time
         pass
 
-if str.lower(param) == 'highpass':
+if str.lower(param) == 'highpass' or str.lower(param) == 'all':
     roc_generator(snr_vals, highpass, ni, of1)
-    roc_generator(snr_vals, highpass, ni, of11)
-elif str.lower(param) == 'smooth':
+    roc_generator(snr_vals, highpass, ni, of11, generate='table')
+elif str.lower(param) == 'smooth' or str.lower(param) == 'all':
     roc_generator(snr_vals, smooth, ni, of2)
-    roc_generator(snr_vals, smooth, ni, of22)
-elif str.lower(param) == 'numbasis':
+    roc_generator(snr_vals, smooth, ni, of22, generate='table')
+elif str.lower(param) == 'numbasis' or str.lower(param) == 'all':
     roc_generator(snr_vals, numbasis, ni, of3)
-    roc_generator(snr_vals, numbasis, ni, of33)
+    roc_generator(snr_vals, numbasis, ni, of33, generate='table')
