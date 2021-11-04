@@ -223,6 +223,7 @@ def roc_generator(snr_values, param1, num_injections, filepath_to_save, file_fin
         plt.legend(loc='lower right')
         os.chdir(originalwd)
         plt.savefig(filepath_to_save)
+        plt.close()
     else:
         os.chdir(originalwd)
         df.to_csv(filepath_to_save, index=False)
@@ -267,6 +268,7 @@ def max_value_heatmap(param1, param2, filepath_to_save, file_finder='*.csv'):
     plt.title('Maximum Planet SNR Values')
     os.chdir(originalwd)
     plt.savefig(filepath_to_save)
+    plt.close()
 
 
 def specific_target_heatmap(param1, param2, filepath_to_save, target_loc, file_finder='*.csv', target_name=None):
@@ -313,6 +315,7 @@ def specific_target_heatmap(param1, param2, filepath_to_save, target_loc, file_f
         plt.title(f'Average SNR Value For {target_name}')
     os.chdir(originalwd)
     plt.savefig(filepath_to_save)
+    plt.close()
 
 
 def mean_value_heatmap(param1, param2, num_injections, filepath_to_save, file_finder='*.csv'):
@@ -358,3 +361,4 @@ def mean_value_heatmap(param1, param2, num_injections, filepath_to_save, file_fi
     plt.title('Mean Injected Planet SNR Value')
     os.chdir(originalwd)
     plt.savefig(filepath_to_save)
+    plt.close()
