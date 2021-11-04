@@ -42,9 +42,9 @@ if not os.path.exists('ROC'):
 if str.lower(param) == 'highpass' or str.lower(param) == 'all':
     roc_generator(snr_vals, highpass, ni, of1)
     roc_generator(snr_vals, highpass, ni, of11, generate='table')
-elif str.lower(param) == 'smooth' or str.lower(param) == 'all':
+if str.lower(param) == 'smooth' or str.lower(param) == 'all':
     roc_generator(snr_vals, smooth, ni, of2)
     roc_generator(snr_vals, smooth, ni, of22, generate='table')
-elif str.lower(param) == 'numbasis' or str.lower(param) == 'all':
+if str.lower(param) == 'numbasis' or str.lower(param) == 'all':
     roc_generator(snr_vals, numbasis, ni, of3)
     roc_generator(snr_vals, numbasis, ni, of33, generate='table')
