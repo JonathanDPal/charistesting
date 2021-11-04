@@ -286,7 +286,7 @@ def specific_target_heatmap(param1, param2, filepath_to_save, target_loc, file_f
     X, Y = target_loc
     for file in fileset:
         df = pd.read_csv(file)
-        specific_target_df = df[((df['x'] - X - 100) ** 2 + (df['y'] - Y - 100) ** 2) < 9]  # within 3 pixels
+        specific_target_df = df[((df['col'] - X) ** 2 + (df['row'] - Y) ** 2) < 16]  # within 4 pixels
         if len(specific_target_df) == 0:
             snr = 0
         else:
