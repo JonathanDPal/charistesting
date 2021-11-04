@@ -301,7 +301,7 @@ def specific_target_heatmap(param1, param2, filepath_to_save, target_loc, file_f
             p1 = str(p1)
             p2 = str(p2)
             full_data[p1][p2] = np.mean(full_data[p1][p2])
-            full_data[p1][p2] = (round(full_data[p1][p2]), 2)
+            full_data[p1][p2] = round(full_data[p1][p2], 2)
     plot_snr = []
     for p2 in param2[1]:
         plot_snr.append([full_data[str(p1)][str(p2)] for p1 in param1[1]])
