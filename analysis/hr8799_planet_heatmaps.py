@@ -43,7 +43,7 @@ if ('annuli' in params and 'subsections' in params) or 'all' in params:
 if ('annuli' in params and 'movement' in params) or 'all' in params:
     specific_target_heatmap(annuli, movement, ofd1, loc_d, target_name='HR8799d')
     specific_target_heatmap(annuli, movement, ofc1, loc_c, target_name='HR8799c')
-    specific_target_heatmap(annuli, movement, ofb0, loc_b, target_name='HR8799b')
+    specific_target_heatmap(annuli, movement, ofb1, loc_b, target_name='HR8799b')
 if ('subsections' in params and 'movement' in params) or 'all' in params:
     specific_target_heatmap(subsections, movement, ofd2, loc_d, target_name='HR8799d')
     specific_target_heatmap(subsections, movement, ofc2, loc_c, target_name='HR8799c')
