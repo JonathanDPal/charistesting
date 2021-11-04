@@ -210,7 +210,7 @@ def roc_generator(snr_values, param1, num_injections, filepath_to_save, file_fin
                 tp /= len(A)
                 fp /= len(A)
                 newrow = {'Param Value': val, 'SNR': snr, 'Avg True Positives': tp, 'Avg False Positives': fp}
-                df.append(newrow, ignore_index=True)
+                df = df.append(newrow, ignore_index=True)
         if generate == 'plot':
             markers = ['.', 'o', 'v', '^', '<', '>', '1', '2', '3', '4', '8', 's', 'p', 'P', '*', 'h', 'H', '+',
                        'x', 'X', 'D', 'd', '|', '_']
