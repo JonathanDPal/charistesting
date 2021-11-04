@@ -269,7 +269,7 @@ def max_value_heatmap(param1, param2, filepath_to_save, file_finder='*.csv'):
     plt.savefig(filepath_to_save)
 
 
-def specific_target_heatmap(param1, param2, filepath_to_save, target_loc, file_finder='*.csv'):
+def specific_target_heatmap(param1, param2, filepath_to_save, target_loc, file_finder='*.csv', target_name=None):
     """
     Just shows the average value of a particular
     Args:
@@ -307,7 +307,10 @@ def specific_target_heatmap(param1, param2, filepath_to_save, target_loc, file_f
     sns.heatmap(data_to_plot, annot=True, linewidths=0.2, fmt='d', cbar=False)
     plt.xlabel(param1[0])
     plt.ylabel(param2[0])
-    plt.title('Average SNR Value')
+    if target_name is None:
+        plt.title('Average SNR Value')
+    else:
+        plt.title(f'Average SNR Value For {target_name}')
     os.chdir(originalwd)
     plt.savefig(filepath_to_save)
 
