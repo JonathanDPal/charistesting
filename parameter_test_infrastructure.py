@@ -527,6 +527,7 @@ class Trial:
                     dataset_center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
                     dataset_fwhm, dataset_iwa, dataset_owa = FWHMIOWA_calculator(hdulist)
                     output_wcs = WCS(hdulist[0].header, naxis=[1, 2])
+                corrupt_file = False
             except OSError:
                 corrupt_file = True
 
@@ -677,7 +678,7 @@ class Trial:
                 with fits.open(filepath) as hdulist:
                     image = copy(hdulist[1].data)
                     center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
-                    corrupt_file = False
+                corrupt_file = False
             except OSError:  # occurs if the file is corrupt or empty
                 corrupt_file = True
 
