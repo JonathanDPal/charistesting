@@ -521,11 +521,19 @@ class Trial:
 
         # Measuring Contrast For Each Set of KL Modes
         for filepath_index, filepath in enumerate(filepaths):  # filepath_index used to identify number of KL modes
-            with fits.open(filepath) as hdulist:
-                cube = copy(hdulist[1].data)
-                dataset_center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
-                dataset_fwhm, dataset_iwa, dataset_owa = FWHMIOWA_calculator(hdulist)
-                output_wcs = WCS(hdulist[0].header, naxis=[1, 2])
+            try:
+                with fits.open(filepath) as hdulist:
+                    cube = copy(hdulist[1].data)
+                    dataset_center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
+                    dataset_fwhm, dataset_iwa, dataset_owa = FWHMIOWA_calculator(hdulist)
+                    output_wcs = WCS(hdulist[0].header, naxis=[1, 2])
+            except OSError:
+                corrupt_file = True
+
+            if corrupt_file:
+                with open(f'{self.object_name}/corrupt_fits_files.txt', 'a') as f:
+                    f.write(f'{filepath}\n')
+                continue
 
             for wavelength_index in range(cube.shape[0]):  # making measurements at every wavelength
                 # if not overwriting, then check to see if file exists
@@ -676,60 +684,61 @@ class Trial:
             if corrupt_file:
                 with open(f'{self.object_name}/corrupt_fits_files.txt', 'a') as f:
                     f.write(f'{filepath}\n')
-            else:
-                x_grid, y_grid = np.meshgrid(np.arange(-10, 10), np.arange(-10, 10))
-                kernel_gauss = gauss2d(x_grid, y_grid)
+                continue
 
-                # flat spectrum given here for generating cross-coorelated image so that pyKLIP collapses it into one
-                # image, instead of giving seperate images for each wavelength
-                image_cc = calculate_cc(image, kernel_gauss, spectrum=np.ones(len(image[0])), nans2zero=True)
+            x_grid, y_grid = np.meshgrid(np.arange(-10, 10), np.arange(-10, 10))
+            kernel_gauss = gauss2d(x_grid, y_grid)
 
-                SNR_map = get_image_stat_map_perPixMasking(image_cc, centroid=center, mask_radius=5, Dr=2, type='SNR')
+            # flat spectrum given here for generating cross-coorelated image so that pyKLIP collapses it into one
+            # image, instead of giving seperate images for each wavelength
+            image_cc = calculate_cc(image, kernel_gauss, spectrum=np.ones(len(image[0])), nans2zero=True)
 
-                candidates_table = point_source_detection(SNR_map, center, SNR_threshold, pix2as=1, mask_radius=15,
-                                                          maskout_edge=10, IWA=None, OWA=None)
+            SNR_map = get_image_stat_map_perPixMasking(image_cc, centroid=center, mask_radius=5, Dr=2, type='SNR')
 
-                candidates = pd.DataFrame(candidates_table, columns=['Index', 'SNR Value', 'PA', 'Sep (pix)',
-                                                                     'Sep (as)', 'x', 'y', 'row', 'col'])
+            candidates_table = point_source_detection(SNR_map, center, SNR_threshold, pix2as=1, mask_radius=15,
+                                                      maskout_edge=10, IWA=None, OWA=None)
 
-                fakelocs = pasep_to_xy(self.fake_PAs.flatten(), self.fake_seps.flatten())  # where planets were injected
+            candidates = pd.DataFrame(candidates_table, columns=['Index', 'SNR Value', 'PA', 'Sep (pix)',
+                                                                 'Sep (as)', 'x', 'y', 'row', 'col'])
 
-                candidate_locations = zip(candidates['x'], candidates['y'])  # where stuff was detected
+            fakelocs = pasep_to_xy(self.fake_PAs.flatten(), self.fake_seps.flatten())  # where planets were injected
 
-                if self.mask_xy is None:
-                    self.mask_xy = [[1000, 1000]]  # nothing gets identified as science target
-                elif not isinstance(self.mask_xy[0], (list, tuple)):
-                    self.mask_xy = [self.mask_xy]  # making it a list of a list so that it can get iterated over
-                    # properly
+            candidate_locations = zip(candidates['x'], candidates['y'])  # where stuff was detected
 
-                distances_from_fakes = []  # going to be an additional column of candidates DataFrame
-                distances_from_targets = []  # going to be an additional column of candidates DataFrame
-                for c in candidate_locations:
-                    distances = []
-                    for fl in fakelocs:
-                        distances.append(distance(c, fl))
-                    distances_from_fakes.append(np.min(distances))
-                    distances2 = []
-                    for mask in self.mask_xy:
-                        mask = np.array(mask) - np.array(center)  # aligning coordinate systems
-                        distances2.append(distance(c, mask))
-                    distances_from_targets.append(np.min(distances2))
+            if self.mask_xy is None:
+                self.mask_xy = [[1000, 1000]]  # nothing gets identified as science target
+            elif not isinstance(self.mask_xy[0], (list, tuple)):
+                self.mask_xy = [self.mask_xy]  # making it a list of a list so that it can get iterated over
+                # properly
 
-                injected = []  # going to be an additional column of candidates DataFrame
-                for d1, d2 in zip(distances_from_targets, distances_from_fakes):
-                    if d1 < self.fake_fwhm * 1.5:
-                        injected.append("Science Target")
-                    elif d2 < self.fake_fwhm * 1.5:
-                        injected.append(True)
-                    else:
-                        injected.append(False)
+            distances_from_fakes = []  # going to be an additional column of candidates DataFrame
+            distances_from_targets = []  # going to be an additional column of candidates DataFrame
+            for c in candidate_locations:
+                distances = []
+                for fl in fakelocs:
+                    distances.append(distance(c, fl))
+                distances_from_fakes.append(np.min(distances))
+                distances2 = []
+                for mask in self.mask_xy:
+                    mask = np.array(mask) - np.array(center)  # aligning coordinate systems
+                    distances2.append(distance(c, mask))
+                distances_from_targets.append(np.min(distances2))
 
-                # appending more information to output for analysis later on
-                candidates['Distance From Fakes'] = distances_from_fakes
-                candidates['Distance From Targets'] = distances_from_targets
-                candidates['Injected'] = injected
+            injected = []  # going to be an additional column of candidates DataFrame
+            for d1, d2 in zip(distances_from_targets, distances_from_fakes):
+                if d1 < self.fake_fwhm * 1.5:
+                    injected.append("Science Target")
+                elif d2 < self.fake_fwhm * 1.5:
+                    injected.append(True)
+                else:
+                    injected.append(False)
 
-                candidates.to_csv(output_filepath)
+            # appending more information to output for analysis later on
+            candidates['Distance From Fakes'] = distances_from_fakes
+            candidates['Distance From Targets'] = distances_from_targets
+            candidates['Injected'] = injected
+
+            candidates.to_csv(output_filepath)
 
     def __eq__(self, other):
         """
