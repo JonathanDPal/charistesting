@@ -7,6 +7,7 @@ from copy import copy, deepcopy
 from pyklip.parallelized import klip_dataset
 from pyklip.klip import meas_contrast, _rotate_wcs_hdr
 from pyklip.fakes import inject_planet, convert_pa_to_image_polar
+from pyklip.fakes import retrieve_planet_flux as pyklip_retrieve_planet_flux
 from pyklip.kpp.utils.mathfunc import gauss2d
 from pyklip.kpp.metrics.crossCorr import calculate_cc
 from pyklip.kpp.stat.statPerPix_utils import get_image_stat_map_perPixMasking
@@ -578,11 +579,16 @@ class Trial:
                     for sep in self.fake_seps:
                         fake_planet_fluxes = []
                         for pa in pas:
-                            fake_flux = retrieve_planet_flux(frame, pa, sep, local_output_wcs, dataset_center,
-                                                             dataset_fwhm)
+                            try:
+                                fake_flux = retrieve_planet_flux(frame, pa, sep, local_output_wcs, dataset_center,
+                                                                 dataset_fwhm)
+                            except RuntimeError:  # if scipy can't find a good model
+                                fake_flux = pyklip_retrieve_planet_flux(frames=frame, centers=dataset_center,
+                                                                        astr_hdrs=local_output_wcs, sep=sep, pa=pa)
+                                if fake_flux < 0:
+                                    fake_flux = 0
                             fake_planet_fluxes.append(fake_flux)
                         retrieved_fluxes.append(np.mean(fake_planet_fluxes))
-
                     algo_throughput = np.array(retrieved_fluxes) / np.array(fluxes)
 
                 # Applying Mask to Fake Planets
