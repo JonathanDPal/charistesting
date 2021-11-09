@@ -160,11 +160,22 @@ def valuefinder(filename, param):
 
 direc = sys.argv[1]
 klip_outputs = glob(f'{direc}/klipped_cubes_Wfakes/*.fits')
-completed = [valuefinder(file, 'all') for file in klip_outputs]
+try:
+    completed = [valuefinder(file, 'all') for file in klip_outputs]
+except ValueError:  # if there's new stuff and we haven't gotten rid of collapsed KLIP files yet
+    os.system(f'mv {direc}/klipped_cubes_Wfakes/*modes-all* {direc}/kl-all')
+    completed = [valuefinder(file, 'all') for file in klip_outputs]
 
 olddirec = os.getcwd()
 os.chdir(direc)
-annuli = paramvaluesfinder('annuli')
+try:
+    annuli = paramvaluesfinder('annuli')
+except UnboundLocalError:  # if the log file got replaced by some new janky thing
+    os.chdir(olddirec)
+    os.system(f'cp useful_logfile.txt {direc}/log.txt')
+    os.chdir(direc)
+    annuli = paramvaluesfinder('annuli')
+
 subsections = paramvaluesfinder('subsections')
 movement = paramvaluesfinder('movement')
 numbasis = paramvaluesfinder('numbasis')
