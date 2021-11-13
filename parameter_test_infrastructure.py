@@ -625,7 +625,7 @@ class Trial:
                 df = pd.DataFrame()
                 df['Seperation'] = contrast_seps
                 df['Uncalibrated Contrast'] = contrast
-                df.to_csv(uncal_contrast_output_filepath)
+                df.to_csv(uncal_contrast_output_filepath, index=False)
 
                 if contains_fakes:
                     # Calibrating For KLIP Subtraction If Fakes Present
@@ -647,7 +647,7 @@ class Trial:
                     df = pd.DataFrame()
                     df['Seperation'] = contrast_seps
                     df['Calibrated Contrast'] = correct_contrast
-                    df.to_csv(cal_contrast_output_filepath)
+                    df.to_csv(cal_contrast_output_filepath, index=False)
 
     def detect_planets(self, SNR_threshold=2, datasetwithfakes=True, override=False):
         """
@@ -739,7 +739,7 @@ class Trial:
             candidates['Distance From Targets'] = distances_from_targets
             candidates['Injected'] = injected
 
-            candidates.to_csv(output_filepath)
+            candidates.to_csv(output_filepath, index=False)
 
     def __eq__(self, other):
         """
