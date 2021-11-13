@@ -18,9 +18,9 @@ for direc in sys.argv[1:]:
         sep40.append(list(at40['SNR Value']))
         sep60.append(list(at60['SNR Value']))
 
-sep20 = np.array(sep20).flatten()
-sep40 = np.array(sep40).flatten()
-sep60 = np.array(sep60).flatten()
+sep20 = np.array(sep20, dtype=object).flatten()
+sep40 = np.array(sep40, dtype=object).flatten()
+sep60 = np.array(sep60, dtype=object).flatten()
 
 fig, (ax1, ax2, ax3) = plt.subplots(1, 3, sharey=True)
 ax1.hist(sep20)
