@@ -10,13 +10,18 @@ for direc in sys.argv[1:]:
     for f in detectionsfiles:
         df = pd.read_csv(f)
         df1 = df[df['Injected'] == 'True']
-        at20 = df1[(df1['Sep (pix)'] - 20) < 1]
-        at40 = df1[(df1['Sep (pix)'] - 40) < 1]
-        at60 = df1[(df1['Sep (pix)'] - 40) < 1]
+        at20 = list(df1[(df1['Sep (pix)'] - 20) < 1]['SNR Value'])
+        at40 = list(df1[(df1['Sep (pix)'] - 40) < 1]['SNR Value'])
+        at60 = list(df1[(df1['Sep (pix)'] - 40) < 1]['SNR Value'])
 
-        sep20.append(list(at20['SNR Value']))
-        sep40.append(list(at40['SNR Value']))
-        sep60.append(list(at60['SNR Value']))
+        for lst in (at20, at40, at60):
+            if len(lst) < 6:
+                for _ in range(6 - len(lst)):
+                    lst.append(0)
+
+        sep20.append(at20)
+        sep40.append(at40)
+        sep60.append(at60)
 
 sep20 = np.array(sep20, dtype=object).flatten()
 sep40 = np.array(sep40, dtype=object).flatten()
