@@ -1,6 +1,7 @@
 from matplotlib import pyplot as plt
 import pandas as pd
 import sys
+from glob import glob
 import numpy as np
 
 sep20, sep40, sep60 = list(), list(), list()
