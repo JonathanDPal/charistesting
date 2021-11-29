@@ -15,11 +15,14 @@ wln_um = dataset.wvs
 length = dataset.input.shape[1]
 
 with open(f'{object_name0}_dataset_info.txt', 'w') as f:
-    f.write(f'Rotation Angles: {rot_angs}, {type(rot_angs)}\n')
-    f.write(f'Flip_x: {flipx}, {type(flipx)}\n')
-    f.write(f'DN_per_contrast: {dn_per_contrast}, {type(dn_per_contrast)}\n')
-    f.write(f'Wavelengths: {wln_um}, {type(wln_um)}\n')
-    f.write(f'Length: {length}, {type(length)}')
-    for thing in [rot_angs, flipx, dn_per_contrast, wln_um, length]:
-        if type(thing) == list:
-            f.write(f'{type(thing[0])}\n')
+    f.write(f'Rotation Angles:\n')
+    for r_ang in rot_angs:
+        f.write(f'{r_ang}\n')
+    f.write(f'Flip_x: {flipx}\n')
+    f.write(f'DN_per_contrast:\n')
+    for ratio in dn_per_contrast:
+        f.write(f'{ratio}\n')
+    f.write(f'Wavelengths:\n')
+    for wln in wln_um:
+        f.write(f'{wln}\n')
+    f.write(f'Length: {length}')
