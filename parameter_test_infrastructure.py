@@ -97,9 +97,6 @@ def make_dn_per_contrast(dataset):
     # Calculates and sets the dn_per_contrast
     dataset.dn_per_contrast = mean_spot_fluxes / dataset.spot_ratio
 
-    # Returns modified dataset object
-    return dataset
-
 
 def pasep_to_xy(PAs, seps):
     """
@@ -323,6 +320,46 @@ def params_from_text_file(paramsfile):
         highpass.append(hp)
 
     return annuli, subsections, movement, spectrum, numbasis, corr_smooth, highpass
+
+
+def append_dataset_info(info_filename, dataset_placeholder):
+    """
+    Adds in information to TestDataset object needed for contrast and detection from a text file. Avoids the need to
+    build CHARISData object (memory-intensive). File with information should be an output file from
+    'organizational_scripts/get_dataset_info.py'.
+    ---
+    Params:
+        info_filename (str): Name of the file which has the needed information from the CHARISData object
+        testdataset (TestDataset): TestDataset object to have information appended to.
+    """
+    with open(info_filename) as f:
+        lines = [line for line in f]
+    angles, dn_per_contrast, wvs = list(), list(), list()
+    for index, line in enumerate(lines):
+        if 'Length' in line:
+            dataset_placeholder.leNgth = int(line.split(' ')[1])
+            lengthline = index
+        elif 'Flip_x' in line:
+            dataset_placeholder.flipx = bool(line.split(' ')[1])
+            flipxline = index
+        elif 'DN_per_contrast' in line:
+            dn_per_contrast_start = index + 1
+        elif 'wavelengths' in line:
+            wvs_start = index + 1
+    linenumber = 1
+    while linenumber < flipxline:
+        angles.append(float(lines[linenumber]))
+        linenumber += 1
+    linenumber = dn_per_contrast_start
+    while linenumber < wvs_start - 1:
+        dn_per_contrast.append(float(lines[linenumber]))
+        linenumber += 1
+    linenumber = wvs_start
+    while linenumber < lengthline:
+        wvs.append(float(lines[linenumber]))
+    dataset_placeholder.angles = np.array(angles)
+    dataset_placeholder.dn_per_contrast = np.array(dn_per_contrast)
+    dataset_placeholder.wvs = np.array(wvs)
 
 
 ####################################################################################
@@ -768,6 +805,14 @@ class Trial:
 #################################################################################################
 # Observation Set (eg. HD1160, BetaPic) Will Have An Instance of TestDataset Associated With It #
 #################################################################################################
+class Dataset_PlaceHolder:
+    """
+    Helper class for TestDataset
+    """
+    def __init__(self):
+        pass
+
+
 class TestDataset:
     """
     The main object which the user will interact with. Will load in CHARIS fileset into CHARISData class (see
@@ -811,17 +856,20 @@ class TestDataset:
 
         if build_charis_data == 'true' or build_charis_data == 'temporary':
             with log_file_output(self.object_name):
-                self.dataset = make_dn_per_contrast(CHARISData(glob(fileset)))  # function adds dn_per_contrast
-                # attribute
-
+                self.dataset = CHARISData(glob(fileset))
+                make_dn_per_contrast(self.dataset)
+                self.dataset.leNgth = self.dataset.input.shape[1]
             self.write_to_log_and_print(f'###### DONE BUILDING CHARISData OBJECT FOR {self.object_name} #######')
+        else:
+            self.dataset = Dataset_PlaceHolder()
+            append_dataset_info(build_charis_data, self.dataset)
 
         self.fake_fluxes = np.array(fake_fluxes)
         self.fake_seps = np.array(fake_seps)
         self.fake_fwhm = fake_fwhm
         self.fake_PAs = np.array(fake_PAs)
 
-        self.trials = []
+        self.trials = list()
         # START OF IF/ELSE AND FOR LOOPS FOR BUILDING TRIALS #
         if build_all_combos:
             if not isinstance(batched, tuple):
@@ -839,7 +887,7 @@ class TestDataset:
                                                                  rot_angs=self.dataset.PAs, flipx=self.dataset.flipx,
                                                                  dn_per_contrast=self.dataset.dn_per_contrast,
                                                                  wln_um=self.dataset.wvs, highpass=hp,
-                                                                 length=self.dataset.input.shape[1]))
+                                                                 length=self.dataset.leNgth))
             else:
                 args = [annuli, subsections, movement, spectrum, corr_smooth, highpass]
                 _, batchindex, batchsize = batched
@@ -854,20 +902,18 @@ class TestDataset:
                                              rot_angs=self.dataset.PAs, flipx=self.dataset.flipx,
                                              dn_per_contrast=self.dataset.dn_per_contrast,
                                              wln_um=self.dataset.wvs, highpass=hp,
-                                             length=self.dataset.input.shape[1]))
+                                             length=self.dataset.leNgth))
         else:
             if not isinstance(batched, tuple):
                 for ani, subsec, mov, spec, nb, cs, hp in zip(annuli, subsections, movement, spectrum,
                                                               numbasis, corr_smooth, highpass):
-                    self.trials.append(Trial(object_name=self.object_name, mask_xy=self.mask_xy,
-                                             annuli=ani, subsections=subsec, movement=mov,
-                                             numbasis=[nb], spectrum=spec, corr_smooth=cs,
-                                             fake_PAs=self.fake_PAs, fake_fluxes=self.fake_fluxes,
+                    self.trials.append(Trial(object_name=self.object_name, mask_xy=self.mask_xy, annuli=ani,
+                                             subsections=subsec, movement=mov, numbasis=[nb], spectrum=spec,
+                                             corr_smooth=cs, fake_PAs=self.fake_PAs, fake_fluxes=self.fake_fluxes,
                                              fake_fwhm=self.fake_fwhm, fake_seps=self.fake_seps,
-                                             rot_angs=deepcopy(self.dataset.PAs), flipx=deepcopy(self.dataset.flipx),
-                                             dn_per_contrast=deepcopy(self.dataset.dn_per_contrast),
-                                             wln_um=deepcopy(self.dataset.wvs), highpass=hp,
-                                             length=deepcopy(self.dataset.input.shape[1])))
+                                             rot_angs=self.dataset.PAs, flipx=self.dataset.flipx,
+                                             dn_per_contrast=self.dataset.dn_per_contrast, wln_um=self.dataset.wvs,
+                                             highpass=hp, length=self.dataset.leNgth))
             else:
                 args = [annuli, subsections, movement, numbasis, spectrum, corr_smooth, highpass]
                 _, batchindex, batchsize = batched
@@ -877,15 +923,13 @@ class TestDataset:
                 for params in zip(paramset[0], paramset[1], paramset[2], paramset[3], paramset[4], paramset[5],
                                   paramset[6]):
                     ani, subsec, mov, nb, spec, cs, hp = params
-                    self.trials.append(Trial(object_name=self.object_name, mask_xy=self.mask_xy,
-                                             annuli=ani, subsections=subsec, movement=mov,
-                                             numbasis=[nb], spectrum=spec, corr_smooth=cs,
-                                             fake_PAs=self.fake_PAs, fake_fluxes=self.fake_fluxes,
+                    self.trials.append(Trial(object_name=self.object_name, mask_xy=self.mask_xy, annuli=ani,
+                                             subsections=subsec, movement=mov, numbasis=[nb], spectrum=spec,
+                                             corr_smooth=cs, fake_PAs=self.fake_PAs, fake_fluxes=self.fake_fluxes,
                                              fake_fwhm=self.fake_fwhm, fake_seps=self.fake_seps,
-                                             rot_angs=deepcopy(self.dataset.PAs), flipx=deepcopy(self.dataset.flipx),
-                                             dn_per_contrast=deepcopy(self.dataset.dn_per_contrast),
-                                             wln_um=deepcopy(self.dataset.wvs), highpass=hp,
-                                             length=deepcopy(self.dataset.input.shape[1])))
+                                             rot_angs=self.dataset.PAs, flipx=self.dataset.flipx,
+                                             dn_per_contrast=self.dataset.dn_per_contrast, wln_um=self.dataset.wvs,
+                                             highpass=hp, length=self.dataset.leNgth))
         # END OF IF/ELSE AND FOR LOOPS #
         self.mode = mode
         self.overwrite = overwrite
