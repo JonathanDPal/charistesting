@@ -344,7 +344,7 @@ def append_dataset_info(info_filename, dataset_placeholder):
             flipxline = index
         elif 'DN_per_contrast' in line:
             dn_per_contrast_start = index + 1
-        elif 'wavelengths' in line:
+        elif 'Wavelengths' in line:
             wvs_start = index + 1
     linenumber = 1
     while linenumber < flipxline:
