@@ -9,6 +9,15 @@ reference_contrast = [(20, 1e-5), (40, 5e-6), (60, 1e-6)]  # some values that ar
 total_injected = 18
 injected_fluxes = [(20, (2e-4, 1e-4)), (40, (1e-4, 5e-5)), (60, (5e-5, 1e-5))]
 detectionsfiles = glob('../detections/*.csv')
+if len(sys.argv) > 1:
+    if sys.argv[1] == 'seps':
+        SEPS = np.array([float(sep) for sep in sys.argv[2:]])
+    elif sys.argv[1] == 'pas':
+        PAS = np.array([float(pa) for pa in sys.argv[2:]])
+    else:
+        raise ValueError("incorrect arguments")
+else:
+    SEPS, PAS = None, None
 
 
 def valuefinder(filename, param):
@@ -100,7 +109,7 @@ for reference, inj_flux in zip(reference_contrast, injected_fluxes):
     for flux in fluxes:
         for _ in range(int(total_injected / (len(injected_fluxes) * len(fluxes)))):
             reference_planets_snr.append(flux / ref_contrast)
-snr_values = np.arange(start=2, stop=np.ceil(np.max(reference_planets_snr)), step=1)
+snr_values = np.arange(start=2, stop=np.ceil(np.max(reference_planets_snr)), step=0.25)
 ref_individual_scores = list()
 for snr in snr_values:
     tp = len([ref_snr for ref_snr in reference_planets_snr if ref_snr >= snr])
@@ -114,13 +123,17 @@ for dfile in detectionsfiles:
     df = pd.read_csv(dfile)
     df = df[df['Injected'] != 'Science Target']  # ignoring science targets for scoring
     try:
-        snrvals = np.arange(start=2, stop=np.ceil(df['SNR Value'].max()), step=1)
+        snrvals = np.arange(start=2, stop=np.ceil(df['SNR Value'].max()), step=0.25)
     except ValueError:  # this means that the detections file is empty
         continue
 
     individual_scores = list()
     for snr in snrvals:
         df1 = df[df['SNR Value'] >= snr]
+        if SEPS is not None:
+            df1 = df1[df1['Injected'] != 'Science Target' or np.min(np.abs(SEPS - df1['Sep (pix)'])) < 1]
+        elif PAS is not None:
+            df1 = df1[df1['Injected'] != 'Science Target' or np.min(np.abs(PAS - df1['PA'])) < 3]
         inj = list(df1['Injected'])
         tp = 0
         fp = 0
@@ -162,4 +175,9 @@ sorted_by_score = finaldata.sort_values(by='Score', ascending=False, ignore_inde
 
 if not os.path.exists('numericalscoring'):
     os.mkdir('numericalscoring')
-sorted_by_score.to_csv('numericalscoring/snr_scores.csv', index=False)
+if SEPS is None and PAS is None:
+    sorted_by_score.to_csv('numericalscoring/snr_scores.csv', index=False)
+elif PAS is None:
+    sorted_by_score.to_csv(f'numericalscoring/snr_scores_{SEPS}.csv', index=False)
+else:
+    sorted_by_score.to_csv(f'numericalscoring/snr_scores_{PAS}.csv', index=False)
