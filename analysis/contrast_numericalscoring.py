@@ -120,10 +120,9 @@ for cfile in contrastfiles:
         else:
             try:
                 score_sum += (np.log10(contrast[closest_seperation_index] / 5))  # measures 5 sigma contrast
-            except RuntimeWarning:  # this means that a nonpositive number is the value for contrast
+            except RuntimeWarning:  # this means that a negctive number is the value for contrast
                 score_sum += -np.inf
-                print(contrast[closest_seperation_index] / 5, f'{cfile}, {round(sep, 2)}')
-                break  # only breaks inner for loop, doesn't break outer for loop
+                break
 
     if score_sum == -np.inf:
         scores.append(-np.inf)

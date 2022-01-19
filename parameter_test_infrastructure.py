@@ -403,7 +403,7 @@ class Trial:
         self.rot_angs = rot_angs
         self.flipx = flipx
 
-        self.dn_per_contrast = np.array(dn_per_contrast)
+        self.dn_per_cotrast = np.array(dn_per_contrast)
         self.wln_um = wln_um  # only being used to identify wavelength in output filepath name
 
         # Switching Highpass To Image Space If Necessary
