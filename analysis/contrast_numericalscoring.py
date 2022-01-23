@@ -4,6 +4,7 @@ import sys
 import pandas as pd
 import pandas.errors
 import os
+import warnings
 
 reference_contrast = [(20, 1e-5), (40, 5e-5), (60, 1e-6)]  # some values that are the standard everything is judged
 # against (first value is seperation, second is standard value for that seperation)
@@ -19,6 +20,8 @@ except AssertionError:
     raise ValueError('The default wavelength (1.63 um) is not a wavelength of the dataset that is being analyzed '
                      'here. Please specify the wavelength on the command line, i.e. say "python contrast_numerical '
                      'scoring.py {insert wavelength here}"')
+contrastfiles = glob('../calibrated_contrast/*1.63um*.csv')
+warnings.filterwarnings("error", category=RuntimeWarning)
 
 
 def valuefinder(filename, param):
@@ -124,8 +127,13 @@ for cfile in contrastfiles:
         closest_seperation_index = np.argmin(sep - seps)
         if contrast[closest_seperation_index] == -np.inf:
             score_sum += -np.inf
+            break  # only breaks inner for loop, doesn't break outer for loop
         else:
-            score_sum += (np.log10(contrast[closest_seperation_index]) / 5)  # measures 5 sigma contrast
+            try:
+                score_sum += (np.log10(contrast[closest_seperation_index] / 5))  # measures 5 sigma contrast
+            except RuntimeWarning:  # this means that a negctive number is the value for contrast
+                score_sum += -np.inf
+                break
 
     if score_sum == -np.inf:
         scores.append(-np.inf)
