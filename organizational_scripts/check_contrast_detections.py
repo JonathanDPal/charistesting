@@ -92,8 +92,8 @@ def valuefinder(filename, param):
         then returns a list of all the KLIP parameters.
     """
     param = str.lower(param)
-    paramlengths = {'annuli': 6, 'subsections': 11, 'movement': 8, 'spectrum': 8, 'kl': 2, 'smooth': 6, 'highpass':
-                        8, 'um': 2}
+    paramlengths = {'annuli': 6, 'subsections': 11, 'movement': 8, 'spectrum': 8, 'kl': 2, 'smooth': 6,
+                    'highpass': 8, 'um': 2}
     if param != 'all':
         paramlength = paramlengths[param]
         startingindex = None  # will be defined soon
@@ -275,8 +275,17 @@ except UnboundLocalError:
                      "based off parameters in a text file. Either modify the log file to include all of the desired "
                      "parameters to check if present, or bring in another log file which contains all of them.")
 
-wavelength = [float(f'{wvl}') for wvl in [1.16, 1.2, 1.24, 1.28, 1.33, 1.37, 1.42, 1.47, 1.52, 1.58, 1.63, 1.69,
-                                          1.74, 1.8, 1.87, 1.93, 2.0, 2.07, 2.14, 2.21, 2.29, 2.37]]
+if direc in ['HD1160', 'HR8799', 'HIP86032']:  # broadband
+    wavelength = [float(f'{round(wvl, 2)}') for wvl in [1.15956144, 1.19969705, 1.24122187, 1.28418397, 1.32863311,
+                                                        1.37462076, 1.42220017, 1.47142643, 1.52235655, 1.5750495,
+                                                        1.6295663, 1.68597007, 1.74432613, 1.80470206, 1.86716776,
+                                                        1.93179558, 1.99866034, 2.06783947, 2.13941309, 2.21346406,
+                                                        2.29007815, 2.36934405]]
+elif direc in ['Kappa']:  # k-band
+    wavelength = [float(f'{round(wvl, 2)}') for wvl in [2.01513642, 2.03556326, 2.05619717, 2.07704023, 2.09809457,
+                                                        2.11936233, 2.14084568, 2.1625468, 2.1844679, 2.2066112,
+                                                        2.22897897, 2.25157347, 2.274397, 2.29745189, 2.32074048,
+                                                        2.34426514, 2.36802826]]
 
 if look_at_contrast:
     cc = 0
