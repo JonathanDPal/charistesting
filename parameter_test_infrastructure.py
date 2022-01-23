@@ -662,7 +662,10 @@ class Trial:
                 df = pd.DataFrame()
                 df['Seperation'] = contrast_seps
                 df['Uncalibrated Contrast'] = contrast
-                df.to_csv(uncal_contrast_output_filepath, index=False)
+                try:
+                    df.to_csv(uncal_contrast_output_filepath, index=False)
+                except OSError:  # get this sometimes on Kappa where CSV file is too big? trying to figure out why
+                    pass
 
                 if contains_fakes:
                     # Calibrating For KLIP Subtraction If Fakes Present
@@ -684,7 +687,10 @@ class Trial:
                     df = pd.DataFrame()
                     df['Seperation'] = contrast_seps
                     df['Calibrated Contrast'] = correct_contrast
-                    df.to_csv(cal_contrast_output_filepath, index=False)
+                    try:
+                        df.to_csv(cal_contrast_output_filepath, index=False)
+                    except OSError:  # get this sometimes on Kappa where CSV file is too big? trying to figure out why
+                        pass
 
     def detect_planets(self, SNR_threshold=2, datasetwithfakes=True, override=False):
         """
