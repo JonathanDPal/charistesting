@@ -6,6 +6,8 @@ import pandas.errors
 import os
 import warnings
 
+warnings.filterwarnings("error", category=RuntimeWarning)  # if dividing by zero, throw an error
+
 reference_contrast = [(20, 1e-5), (40, 5e-5), (60, 1e-6)]  # some values that are the standard everything is judged
 # against (first value is seperation, second is standard value for that seperation)
 
@@ -20,8 +22,6 @@ except AssertionError:
     raise ValueError('The default wavelength (1.63 um) is not a wavelength of the dataset that is being analyzed '
                      'here. Please specify the wavelength on the command line, i.e. say "python contrast_numerical '
                      'scoring.py {insert wavelength here}"')
-contrastfiles = glob('../calibrated_contrast/*1.63um*.csv')
-warnings.filterwarnings("error", category=RuntimeWarning)
 
 
 def valuefinder(filename, param):
