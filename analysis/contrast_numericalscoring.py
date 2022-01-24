@@ -6,13 +6,16 @@ import pandas.errors
 import os
 import warnings
 
-warnings.filterwarnings("error", category=RuntimeWarning)  # if dividing by zero, throw an error
+warnings.filterwarnings("error", category=RuntimeWarning)  # error if dividing by zero or taking log of negative number
 
 reference_contrast = [(20, 1e-5), (40, 5e-5), (60, 1e-6)]  # some values that are the standard everything is judged
 # against (first value is seperation, second is standard value for that seperation)
 
 if len(sys.argv) == 2:
-    wavelength = sys.argv[1]  # in microns
+    if sys.argv[1] == 'all':
+        wavelength = ''
+    else:
+        wavelength = sys.argv[1]  # in microns
 else:
     wavelength = 1.63  # what we've been looking at on broadband
 contrastfiles = glob(f'../calibrated_contrast/*{wavelength}um*.csv')
