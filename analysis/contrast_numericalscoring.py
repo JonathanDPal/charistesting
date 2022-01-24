@@ -154,6 +154,30 @@ for cfile in contrastfiles:
 
 finaldata = pd.DataFrame({'Annuli': annuli, 'Subsections': subsections, 'Movement': movement, 'Spectrum': spectrum,
                           'Numbasis': numbasis, 'Corr_Smooth': corr_smooth, 'Highpass': highpass, 'Score': scores})
+if sys.argv[1] == 'all':  # need to collapse all wavelength scores into a single contrast score
+    d = dict()
+    for _, row in finaldata.iterrows():
+        idx = tuple(row[:-1])
+        if idx in d.keys():
+            d[idx].append(row[-1])
+        else:
+            d[idx] = [row[-1]]
+    d = {key: np.mean(d[key]) for key in d.keys()}
+    annuli, subsections, movement, spectrum, numbasis, corr_smooth, highpass, scores = list(), list(), list(), \
+                                                                                       list(), list(), list(), \
+                                                                                       list(), list()
+    for key in d.keys():
+        annuli.append(key[0])
+        subsections.append(key[1])
+        movement.append(key[2])
+        spectrum.append(key[3])
+        numbasis.append(key[4])
+        corr_smooth.append(key[5])
+        highpass.append(key[6])
+        scores.append(d[key])
+    finaldata = pd.DataFrame({'Annuli': annuli, 'Subsections': subsections, 'Movement': movement, 'Spectrum': spectrum,
+                              'Numbasis': numbasis, 'Corr_Smooth': corr_smooth, 'Highpass': highpass, 'Score': scores})
+
 sorted_by_score = finaldata.sort_values(by='Score', ascending=False, ignore_index=True)
 
 if not os.path.exists('numericalscoring'):
