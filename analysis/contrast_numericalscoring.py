@@ -157,7 +157,7 @@ finaldata = pd.DataFrame({'Annuli': annuli, 'Subsections': subsections, 'Movemen
 if sys.argv[1] == 'all':  # need to collapse all wavelength scores into a single contrast score
     d = dict()
     for _, row in finaldata.iterrows():
-        idx = tuple(row[:-1])
+        idx = tuple(list(row[:3]) + list(row[4:-1]))
         if idx in d.keys():
             d[idx].append(row[-1])
         else:
