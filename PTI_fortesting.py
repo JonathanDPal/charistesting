@@ -649,14 +649,14 @@ class Trial:
                         break
                 nbs = [nb] * len(r2s)
                 if len(optimalparams[0]) == 5:
-                    columns = 'peak, fwhm, offset, x0, y0, r2\n'
+                    columns = 'peak, fwhm, offset, x0, y0, nb, r2\n'
                 elif len(optimalparams[0]) == 4:
-                    columns = 'peak, offset, x0, y0, r2\n'
+                    columns = 'peak, offset, x0, y0, nb, r2\n'
                 with open(self.object_name + f'/fluxretrivaltesting-{self.klip_parameters}.csv', 'w') as f:
                     f.write(columns)
                     for op, r2, nb in zip(optimalparams, r2s, nbs):
-                        opstr = f'{op}\n'.replace('[', '').replace(']', '').replace(' ', '')
-                        f.write(opstr + f',{r2},{nb}')
+                        opstr = f'{op}'.replace('[', '').replace(']', '').replace(' ', '')
+                        f.write(opstr + f'{nb},{r2}\n')
 
     def detect_planets(self, SNR_threshold=2, datasetwithfakes=True, override=False):
         """
