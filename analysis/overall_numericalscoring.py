@@ -6,7 +6,7 @@ snr = pd.read_csv('numericalscoring/snr_scores.csv')
 contrast = pd.read_csv('numericalscoring/contrast_scores.csv')
 
 if len(sys.argv) > 1:
-    snrweight, contrastweight = sys.argv[1], sys.argv[2]
+    snrweight, contrastweight = float(sys.argv[1]), float(sys.argv[2])
 else:
     # this should essentially allow them to be weighted (roughly) equally
     snrweight, contrastweight = contrast['Score'].median(), snr['Score'].median()
