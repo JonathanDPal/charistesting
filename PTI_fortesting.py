@@ -652,7 +652,13 @@ class Trial:
                     columns = 'peak, fwhm, offset, x0, y0, nb, r2\n'
                 elif len(optimalparams[0]) == 4:
                     columns = 'peak, offset, x0, y0, nb, r2\n'
-                with open(self.object_name + f'/fluxretrivaltesting-{self.klip_parameters}.csv', 'w') as f:
+                #TEMPORARY#
+                print(optimalparams)
+                print(self.klip_parameters)
+                #TEMPORARY#
+                if not os.path.exists(self.object_name + '/fitmeas'):
+                    os.mkdir(self.object_name + '/fitmeas')
+                with open(self.object_name + f'/fitmeas/fluxretrivaltesting-{self.klip_parameters}.csv', 'w') as f:
                     f.write(columns)
                     for op, r2, nb in zip(optimalparams, r2s, nbs):
                         opstr = f'{op}'.replace('[', '').replace(']', '').replace(' ', '')
