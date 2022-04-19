@@ -147,7 +147,7 @@ for cfile in contrastfiles:
 
 finaldata = pd.DataFrame({'Annuli': annuli, 'Subsections': subsections, 'Movement': movement, 'Spectrum': spectrum,
                           'Numbasis': numbasis, 'Corr_Smooth': corr_smooth, 'Highpass': highpass, 'Score': scores})
-if sys.argv[1] == 'all':  # need to collapse all wavelength scores into a single contrast score
+if len(sys.argv) > 1 and sys.argv[1] == 'all':  # need to collapse all wavelength scores into a single contrast score
     d = dict()
     for _, row in finaldata.iterrows():
         idx = tuple(list(row[:3]) + list(row[4:-1]))
