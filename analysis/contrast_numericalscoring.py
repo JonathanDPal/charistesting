@@ -8,8 +8,9 @@ import warnings
 
 warnings.filterwarnings("error", category=RuntimeWarning)  # error if dividing by zero or taking log of negative number
 
-reference_contrast = [(20, 1e-5), (40, 5e-5), (60, 1e-6)]  # some values that are the standard everything is judged
-# against (first value is seperation, second is standard value for that seperation)
+reference_contrast = [(13, 1.2e-5), (30, 2e-6), (50, 1e-6)]  # some values that are the standard everything is judged
+# against (first value is seperation, second is standard value for that seperation). standard values taken from an
+# SPIE proceeding paper
 
 if len(sys.argv) == 2:
     if sys.argv[1] == 'all':
@@ -108,11 +109,6 @@ def valuefinder(filename, param):
         return values
 
 
-reference_score = 0
-for reference in reference_contrast:
-    _, reference_val = reference
-    reference_score += np.log10(reference_val / 5)  # stuff above is 5 sigma contrast
-
 annuli, subsections, movement, spectrum, numbasis, corr_smooth, highpass, scores = list(), list(), list(), list(), \
                                                                                    list(), list(), list(), list()
 for cfile in contrastfiles:
@@ -126,22 +122,19 @@ for cfile in contrastfiles:
 
     score_sum = 0
     for reference in reference_contrast:
-        sep, _ = reference
+        sep, reference_val = reference
         closest_seperation_index = np.argmin(sep - seps)
         if contrast[closest_seperation_index] == -np.inf:
             score_sum += -np.inf
             break  # only breaks inner for loop, doesn't break outer for loop
         else:
             try:
-                score_sum += (np.log10(contrast[closest_seperation_index] / 5))  # measures 5 sigma contrast
-            except RuntimeWarning:  # this means that a negctive number is the value for contrast
+                score_sum += (np.log10(contrast[closest_seperation_index] / 5)) / (np.log10(reference / 5))
+                # dividing by 5 since we're working with 5 sigma contrast
+            except RuntimeWarning:  # this has happened when a negctive number is the value for contrast
                 score_sum += -np.inf
                 break
-
-    if score_sum == -np.inf:
-        scores.append(-np.inf)
-    else:
-        scores.append((score_sum / reference_score) * 100)
+    scores.append(score_sum)
 
     ann, sbs, mov, spec, nb, cs, hp = valuefinder(cfile, 'all')
     annuli.append(ann)
