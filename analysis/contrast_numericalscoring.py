@@ -129,7 +129,7 @@ for cfile in contrastfiles:
             break  # only breaks inner for loop, doesn't break outer for loop
         else:
             try:
-                score_sum += (np.log10(contrast[closest_seperation_index] / 5)) / (np.log10(reference / 5))
+                score_sum += (np.log10(contrast[closest_seperation_index] / 5)) / (np.log10(reference_val / 5))
                 # dividing by 5 since we're working with 5 sigma contrast
             except RuntimeWarning:  # this has happened when a negctive number is the value for contrast
                 score_sum += -np.inf
