@@ -23,8 +23,8 @@ for ic in indexcombos:
         paramgroups.append(tuple([subdf.iloc[idx, k] for k in range(7)]))
     data_to_save['Params'].append(str(paramgroups))
     data_to_save['Threshold'].append(fullmin)
-    data_to_save['Average'].append(average)
-    data_to_save['Overall'].append(np.mean([fullmin, fullmin, average]))
+    data_to_save['Average'].append(averagemax)
+    data_to_save['Overall'].append(np.mean([fullmin, fullmin, averagemax]))
 
 broken_up_params = [list() for _ in range(n)]
 for pset in data_to_save['Params']:
