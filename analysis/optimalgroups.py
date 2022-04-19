@@ -17,10 +17,10 @@ data_to_save = {'Params': list(), 'Threshold': list(), 'Average': list(), 'Overa
 for ic in indexcombos:
     subdf = df.iloc[list(ic), :]
     fullmin = np.min([np.min(subdf[col]) for col in columnnames])
-    average = np.mean(subdf['Average'])
+    averagemax = np.mean([np.max(subdf[col]) for col in columnnames])
     paramgroups = list()
     for idx in range(len(ic)):
-        paramgroups.append(tuple([df.iloc[idx, k] for k in range(7)]))
+        paramgroups.append(tuple([subdf.iloc[idx, k] for k in range(7)]))
     data_to_save['Params'].append(str(paramgroups))
     data_to_save['Threshold'].append(fullmin)
     data_to_save['Average'].append(average)
