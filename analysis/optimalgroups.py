@@ -6,6 +6,7 @@ import itertools
 n = int(sys.argv[1])  # how big of parameter sets we're checking
 csvfile = sys.argv[2]
 numrows = int(sys.argv[3])  # how many parameter sets are we using for combinations
+numtosave = int(sys.argv[4])  # only going to save some subset of all the combinations checked
 numcombos = int(np.prod([numrows - k for k in range(n)]) / np.prod(np.arange(n) + 1))
 print(f'{numcombos} combinations will be checked.')  # so that if it's like a trillion then I just kill the script
 
@@ -41,5 +42,5 @@ del data_to_save['Params']
 combined = pd.DataFrame(data_to_save)
 for m, psets in enumerate(broken_up_params):
     combined.insert(m, f'Params {m + 1}', psets)
-to_csv = combined.sort_values('Overall', ascending=False, ignore_index=True)
+to_csv = combined.sort_values('Overall', ascending=False, ignore_index=True)[:numtosave]
 to_csv.to_csv('groupscores.csv', index=False)
