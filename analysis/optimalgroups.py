@@ -14,18 +14,15 @@ columnnames = ['HD SNR', 'HD Contrast', 'HR SNR', 'HR Contrast', 'HIP SNR', 'HIP
                'Kappa Contrast']
 df = pd.read_csv(csvfile)[:numrows]
 indexcombos = itertools.combinations(np.arange(numrows), n)
-data_to_save = {'Params': list(), 'Threshold': list(), 'Average': list(), 'Overall': list()}
+data_to_save = {'Params': list(), 'Threshold': list()}
 for ic in indexcombos:
     subdf = df.iloc[list(ic), :]
-    fullmin = np.min([np.min(subdf[col]) for col in columnnames])
-    averagemax = np.mean([np.max(subdf[col]) for col in columnnames])
+    fullmin = np.max([np.min(subdf[col]) for col in columnnames])
     paramgroups = list()
     for idx in range(len(ic)):
-        paramgroups.append(tuple([subdf.iloc[idx, k] for k in range(7)]))
+        paramgroups.append(tuple([subdf.iloc[idx, k] for k in range(7)])[1:])
     data_to_save['Params'].append(str(paramgroups))
     data_to_save['Threshold'].append(fullmin)
-    data_to_save['Average'].append(averagemax)
-    data_to_save['Overall'].append(np.mean([fullmin, fullmin, averagemax]))
 
 broken_up_params = [list() for _ in range(n)]
 for pset in data_to_save['Params']:
@@ -33,7 +30,7 @@ for pset in data_to_save['Params']:
     for i in range(len(pset)):
         if pset[i] in ['(', ')']:
             parens.append(i)
-    pts = [f'({pset[parens[2*j]: parens[2*j + 1] + 1][4:]}' for j in range(int(len(parens) / 2))]
+    pts = [f'{pset[parens[2*j]: parens[2*j + 1] + 1]}' for j in range(int(len(parens) / 2))]
     assert len(pts) == len(broken_up_params)
     for k in range(n):
         broken_up_params[k].append(pts[k])
@@ -42,5 +39,5 @@ del data_to_save['Params']
 combined = pd.DataFrame(data_to_save)
 for m, psets in enumerate(broken_up_params):
     combined.insert(m, f'Params {m + 1}', psets)
-to_csv = combined.sort_values('Overall', ascending=False, ignore_index=True)[:numtosave]
+to_csv = combined.sort_values('Threshold', ascending=False, ignore_index=True)[:numtosave]
 to_csv.to_csv('groupscores.csv', index=False)
