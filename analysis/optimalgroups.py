@@ -10,8 +10,10 @@ numtosave = int(sys.argv[4])  # only going to save some subset of all the combin
 if len(sys.argv) == 6:
     if str.lower(sys.argv[5]) == 'contrast':
         contrastonly = True
+        snronly = False
     elif str.lower(sys.argv[5]) == 'snr':
         snronly = True
+        contrastonly = False
 else:
     contrastonly, snronly = False, False
 numcombos = int(np.prod([numrows - k for k in range(n)]) / np.prod(np.arange(n) + 1))
@@ -29,12 +31,12 @@ indexcombos = itertools.combinations(np.arange(numrows), n)
 data_to_save = {'Params': list(), 'Threshold': list()}
 for ic in indexcombos:
     subdf = df.iloc[list(ic), :]
-    fullmin = np.max([np.min(subdf[col]) for col in columnnames])
+    threshold = np.min([np.max(subdf[col]) for col in columnnames])
     paramgroups = list()
     for idx in range(len(ic)):
         paramgroups.append(tuple([subdf.iloc[idx, k] for k in range(7)])[1:])
     data_to_save['Params'].append(str(paramgroups))
-    data_to_save['Threshold'].append(fullmin)
+    data_to_save['Threshold'].append(threshold)
 
 broken_up_params = [list() for _ in range(n)]
 for pset in data_to_save['Params']:
@@ -52,4 +54,9 @@ combined = pd.DataFrame(data_to_save)
 for m, psets in enumerate(broken_up_params):
     combined.insert(m, f'Params {m + 1}', psets)
 to_csv = combined.sort_values('Threshold', ascending=False, ignore_index=True)[:numtosave]
-to_csv.to_csv('groupscores.csv', index=False)
+if snronly:
+    to_csv.to_csv('groupscores-snr.csv', index=False)
+elif contrastonly:
+    to_csv.to_csv('groupscores-contrast.csv', index=False)
+else:
+    to_csv.to_csv('groupscores.csv', index=False)
