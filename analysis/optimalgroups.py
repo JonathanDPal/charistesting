@@ -7,10 +7,22 @@ n = int(sys.argv[1])  # how big of parameter sets we're checking
 csvfile = sys.argv[2]
 numrows = int(sys.argv[3])  # how many parameter sets are we using for combinations
 numtosave = int(sys.argv[4])  # only going to save some subset of all the combinations checked
+if len(sys.argv) == 6:
+    if str.lower(sys.argv[5]) == 'contrast':
+        contrastonly = True
+    elif str.lower(sys.argv[5]) == 'snr':
+        snronly = True
+else:
+    contrastonly, snronly = False, False
 numcombos = int(np.prod([numrows - k for k in range(n)]) / np.prod(np.arange(n) + 1))
 print(f'{numcombos} combinations will be checked.')  # so that if it's like a trillion then I just kill the script
 
-columnnames = ['HD SNR', 'HD Contrast', 'HR SNR', 'HR Contrast', 'HIP SNR', 'HIP Contrast', 'Kappa SNR',
+if contrastonly:
+    columnnames = ['HD Contrast', 'HR Contrast', 'HIP Contrast', 'Kappa Contrast']
+elif snronly:
+    columnnames = ['HD SNR', 'HR SNR', 'HIP SNR', 'Kappa SNR']
+else:
+    columnnames = ['HD SNR', 'HD Contrast', 'HR SNR', 'HR Contrast', 'HIP SNR', 'HIP Contrast', 'Kappa SNR',
                'Kappa Contrast']
 df = pd.read_csv(csvfile)[:numrows]
 indexcombos = itertools.combinations(np.arange(numrows), n)
