@@ -134,7 +134,7 @@ for cfile in contrastfiles:
             except RuntimeWarning:  # this has happened when a negctive number is the value for contrast
                 score_sum += -np.inf
                 break
-    scores.append(score_sum)
+    scores.append(score_sum / len(reference_contrast) * 100)
 
     ann, sbs, mov, spec, nb, cs, hp = valuefinder(cfile, 'all')
     annuli.append(ann)
@@ -156,17 +156,15 @@ if len(sys.argv) > 1 and sys.argv[1] == 'all':  # need to collapse all wavelengt
         else:
             d[idx] = [row[-1]]
     d = {key: np.mean(d[key]) for key in d.keys()}
-    annuli, subsections, movement, spectrum, numbasis, corr_smooth, highpass, scores = list(), list(), list(), \
-                                                                                       list(), list(), list(), \
-                                                                                       list(), list()
+    annuli, subsections, movement, numbasis, corr_smooth, highpass, scores = list(), list(), list(), list(), list(),\
+                                                                             list(), list()
     for key in d.keys():
         annuli.append(key[0])
         subsections.append(key[1])
         movement.append(key[2])
-        spectrum.append(key[3])
-        numbasis.append(key[4])
-        corr_smooth.append(key[5])
-        highpass.append(key[6])
+        numbasis.append(key[3])
+        corr_smooth.append(key[4])
+        highpass.append(key[5])
         scores.append(d[key])
     finaldata = pd.DataFrame({'Annuli': annuli, 'Subsections': subsections, 'Movement': movement, 'Spectrum': spectrum,
                               'Numbasis': numbasis, 'Corr_Smooth': corr_smooth, 'Highpass': highpass, 'Score': scores})
