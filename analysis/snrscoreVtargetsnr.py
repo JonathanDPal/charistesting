@@ -11,8 +11,12 @@ def filename(row):
     nb = row['Numbasis']
     cs = row['Corr_Smooth']
     hp = row['Highpass']
-    return f'detections/{ann}Annuli_{sbs}Subsections_{mov}Movement_NoneSpectrum_{cs}Smooth_{hp}Highpass__KL' \
-           f'{nb}_SNR-2.csv'
+    if str.lower(hp) == 'false':
+        hp = False
+    else:
+        hp = float(hp)
+    return f'detections/{int(ann)}Annuli_{int(sbs)}Subsections_{float(mov)}Movement_NoneSpectrum_{float(cs)}Smooth' \
+           f'_{hp}Highpass__KL{int(nb)}_SNR-2.csv'
 
 
 targetsnr = list()
