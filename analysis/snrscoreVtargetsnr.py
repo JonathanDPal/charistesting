@@ -20,7 +20,7 @@ def filename(row):
 
 
 targetsnr = list()
-for r in snrscores:
+for _, r in snrscores.iterrows():
     df = pd.read_csv(filename(r))
     df1 = df[df['Injected'] == 'Science Target']
     if len(df1) == 0:
