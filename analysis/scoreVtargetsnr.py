@@ -1,7 +1,19 @@
 import numpy as np
 import pandas as pd
+import sys
+import os
 
-snrscores = pd.read_csv('analysis/numericalscoring/snr_scores.csv')
+try:
+    type = sys.argv[1]  # either 'snr' or 'contrast'
+except IndexError:
+    raise IndexError("Please specify either 'snr' or 'contrast'")
+
+if str.lower(type) == 'snr':
+    scores = pd.read_csv('analysis/numericalscoring/snr_scores.csv')
+elif str.lower('contrast'):
+    scores = pd.read_csv('analysis/numericalscoring/contrast_scores.csv')
+else:
+    raise ValueError('Check your command line argument.')
 
 
 def filename(row):
@@ -20,7 +32,7 @@ def filename(row):
 
 
 targetsnr = list()
-for _, r in snrscores.iterrows():
+for _, r in scores.iterrows():
     df = pd.read_csv(filename(r))
     df1 = df[df['Injected'] == 'Science Target']
     if len(df1) == 0:
@@ -28,5 +40,6 @@ for _, r in snrscores.iterrows():
     else:
         targetsnr.append(df1['SNR Value'].sum())
 
-snrscores['Science SNR'] = targetsnr
-snrscores.to_csv('snr_with_target.csv', index=False)
+scores['Science SNR'] = targetsnr
+direc = os.getcwd().split('/')[-2]
+scores.to_csv(f'{direc}-{type}_with_target.csv', index=False)
