@@ -29,4 +29,4 @@ for _, r in snrscores.iterrows():
         targetsnr.append(df1['SNR Value'].sum())
 
 snrscores['Science SNR'] = targetsnr
-snrscores.to_csv('snr_with_target.csv')
+snrscores.to_csv('snr_with_target.csv', index=False)
