@@ -4,10 +4,10 @@ import pandas as pd
 import itertools
 
 n = int(sys.argv[1])  # how big of parameter sets we're checking
-csvfile = sys.argv[2]
+csvfile = sys.argv[2]  # where the ranking information is coming from
 numrows = int(sys.argv[3])  # how many parameter sets are we using for combinations
 numtosave = int(sys.argv[4])  # only going to save some subset of all the combinations checked
-if len(sys.argv) == 6:
+if len(sys.argv) == 6:  # can specify to only look at contrast/snr scores
     if str.lower(sys.argv[5]) == 'contrast':
         contrastonly = True
         snronly = False
@@ -16,7 +16,7 @@ if len(sys.argv) == 6:
         contrastonly = False
 else:
     contrastonly, snronly = False, False
-numcombos = int(np.prod([numrows - k for k in range(n)]) / np.prod(np.arange(n) + 1))
+numcombos = int(np.prod([numrows - k for k in range(n)]) / np.prod(np.arange(n) + 1))  # ={numrows \choose n}
 print(f'{numcombos} combinations will be checked.')  # so that if it's like a trillion then I just kill the script
 
 if contrastonly:
