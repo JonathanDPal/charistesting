@@ -156,8 +156,8 @@ sorted_by_score = finaldata.sort_values(by='Score', ascending=False, ignore_inde
 if not os.path.exists('numericalscoring'):
     os.mkdir('numericalscoring')
 if SEPS is None and PAS is None:
-    sorted_by_score.to_csv('numericalscoring/snr_scores_new.csv', index=False)
+    sorted_by_score.to_csv('numericalscoring/snr_scores.csv', index=False)
 elif PAS is None:
-    sorted_by_score.to_csv(f'numericalscoring/snr_scores_{SEPS}_new.csv', index=False)
+    sorted_by_score.to_csv(f'numericalscoring/snr_scores_{SEPS}.csv', index=False)
 else:
-    sorted_by_score.to_csv(f'numericalscoring/snr_scores_{PAS}_new.csv', index=False)
+    sorted_by_score.to_csv(f'numericalscoring/snr_scores_{PAS}.csv', index=False)
