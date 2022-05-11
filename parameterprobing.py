@@ -53,6 +53,8 @@ get_planet_detections_from_dataset_with_fakes =
 run_KLIP_on_dataset_without_fakes =
 get_planet_detections_from_dataset_without_fakes =
 overwrite =   # whether or not to replace existing files if they exist
+create_log_file =  # whether or not to create log file; note that if one exists, then it will be destroyed and replaced
+verbose =  # if False, then less stuff printed and less stuff in log file
 
 ######################
 # END OF USER INPUTS #
@@ -138,7 +140,8 @@ td0 = TestDataset(fileset=fileset0, object_name=object_name0, mask_xy=mask0, fak
                   fake_seps=fake_seps, annuli=annuli, subsections=subsections, movement=movement, numbasis=numbasis,
                   corr_smooth=corr_smooth, highpass=highpass, spectrum=spectrum, mode=mode, fake_PAs=fake_PAs,
                   fake_fwhm=fake_fwhm0, batched=batched, overwrite=overwrite, memorylite=memorylite,
-                  build_all_combos=True, build_charis_data=build_charis_data)
+                  build_all_combos=True, build_charis_data=build_charis_data, verbose=verbose,
+                  generatelogfile=create_log_file)
 
 # Have TestDataset 0 Run Each Part
 # if we want KLIP output of data without fakes, we need to run KLIP before injecting planets
