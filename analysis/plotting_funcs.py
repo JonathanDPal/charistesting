@@ -25,7 +25,6 @@ def paramvaluesfinder(param):
     """
     paramline = None
     fluxes = None
-    pas = None
     with open(os.path.realpath('../log.txt')) as logfile:
         for line in logfile:
             if str.lower(param) != 'ni':
@@ -35,8 +34,7 @@ def paramvaluesfinder(param):
             else:
                 if str.lower('Fake Fluxes') in str.lower(line):
                     fluxes = line
-                elif str.lower('Fake PAs') in str.lower(line):
-                    pas = line
+                    break
     if paramline is not None:
         paramline = paramline.replace(' ', '')
         for i in range(len(paramline)):
@@ -59,23 +57,14 @@ def paramvaluesfinder(param):
                     vals.append(float(val))
         else:
             raise ValueError(f"Sorry, this function does not currently support value finding for param {param}.")
-    elif fluxes is not None and pas is not None:
-        flux_vals = list()
-        pa_vals = list()
+    elif fluxes is not None:
         fluxes = fluxes.replace(' ', '')
-        pas = pas.replace(' ', '')
-        for p in [fluxes, pas]:
-            for i in range(len(p)):
-                if p[i] == '[':
-                    starting_index = i + 1
-                elif p[i] == ']':
-                    final_index = i
-            for val in p[starting_index: final_index].split(','):
-                if p == fluxes:
-                    flux_vals.append(float(val))
-                elif p == pas:
-                    pa_vals.append(float(val))
-        vals = len(flux_vals) * len(pa_vals)
+        for i in range(len(fluxes)):
+            if fluxes[i] == '[':
+                starting_index = i + 1
+            elif fluxes[i] == ']':
+                final_index = i
+        vals = len(fluxes[starting_index: final_index].split(','))
 
     return vals
 

@@ -1,10 +1,10 @@
 1. Get approximate FWHMs for all the different filters
 and add those in to the FWHMIOWA_calculator function
 in parameter_test_infrastructure.py. The actual
-implementation here has already been outlined in comments
+implementation has already been outlined in comments
 in that function.
 
-2. add another script in organzational_scripts that gives
+2. Add another script in organzational_scripts that gives
 you optimal planet injection sites based on how many planets
 you want to inject, the annuli/subsections values you want to
 use, and the locations of the satellite spots/science targets
@@ -17,6 +17,5 @@ fake_seps.
 be injected on annuli/subsection boundaries, they get
 tweaked slighly automatically.
 
-5. Fix paramvaluesfinder in plotting_funcs.py such that it
-can accurately identify the number of planets injected if
-the flux/sep lists are lists of lists
+5. Test the implementation for the TODO items which have
+been marked as complete but not yet tested.
