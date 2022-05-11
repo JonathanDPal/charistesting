@@ -1,4 +1,3 @@
-import astropy.time.utils
 from matplotlib import pyplot as plt
 import pandas as pd
 import numpy as np

@@ -4,8 +4,8 @@ from pyklip.instruments.CHARIS import CHARISData
 from parameter_test_infrastructure import make_dn_per_contrast
 from glob import glob
 
-fileset0 = 'HIP86032_cubes/*.fits'
-object_name0 = 'HIP86032'
+object_name0 = sys.argv[1]
+fileset0 = f'{object_name0}_cubes/*.fits'
 
 dataset = make_dn_per_contrast(CHARISData(glob(fileset0)))
 rot_angs = dataset.PAs
