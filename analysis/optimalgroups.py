@@ -9,23 +9,49 @@ numrows = int(sys.argv[3])  # how many parameter sets are we using for combinati
 numtosave = int(sys.argv[4])  # only going to save some subset of all the combinations checked
 if len(sys.argv) == 6:  # can specify to only look at contrast/snr scores
     if str.lower(sys.argv[5]) == 'contrast':
-        contrastonly = True
-        snronly = False
+        contrastonly, snronly = True, False
     elif str.lower(sys.argv[5]) == 'snr':
-        snronly = True
-        contrastonly = False
+        contrastonly, snronly = False, True
+elif len(sys.argv) == 7:  # can specify to only do Kappa/exclude Kappa
+    if str.lower(sys.argv[5]) == 'contrast':
+        contrastonly, snronly = True, False
+    elif str.lower(sys.argv[5]) == 'snr':
+        contrastonly, snronly = False, True
+    else:
+        contrastonly, snronly = False, False
+    if str.lower(sys.argv[6]) in ['b', 'broadband']:
+        broadbandonly, kappaonly = True, False
+    elif str.lower(sys.argv[6]) in ['k', 'kappa']:
+        broadbandonly, kappaonly = False, True
+    else:
+        broadbandonly, kappaonly = False, False
 else:
-    contrastonly, snronly = False, False
+    contrastonly, snronly, broadbandonly, kappaonly = False, False, False, False
 numcombos = int(np.prod([numrows - k for k in range(n)]) / np.prod(np.arange(n) + 1))  # ={numrows \choose n}
 print(f'{numcombos} combinations will be checked.')  # so that if it's like a trillion then I just kill the script
 
 if contrastonly:
-    columnnames = ['HD Contrast', 'HR Contrast', 'HIP Contrast', 'Kappa Contrast']
+    if broadbandonly:
+        columnnames = ['HD Contrast', 'HR Contrast', 'HIP Contrast']
+    elif kappaonly:
+        columnnames = ['Kappa Contrast']
+    else:
+        columnnames = ['HD Contrast', 'HR Contrast', 'HIP Contrast', 'Kappa Contrast']
 elif snronly:
-    columnnames = ['HD SNR', 'HR SNR', 'HIP SNR', 'Kappa SNR']
+    if broadbandonly:
+        columnnames = ['HD SNR', 'HR SNR', 'HIP SNR']
+    elif kappaonly:
+        columnnames = ['Kappa SNR']
+    else:
+        columnnames = ['HD SNR', 'HR SNR', 'HIP SNR', 'Kappa SNR']
 else:
-    columnnames = ['HD SNR', 'HD Contrast', 'HR SNR', 'HR Contrast', 'HIP SNR', 'HIP Contrast', 'Kappa SNR',
-               'Kappa Contrast']
+    if broadbandonly:
+        columnnames = ['HD SNR', 'HD Contrast', 'HR SNR', 'HR Contrast', 'HIP SNR', 'HIP Contrast']
+    elif kappaonly:
+        columnnames = ['Kappa SNR', 'Kappa Contrast']
+    else:
+        columnnames = ['HD SNR', 'HD Contrast', 'HR SNR', 'HR Contrast', 'HIP SNR', 'HIP Contrast', 'Kappa SNR',
+                       'Kappa Contrast']
 df = pd.read_csv(csvfile)[:numrows]
 indexcombos = itertools.combinations(np.arange(numrows), n)
 data_to_save = {'Params': list(), 'Threshold': list()}
@@ -55,8 +81,23 @@ for m, psets in enumerate(broken_up_params):
     combined.insert(m, f'Params {m + 1}', psets)
 to_csv = combined.sort_values('Threshold', ascending=False, ignore_index=True)[:numtosave]
 if snronly:
-    to_csv.to_csv('groupscores-snr.csv', index=False)
+    if broadbandonly:
+        to_csv.to_csv('groupscores-broadband-snr.csv', index=False)
+    elif kappaonly:
+        to_csv.to_csv('groupscores-Kappa-snr.csv', index=False)
+    else:
+        to_csv.to_csv('groupscores-snr.csv', index=False)
 elif contrastonly:
-    to_csv.to_csv('groupscores-contrast.csv', index=False)
+    if broadbandonly:
+        to_csv.to_csv('groupscores-broadband-contrast.csv', index=False)
+    elif kappaonly:
+        to_csv.to_csv('groupscores-Kappa-contrast.csv', index=False)
+    else:
+        to_csv.to_csv('groupscores-contrast.csv', index=False)
 else:
-    to_csv.to_csv('groupscores.csv', index=False)
+    if broadbandonly:
+        to_csv.to_csv('groupscores-broadband.csv', index=False)
+    elif kappaonly:
+        to_csv.to_csv('groupscores-Kappa.csv', index=False)
+    else:
+        to_csv.to_csv('groupscores.csv', index=False)
