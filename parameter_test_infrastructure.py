@@ -827,9 +827,11 @@ class TestDataset:
 
     def __init__(self, fileset, object_name, mask_xy, fake_fluxes, fake_seps, annuli, subsections, movement,
                  numbasis, corr_smooth, highpass, spectrum, fake_fwhm, fake_PAs, mode, batched, overwrite,
-                 memorylite, build_all_combos, build_charis_data):
+                 memorylite, build_all_combos, build_charis_data, verbose=True, generatelogfile=True):
         self.object_name = object_name
         self.mask_xy = mask_xy
+        self.generatelogfile = generatelogfile
+        self.verbose = verbose
 
         if not os.path.exists(self.object_name):
             try:
@@ -838,34 +840,44 @@ class TestDataset:
                 # unnecessary 99% of the time, but once in a blue moon, I run into issues with this on Condor
                 pass
 
-        self.write_to_log(f'Title for Set: {object_name}', 'w')
-        self.write_to_log(f'\nFileset: {fileset}')
+        if generatelogfile:
+            self.write_to_log(f'Title for Set: {object_name}', 'w')
+            self.write_to_log(f'\nFileset: {fileset}')
 
         if build_all_combos:
             param_names = ['Annuli', 'Subsections', 'Movement', 'Numbasis', 'Corr_Smooth', 'Highpass', 'Spectrum',
                            'Mode', 'Fake Fluxes', 'Fake Seps', 'Fake PAs', 'Fake FWHM']
             params = [annuli, subsections, movement, numbasis, corr_smooth, highpass, spectrum]
             number_of_paramcombos = np.prod([len(p) for p in params])
-            self.write_to_log(f'\nNumber of Parameter Combinations: {number_of_paramcombos}')
+            if generatelogfile:
+                self.write_to_log(f'\nNumber of Parameter Combinations: {number_of_paramcombos}')
 
             for param in [mode, fake_fluxes, fake_seps, fake_PAs, fake_fwhm]:
                 params.append(param)
             for name, param in zip(param_names, params):
-                self.write_to_log(f'\n{name}: {param}')
+                if generatelogfile:
+                    self.write_to_log(f'\n{name}: {param}')
         else:  # don't want to write in all values if using text file (could be tens of thousands)
             param_names = ['KLIP Parameters:' 'Mode', 'Fake Fluxes', 'Fake Seps', 'Fake PAs', 'Fake FWHM']
             params = ['from a text file', mode, fake_fluxes, fake_seps, fake_PAs, fake_fwhm]
-            for name, param in zip(param_names, params):
-                self.write_to_log(f'\n{name}: {param}')
+            if generatelogfile:
+                for name, param in zip(param_names, params):
+                    self.write_to_log(f'\n{name}: {param}')
 
-        self.write_to_log_and_print(f'############### STARTING WORK ON {self.object_name} ################\n')
+        if generatelogfile:
+            self.write_to_log_and_print(f'############### STARTING WORK ON {self.object_name} ################\n')
+        else:
+            print(f'############### STARTING WORK ON {self.object_name} ################\n')
 
         if build_charis_data == 'true' or build_charis_data == 'temporary':
             with log_file_output(self.object_name):
                 self.dataset = CHARISData(glob(fileset))
                 make_dn_per_contrast(self.dataset)
                 self.dataset.leNgth = self.dataset.input.shape[1]
-            self.write_to_log_and_print(f'###### DONE BUILDING CHARISData OBJECT FOR {self.object_name} #######')
+            if generatelogfile and self.verbose:
+                self.write_to_log_and_print(f'###### DONE BUILDING CHARISData OBJECT FOR {self.object_name} #######')
+            elif self.verbose:
+                print(f'###### DONE BUILDING CHARISData OBJECT FOR {self.object_name} #######')
         else:
             self.dataset = Dataset_PlaceHolder()
             append_dataset_info(build_charis_data, self.dataset)
@@ -940,7 +952,10 @@ class TestDataset:
         self.mode = mode
         self.overwrite = overwrite
         self.memorylite = memorylite
-        self.write_to_log_and_print(f'############ DONE BUILDING TRIALS FOR {self.object_name} ############')
+        if generatelogfile and self.verbose:
+            self.write_to_log_and_print(f'############ DONE BUILDING TRIALS FOR {self.object_name} ############')
+        elif self.verbose:
+            print(f'############ DONE BUILDING TRIALS FOR {self.object_name} ############')
 
         if build_charis_data == 'temporary':  # removing from memory if just needed it for the rotation angles
             self.dataset = None
@@ -970,7 +985,10 @@ class TestDataset:
                         inject_planet(frames=self.dataset.input, centers=self.dataset.centers,
                                       inputflux=flux_to_inject, astr_hdrs=self.dataset.wcs, radius=sep,
                                       pa=pa, fwhm=self.fake_fwhm)
-        self.write_to_log_and_print(f'############ DONE INJECTING FAKES FOR {self.object_name} ############')
+        if self.generatelogfile and self.verbose:
+            self.write_to_log_and_print(f'############ DONE INJECTING FAKES FOR {self.object_name} ############')
+        elif self.verbose:
+            print(f'############ DONE INJECTING FAKES FOR {self.object_name} ############')
 
     def run_KLIP_on_data_without_fakes(self, numthreads):
         if not os.path.exists(self.object_name):
@@ -987,9 +1005,12 @@ class TestDataset:
                 pass
 
         number_of_klip = len(self.trials)
-
-        self.write_to_log_and_print('####### BEGINNING KLIP ON DATA WITHOUT FAKES #######\n'
-                                    f'####### Number of KLIP Runs To Complete: {number_of_klip} #######\n')
+        if self.generatelogfile:
+            self.write_to_log_and_print('####### BEGINNING KLIP ON DATA WITHOUT FAKES #######\n'
+                                        f'####### Number of KLIP Runs To Complete: {number_of_klip} #######\n')
+        else:
+            print(f'####### BEGINNING KLIP ON DATA WITHOUT FAKES #######\n####### Number of KLIP Runs To Complete: '
+                  f'{number_of_klip} #######\n')
 
         prevtime = time()
         for klip_runs, trial in enumerate(self.trials):  # klip_runs indicates how many have been previously completed
@@ -997,9 +1018,14 @@ class TestDataset:
             if klip_runs != 0 and klip_runs % 20 == 0:
                 currenttime = time()
                 minutes_per_run = round(((currenttime - prevtime) / 60) / 20, 2)
-                self.write_to_log_and_print('####### {0}/{1} KLIP Runs Complete ({2}%) -- avg speed: {3} '
-                                            'min/run #######'.format(klip_runs + 1, number_of_klip, round(float(
-                    klip_runs + 1) / float(number_of_klip) * 100, 1), minutes_per_run))
+                if self.generatelogfile and self.verbose:
+                    self.write_to_log_and_print('####### {0}/{1} KLIP Runs Complete ({2}%) -- avg speed: {3} min/run '
+                                                '#######'.format(klip_runs + 1, number_of_klip, round(float(
+                                                 klip_runs + 1) / float(number_of_klip) * 100, 1), minutes_per_run))
+                elif self.verbose:
+                    print('####### {0}/{1} KLIP Runs Complete ({2}%) -- avg speed: {3} min/run #######'.format(
+                        klip_runs + 1, number_of_klip, round(float(klip_runs + 1) / float(number_of_klip) * 100, 1),
+                        minutes_per_run))
                 prevtime = time()
 
             if not self.overwrite:
@@ -1007,8 +1033,12 @@ class TestDataset:
                 filename = self.object_name + '/klipped_cubes_Nfakes' + self.object_name + '_withoutfakes_' + \
                            trial.klip_parameters + f'-KL{trial.numbasis}-speccube.fits'
                 if os.path.exists(filename):
-                    self.write_to_log_and_print(f"{filename} ALREADY EXISTS -- continuing without running KLIP on this "
-                                                f"set of parameters")
+                    if self.generatelogfile:
+                        self.write_to_log_and_print(f"{filename} ALREADY EXISTS -- continuing without running KLIP "
+                                                     f"on this set of parameters")
+                    else:
+                        print(f"{filename} ALREADY EXISTS -- continuing without running KLIP on this set of "
+                              f"parameters")
                     continue
 
             with log_file_output(self.object_name):
@@ -1016,12 +1046,15 @@ class TestDataset:
                              fileprefix=self.object_name + '_withoutfakes_' + trial.klip_parameters,
                              annuli=trial.annuli, subsections=trial.subsections, movement=trial.movement,
                              numbasis=trial.numbasis, spectrum=trial.spectrum, corr_smooth=trial.corr_smooth,
-                             highpass=trial.highpass, mode=self.mode, numthreads=numthreads, verbose=True,
+                             highpass=trial.highpass, mode=self.mode, numthreads=numthreads, verbose=self.verbose,
                              lite=self.memorylite)
 
             # Update If Completely Done
             if (klip_runs + 1) == len(self.trials):
-                self.write_to_log_and_print("\n### DONE WITH KLIP ON DATA WITH FAKES ###")
+                if self.generatelogfile:
+                    self.write_to_log_and_print("\n### DONE WITH KLIP ON DATA WITH FAKES ###")
+                else:
+                    print("\n### DONE WITH KLIP ON DATA WITH FAKES ###")
 
     def run_KLIP_on_data_with_fakes(self, numthreads):
         if not os.path.exists(self.object_name):
@@ -1039,8 +1072,9 @@ class TestDataset:
 
         number_of_klip = len(self.trials)
 
-        self.write_to_log_and_print('####### BEGINNING KLIP ON DATA WITH FAKES #######\n'
-                                    f'####### Number of KLIP Runs To Complete: {number_of_klip} #######\n')
+        if self.generatelogfile:
+            self.write_to_log_and_print('####### BEGINNING KLIP ON DATA WITH FAKES #######\n'
+                                        f'####### Number of KLIP Runs To Complete: {number_of_klip} #######\n')
 
         prevtime = time()
         for klip_runs, trial in enumerate(self.trials):  # klip_runs indicates how many have been previously completed
@@ -1049,8 +1083,12 @@ class TestDataset:
                 filename = self.object_name + '/klipped_cubes_Wfakes' + self.object_name + '_withfakes_' + \
                            trial.klip_parameters + f'-KL{trial.numbasis}-speccube.fits'
                 if os.path.exists(filename):
-                    self.write_to_log_and_print(f"{filename} ALREADY EXISTS -- continuing without running KLIP on this "
-                                                f"set of parameters")
+                    if self.generatelogfile:
+                        self.write_to_log_and_print(f"{filename} ALREADY EXISTS -- continuing without running KLIP "
+                                                    f"on this set of parameters")
+                    else:
+                        print(f"{filename} ALREADY EXISTS -- continuing without running KLIP on this set of "
+                              f"parameters")
                     continue
 
             with log_file_output(self.object_name):
@@ -1058,18 +1096,26 @@ class TestDataset:
                              fileprefix=self.object_name + '_withfakes_' + trial.klip_parameters,
                              annuli=trial.annuli, subsections=trial.subsections, movement=trial.movement,
                              numbasis=trial.numbasis, spectrum=trial.spectrum, corr_smooth=trial.corr_smooth,
-                             highpass=trial.highpass, mode=self.mode, numthreads=numthreads, verbose=True,
+                             highpass=trial.highpass, mode=self.mode, numthreads=numthreads, verbose=self.verbose,
                              lite=self.memorylite)
 
             # Update Every 20 or When Completely Done
             if klip_runs + 1 == len(self.trials):
-                self.write_to_log_and_print("\n### DONE WITH KLIP ON DATA WITH FAKES ###")
+                if self.generatelogfile:
+                    self.write_to_log_and_print("\n### DONE WITH KLIP ON DATA WITH FAKES ###")
+                else:
+                    print("\n### DONE WITH KLIP ON DATA WITH FAKES ###")
             elif (klip_runs + 1) % 20 == 0:
                 currenttime = time()
                 minutes_per_run = round(((currenttime - prevtime) / 60) / 20, 2)
-                self.write_to_log_and_print('####### {0}/{1} KLIP Runs Complete ({2}%) -- avg speed: {3} '
-                                            'min/run #######'.format(klip_runs + 1, number_of_klip, round(float(
-                    klip_runs + 1) / float(number_of_klip) * 100, 1), minutes_per_run))
+                if self.generatelogfile and self.verbose:
+                    self.write_to_log_and_print('####### {0}/{1} KLIP Runs Complete ({2}%) -- avg speed: {3} '
+                                                'min/run #######'.format(klip_runs + 1, number_of_klip, round(float(
+                        klip_runs + 1) / float(number_of_klip) * 100, 1), minutes_per_run))
+                elif self.verbose:
+                    print('####### {0}/{1} KLIP Runs Complete ({2}%) -- avg speed: {3} min/run #######'.format(
+                        klip_runs + 1, number_of_klip, round(float(klip_runs + 1) / float(number_of_klip) * 100, 1),
+                        minutes_per_run))
                 prevtime = time()
 
     def contrast_and_detection(self, run_contrast=True, run_planet_detection=True, datasetwithfakes=True):
@@ -1093,23 +1139,40 @@ class TestDataset:
                 pass
 
         if run_planet_detection and run_contrast:
-            self.write_to_log_and_print(f"\n############## BEGINNING CONTRAST AND DETECTION FOR {self.object_name} "
-                                        "##############")
+            if self.generatelogfile:
+                self.write_to_log_and_print(f"\n############## BEGINNING CONTRAST AND DETECTION FOR {self.object_name} "
+                                            "##############")
+            else:
+                print(f"\n############## BEGINNING CONTRAST AND DETECTION FOR {self.object_name} ##############")
         elif run_contrast:
-            self.write_to_log_and_print(f"\n############## BEGINNING CONTRAST FOR {self.object_name} ##############")
+            if self.generatelogfile:
+                self.write_to_log_and_print(f"\n############## BEGINNING CONTRAST FOR {self.object_name} "
+                                            f"##############")
+            else:
+                print(f"\n############## BEGINNING CONTRAST FOR {self.object_name} ##############")
         elif run_planet_detection:
-            self.write_to_log_and_print(f"\n############## BEGINNING DETECTIONS FOR {self.object_name} ##############")
+            if self.generatelogfile:
+                self.write_to_log_and_print(f"\n############## BEGINNING DETECTIONS FOR {self.object_name} "
+                                            f"##############")
+            else:
+                print(f"\n############## BEGINNING DETECTIONS FOR {self.object_name} ##############")
 
         if run_contrast:
             for i, trial in enumerate(self.trials):
                 trial.get_contrast(contains_fakes=datasetwithfakes)
-                if (i + 1) % 100 == 0:
+                if (i + 1) % 100 == 0 and self.verbose:
                     print(f'# DONE WITH CONTRAST FOR {i + 1} TRIALS #')
 
         if run_planet_detection and run_contrast:
-            self.write_to_log_and_print(f'### DONE WITH CONTRAST FOR {self.object_name}. BEGINNING DETECTION ###')
+            if self.generatelogfile:
+                self.write_to_log_and_print(f'### DONE WITH CONTRAST FOR {self.object_name}. BEGINNING DETECTION ###')
+            else:
+                print(f'### DONE WITH CONTRAST FOR {self.object_name}. BEGINNING DETECTION ###')
         elif run_contrast:
-            self.write_to_log_and_print(f'### DONE WITH CONTRAST FOR {self.object_name}. ###')
+            if self.generatelogfile:
+                self.write_to_log_and_print(f'### DONE WITH CONTRAST FOR {self.object_name}. ###')
+            else:
+                print(f'### DONE WITH CONTRAST FOR {self.object_name}. ###')
 
         if run_planet_detection:
             # at the moment, can't parallelize because planet detection already utilizes (a little) parallelization
@@ -1119,4 +1182,9 @@ class TestDataset:
                     print(f'# DONE WITH DETECTION FOR {i + 1} TRIALS #')
 
         if run_planet_detection:
-            self.write_to_log_and_print(f"\n############## DONE WITH DETECTION FOR {self.object_name} ##############")
+            if self.generatelogfile:
+                self.write_to_log_and_print(f"\n############## DONE WITH DETECTION FOR {self.object_name} "
+                                            f"##############")
+            else:
+                print(f"\n############## DONE WITH DETECTION FOR {self.object_name} "
+                                            f"##############")

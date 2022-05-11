@@ -17,13 +17,6 @@ fake_seps.
 be injected on annuli/subsection boundaries, they get
 tweaked slighly automatically.
 
-5. Add a _verbose_ attribute for TestDataset so that log
-files can be super decluttered if people want that.
-
-6. Add an argument where people can disable the creation
-of a log file (in case just doing some quick fill in
-and don't want old log file overwritten)
-
-7. Fix paramvaluesfinder in plotting_funcs.py such that it
+5. Fix paramvaluesfinder in plotting_funcs.py such that it
 can accurately identify the number of planets injected if
 the flux/sep lists are lists of lists
