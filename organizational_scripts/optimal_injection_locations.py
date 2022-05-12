@@ -21,7 +21,7 @@ with fits.open(file_with_sat_spots) as hdulist:
         x, y = [float(part) for part in parts if part != '']
         SSxs.append(x)
         SSys.append(y)
-    sat_spot_locs = [[x,y] for x, y in zip(SSxs, SSys)]
+    sat_spot_locs = [[x, y] for x, y in zip(SSxs, SSys)]
 
 LB = np.array([elm[0] for elm in bounds_initialvals])
 UB = np.array([elm[1] for elm in bounds_initialvals])
@@ -92,7 +92,8 @@ def negdistance(fakelocs, annuli, subsections, st_locs, ss_locs):
     return -1 * np.min(everythingtomin)
 
 
-result = minimize(fun=negdistance, x0=x0, bounds=bounds)
+result = minimize(fun=negdistance, args=(num_annuli, num_subsections, science_target_locs, sat_spot_locs), x0=x0,
+                  bounds=bounds)
 if result.success:
     solution = result.x
     with open(output_file, 'w') as f:
