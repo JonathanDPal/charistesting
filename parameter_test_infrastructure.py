@@ -5,7 +5,7 @@ from glob import glob
 from pyklip.instruments.CHARIS import CHARISData
 from copy import copy, deepcopy
 from pyklip.parallelized import klip_dataset
-from pyklip.klip import meas_contrast, _rotate_wcs_hdr
+from pyklip.klip import meas_contrast, define_annuli_bounds
 from pyklip.fakes import inject_planet, convert_pa_to_image_polar
 from pyklip.fakes import retrieve_planet_flux as pyklip_retrieve_planet_flux
 from pyklip.kpp.utils.mathfunc import gauss2d
@@ -17,9 +17,8 @@ import sys
 import os
 from contextlib import contextmanager
 import inspect
-from multiprocessing.pool import Pool
 from time import time
-from scipy.optimize import curve_fit
+from scipy.optimize import curve_fit, minimize, Bounds
 
 
 ####################
@@ -357,6 +356,79 @@ def append_dataset_info(info_filename, dataset_placeholder):
     dataset_placeholder.wvs = np.array(wvs)
 
 
+def define_subsection_bounds(sbs):
+    """
+    Taken verbatim from pyklip.parallelized.klip_dataset()
+    """
+    dphi = 2 * np.pi / subsections
+    phi_bounds = [[dphi * phi_i - np.pi, dphi * (phi_i + 1) - np.pi] for phi_i in range(sbs)]
+    phi_bounds[-1][1] = np.pi
+    return phi_bounds
+
+
+def rotate_wcs_hdr(wcs_header, rot_angle, flipx=False, flipy=False):
+    """
+    Taken verbatim from pyklip.klip. Modifies the wcs header when rotating/flipping an image. Needed during flux
+    retrieval in order to actually be looking in the correct place.
+
+    Args:
+        wcs_header: wcs astrometry header
+        rot_angle: in degrees CCW, the specified rotation desired
+        flipx: after the rotation, reverse x axis? Yes if True
+        flipy: after the rotation, reverse y axis? Yes if True
+    """
+    # rotate WCS header by a rotation matrix
+    rot_angle_rad = np.radians(rot_angle)
+    cos_rot = np.cos(rot_angle_rad)
+    sin_rot = np.sin(rot_angle_rad)
+    rot_matrix = np.array([[cos_rot, sin_rot], [-sin_rot, cos_rot]])
+    wcs_header.wcs.cd = np.dot(wcs_header.wcs.cd, rot_matrix)
+
+    # flip RA if true to be North up East left
+    if flipx is True:
+        wcs_header.wcs.cd[:, 0] *= -1
+    if flipy is True:
+        wcs_header.wcs.cd[:, 1] *= -1
+
+
+def injection_tweaker(fakes, annuli, subsections, fwhm):
+    ann_boundaries = {ann: define_annuli_bounds(ann, 5, OWA) for ann in annuli}
+    sbs_boundaries = {sbs: define_subsection_bounds(sbs) for sbs in subsections}
+
+    def negdistance(locs, a_bounds, s_bounds):
+        seps = [elm for idx, elm in enumerate(locs) if idx % 2 == 0]
+        pas = [elm for idx, elm in enumerate(locs) if idx % 2 == 1]
+        dists = list()
+        for sep, pa in zip(seps, pas):
+            anndsts = [np.min(np.abs(np.array(ann_sep)) - sep) for ann_sep in a_bounds.values()]
+            sbsdsts = [sep * np.min(np.abs(np.sin(np.array(sbs_pa) - pa))) for sbs_pa in
+                       s_bounds.values()]
+            dists.append(np.min([np.min(anndsts), np.min(sbsdsts)]))
+        return -1 * np.min(dists)
+
+    dsts = list()
+    for _, sep, pa in fakes:
+        anndsts = [np.min(np.abs(np.array(ann_boundaries[ann])) - sep) for ann in num_annuli]
+        sbsdsts = [sep * np.min(np.abs(np.sin(np.array(sbs_boundaries[sbs]) - pa))) for sbs in
+                        num_subsections]
+        dsts.append(np.min([np.min(anndsts), np.min(sbsdsts)]))
+    if np.min(dsts) < fwhm:
+        minsep = np.min([fk[1] for fk in fakes])
+        pabound = np.arcsin(fwhm / minsep)
+        LB = np.array([np.array([sep - fwhm, pa - pabound]) for _, sep, pa in fakes]).flatten()
+        UB = np.array([np.array([sep + fwhm, pa + pabound]) for _, sep, pa in fakes]).flatten()
+        x0 = np.array([np.array([sep, pa]) for _, sep, pa in fakes]).flatten()
+        bounds = Bounds(LB, UB)
+        result = minimize(fun=negdistance, args=(ann_boundaries, sbs_boundaries), x0=x0, bounds=bounds)
+        solution = result.x
+        seps = [elm for idx, elm in enumerate(solution) if idx % 2 == 0]
+        pas = [elm for idx, elm in enumerate(solution) if idx % 2 == 1]
+        fluxes = [fk[0] for fk in fakes]
+        fakes = [(flux, sep, pa) for flux, sep, pa in zip(fluxes, seps, pas)]
+
+    return fakes
+
+
 ####################################################################################
 # TestDataset Will Manage a List of Trials (one for each group of KLIP Parameters) #
 ####################################################################################
@@ -581,7 +653,7 @@ class Trial:
 
                 # need to rotate WCS so that we are looking in right spot using the pyKLIP function for it
                 local_output_wcs = deepcopy(output_wcs)
-                _rotate_wcs_hdr(local_output_wcs, self.rot_angs[wavelength_index], flipx=self.flipx)
+                rotate_wcs_hdr(local_output_wcs, self.rot_angs[wavelength_index], flipx=self.flipx)
 
                 # Taking Slice of Cube and Calibrating It
                 frame = cube[wavelength_index] / self.dn_per_contrast[wavelength_index]
@@ -818,9 +890,9 @@ class TestDataset:
     pyklip.instruments.CHARIS) and then create an instance of Trial for each set of KLIP parameters to be looked at.
     """
 
-    def __init__(self, fileset, object_name, mask_xy, fakes, numsepgroups, annuli, subsections, movement,
-                 numbasis, corr_smooth, highpass, spectrum, fake_fwhm, mode, batched, overwrite,
-                 memorylite, build_all_combos, build_charis_data, verbose=True, generatelogfile=True):
+    def __init__(self, fileset, object_name, mask_xy, fakes, numsepgroups, annuli, subsections, movement, numbasis,
+                 corr_smooth, highpass, spectrum, fake_fwhm, mode, batched, overwrite, memorylite, build_all_combos,
+                 build_charis_data, verbose, generatelogfile, tweak_injections):
         self.object_name = object_name
         self.mask_xy = mask_xy
         self.generatelogfile = generatelogfile
@@ -837,7 +909,10 @@ class TestDataset:
             self.write_to_log(f'Title for Set: {object_name}', 'w')
             self.write_to_log(f'\nFileset: {fileset}')
 
-        self.fakes = fakes
+        if tweak_injections:
+            self.fakes = injection_tweaker(fakes, annuli, subsections, fake_fwhm)
+        else:
+            self.fakes = fakes
         self.numsepgroups = numsepgroups
         self.fake_fluxes = [fake[0] for fake in self.fakes]
         self.fake_seps = [fake[1] for fake in self.fakes]

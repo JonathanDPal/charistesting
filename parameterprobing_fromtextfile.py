@@ -38,6 +38,7 @@ fake_seps =  # List(s) of Integers
 fake_PAs =  # List(s) of Integers
 compiler =  # either 'zip' or 'iterate'
 numsepgroups =  # integer if compiler == 'zip'; None if compiler == 'iterate'
+tweak_injections =  # boolean
 
 # Specifying Which Things to Do/Not Do (set to either True or False) #
 # Most of the time, the four values below should be set to True

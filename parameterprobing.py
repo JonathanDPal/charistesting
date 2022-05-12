@@ -44,6 +44,7 @@ fake_seps =  # List(s) of Integers
 fake_PAs =  # List(s) of Integers
 compiler =  # either 'zip' or 'iterate'
 numsepgroups =  # integer if compiler == 'zip'; None if compiler == 'iterate'
+tweak_injections =  # boolean
 
 # Specifying Which Things to Do/Not Do (set to either True or False) #
 # Most of the time, the four values below should be set to True
@@ -101,6 +102,8 @@ if compiler == 'zip':
     fakes = [np.array((flux, sep, pa)) for flux, sep, pa in zip(fake_fluxes, fake_seps, fake_PAs)]
 elif compiler == 'iterate':
     fakes = list()
+    if type(fake_fluxes[0]) not in [tuple, list]:
+        fake_fluxes = [fake_fluxes]
     for fluxgroup, pagroup in zip(fake_fluxes, fake_PAs):
         for fake_flux, sep in zip(fluxgroup, fake_seps):
             for pa in pagroup:
@@ -155,7 +158,8 @@ td0 = TestDataset(fileset=fileset0, object_name=object_name0, mask_xy=mask0, fak
                   annuli=annuli, subsections=subsections, movement=movement, numbasis=numbasis, corr_smooth=corr_smooth,
                   highpass=highpass, spectrum=spectrum, mode=mode, fake_fwhm=fake_fwhm0, batched=batched,
                   overwrite=overwrite, memorylite=memorylite, build_all_combos=True,
-                  build_charis_data=build_charis_data, verbose=verbose, generatelogfile=create_log_file)
+                  build_charis_data=build_charis_data, verbose=verbose, generatelogfile=create_log_file,
+                  tweak_injections=tweak_injections)
 
 # Have TestDataset 0 Run Each Part
 # if we want KLIP output of data without fakes, we need to run KLIP before injecting planets
