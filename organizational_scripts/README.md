@@ -1,17 +1,20 @@
-I used these five scripts to help me out with keeping 
+I used these scripts to help me out with keeping 
 everything organized properly.
 
 check.py: This script searched through a top level 
 output directory indicated by command line argument, 
 then indicated how many parameter combinations had
-been completed and how many were left, based on hard
-coded values for each parameter. It also creates a
-text file containing all the remaining parameter
-combinations, where each parameter combination is on
-one line, with individual parameters seperated by
+been completed with respect to KLIP and how many were
+left, based on hard coded values for each parameter. 
+It also creates a text file containing all the remaining
+parameter combinations, where each parameter combination
+is on one line, with individual parameters seperated by
 commas.
 
-injection_locations.py: This script will take in some
+check_contrast_detections.py: Same thing as check.py, but
+with contrast and/or detections instead of KLIP runs. 
+
+check_injection_locations.py: This script will take in some
 hard coded suggestions for position angles and 
 seperations for injected planets, along with an
 observation datacube and the locations of its science
@@ -19,9 +22,24 @@ target(s). Then it will determine whether everything
 is at least 2 FWHMs apart or not. If not, then 
 locations of planet injections should be tweaked. 
 
+optimal_injection_locations.py: This script is similar to the
+previous one in the list, except that instead of checking
+whether your suggestions work, you will give it your suggestions
+and some bounds, and then it will optimize the locations of the
+fake planets.
+
+get_dataset_info.py: This script will generate a text file with
+information about the CHARISData class that would be built out
+of the FITS files associated with the observation on some star
+system, which you specify as a command line argument. If you
+aren't going to be running KLIP, then you can use this to build
+a TestDataset class which has the necessary info to do
+contrast/detections, without having to build an entire CHARISData
+class like you normally would.
+
 move_and_delete.py: I used this script when using
 Notre Dame's computer clusters so that I could automate
-the file transfer while I was away at home on vacation.
+the file transfer.
 
 nextparams.py: This script searched through a top level
 directory, then suggested a set of parameter 
