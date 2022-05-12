@@ -127,7 +127,6 @@ for cfile in contrastfiles:
         closest_seperation_index = np.argmin(sep - seps)
         if contrast[closest_seperation_index] == -np.inf:
             score_sum += -np.inf
-            break  # only breaks inner for loop, doesn't break outer for loop
         else:
             try:
                 ratio = (np.log10(contrast[closest_seperation_index] / 5)) / (np.log10(reference_val / 5))
@@ -137,7 +136,6 @@ for cfile in contrastfiles:
             except RuntimeWarning:  # this has happened when a negctive number is the value for contrast
                 score_sum += -np.inf
                 sepscores[sep].append(-np.inf)
-                break
     scores.append(score_sum / len(reference_contrast) * 100)
 
     ann, sbs, mov, spec, nb, cs, hp = valuefinder(cfile, 'all')
