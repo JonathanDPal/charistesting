@@ -109,8 +109,8 @@ def valuefinder(filename, param):
         return values
 
 
-annuli, subsections, movement, spectrum, numbasis, corr_smooth, highpass, scores = list(), list(), list(), list(), \
-                                                                                   list(), list(), list(), list()
+annuli, subsections, movement, numbasis, corr_smooth, highpass, scores = list(), list(), list(), list(), list(), \
+                                                                         list(), list()
 sepscores = {key[0]: list() for key in reference_contrast}
 for cfile in contrastfiles:
     try:
@@ -144,13 +144,12 @@ for cfile in contrastfiles:
     annuli.append(ann)
     subsections.append(sbs)
     movement.append(mov)
-    spectrum.append(spec)
     numbasis.append(nb)
     corr_smooth.append(cs)
     highpass.append(hp)
 
-finaldata = pd.DataFrame({'Annuli': annuli, 'Subsections': subsections, 'Movement': movement, 'Spectrum': spectrum,
-                          'Numbasis': numbasis, 'Corr_Smooth': corr_smooth, 'Highpass': highpass, 'Score': scores})
+finaldata = pd.DataFrame({'Annuli': annuli, 'Subsections': subsections, 'Movement': movement, 'Numbasis': numbasis,
+                          'Corr_Smooth': corr_smooth, 'Highpass': highpass, 'Score': scores})
 for key in sepscores.keys():
     finaldata[key] = sepscores[key]
 
@@ -183,8 +182,8 @@ if len(sys.argv) > 1 and sys.argv[1] == 'all':  # need to collapse all wavelengt
         scores.append(d[key])
         for md, seplist in zip(mds.values(), seplists):
             seplist.append(md[key])
-    finaldata = pd.DataFrame({'Annuli': annuli, 'Subsections': subsections, 'Movement': movement, 'Spectrum': spectrum,
-                              'Numbasis': numbasis, 'Corr_Smooth': corr_smooth, 'Highpass': highpass, 'Score': scores})
+    finaldata = pd.DataFrame({'Annuli': annuli, 'Subsections': subsections, 'Movement': movement,'Numbasis':
+        numbasis, 'Corr_Smooth': corr_smooth, 'Highpass': highpass, 'Score': scores})
     for key, lst in zip(mds.keys(), seplists):
         finaldata[key] = lst
 sorted_by_score = finaldata.sort_values(by='Score', ascending=False, ignore_index=True)
