@@ -14,20 +14,6 @@ commas.
 check_contrast_detections.py: Same thing as check.py, but
 with contrast and/or detections instead of KLIP runs. 
 
-check_injection_locations.py: This script will take in some
-hard coded suggestions for position angles and 
-seperations for injected planets, along with an
-observation datacube and the locations of its science
-target(s). Then it will determine whether everything
-is at least 2 FWHMs apart or not. If not, then 
-locations of planet injections should be tweaked. 
-
-optimal_injection_locations.py: This script is similar to the
-previous one in the list, except that instead of checking
-whether your suggestions work, you will give it your suggestions
-and some bounds, and then it will optimize the locations of the
-fake planets.
-
 get_dataset_info.py: This script will generate a text file with
 information about the CHARISData class that would be built out
 of the FITS files associated with the observation on some star
