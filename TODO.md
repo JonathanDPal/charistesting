@@ -10,12 +10,9 @@ you want to inject, the annuli/subsections values you want to
 use, and the locations of the satellite spots/science targets
 in the observations you are going to use.
 
-3. Add some stuff so that you have more flexibility on
-fake_seps.
-
-4. Add some stuff so that if fake planets would otherwise
+3. Add some stuff so that if fake planets would otherwise
 be injected on annuli/subsection boundaries, they get
 tweaked slighly automatically.
 
-5. Test the implementation for the TODO items which have
+4. Test the implementation for the TODO items which have
 been marked as complete but not yet tested.

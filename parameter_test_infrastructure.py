@@ -40,30 +40,27 @@ def log_file_output(directory, write_type='a'):
             sys.stdout = old_stdout
 
 
-def FWHMIOWA_calculator(speccubefile, filtname=None):
+def FWHMIOWA_calculator(speccubefile=None, filtname=None, FWHM=None):
     """
-    This used to calculate FWHM based on the central wavelength, but we found that the equation for that calculation
-    was faulty, so at this point, it just spits back 3.5 as the FWHM. Just kept in this format to minimize the
-    number of edits needed and also to permit modifications in the future such that we can have different FWHMs for
-    different central wavelengths.
+    Args (all optional, but at least one must be specified in order for code to work):
+        speccubefile (str): FITS file which has the name of the filter used. If filtname or FWHM arguments specified,
+                            then this will not be used.
+        filtname (str): Name of the filter used for observations. If FWHM is specified, this will not be used.
+        FWHM (float): FWHM of the obsevations.
     """
-    #####
-    # If we were to make it formulaic again, it would look something like this:
-    # wavelengths = {'j': 1200e-9, 'h': 1550e-9, 'k': 2346e-9, 'broadband': 1550e-9}
-    # if filtname is None:
-    #     wavelength = wavelengths[str.lower(speccubefile[1].header['FILTNAME'])]
-    # else:
-    #     wavelength = wavelengths[str.lower(filtname)]
-    # D = 8
-    # FWHM = (some constant based on instrument characteristics) * wavelength / D
-    #########
-    # Another way to approach it would just be something like this (with wavelength coming from above stuff):
-    # fwhms = {'j': {fwhm1}, 'h': {fwhm2}, 'k':{fwhm3}, 'broadband': 3.5}
-    # FWHM = fwhms[wavelength]
-    ########
+    if (speccubefile, filtname, FWHM) == (None, None, None):
+        raise ValueError("At least one argument must be specified.")
+    if FWHM is None:
+        if filtname is None:
+            filtname = str.lower(speccubefile[1].header['FILTNAME'])
+        else:
+            filtname = str.lower(filtname)
+        if filtname not in ['k', 'broandband']:
+            raise ValueError(f'Filter {filtname} currently not supported.')
+        fwhms = {'j': None, 'h': None, 'k': 3.5, 'broadband': 3.5}  # make measurements to fill in
+        FWHM = fwhms[filtname]
     lenslet_scale = 0.0162
     field_radius = 1.035
-    FWHM = 3.5
     IWA = 5
     OWA = (field_radius / lenslet_scale) - FWHM
 
@@ -98,21 +95,19 @@ def make_dn_per_contrast(dataset):
     dataset.dn_per_contrast = mean_spot_fluxes / dataset.spot_ratio
 
 
-def pasep_to_xy(PAs, seps):
+def pasep_to_xy(fks):
     """
-    Takes lists of position angles and seperations and yields a numpy array with x-y coordinates for each combo, using
-    the convention used in the table of values outputted by the planet detection software. The origin used in their
-    convention is the center of the star's PSF.
+    Takes the fakes attribute of TestDataset and produces list of places where fake planets were/will be injected.
     """
-    PAs = [float(pa) for pa in PAs]  # if not a float, then pa / 180 will yield zero in many cases
+    PAs = [float(fk[2]) for fk in fks]  # if not a float, then pa / 180 will yield zero in many cases
     radians = np.array(PAs) / 180 * np.pi
+    seps = [float(fk[1]) for fk in fks]
     locs = []
-    for sep in seps:
-        for rad in radians:
-            x = -np.sin(rad) * sep
-            y = np.cos(rad) * sep
-            loc = [x, y]
-            locs.append(loc)
+    for sep, rad in zip(seps, radians):
+        x = -np.sin(rad) * sep
+        y = np.cos(rad) * sep
+        loc = [x, y]
+        locs.append(loc)
     return locs
 
 
@@ -375,8 +370,7 @@ class Trial:
     """
 
     def __init__(self, object_name, mask_xy, annuli, subsections, movement, numbasis, spectrum, corr_smooth,
-                 fake_PAs, fake_fluxes, fake_fwhm, fake_seps, rot_angs, flipx, dn_per_contrast, wln_um, highpass,
-                 length):
+                 fakes, numsepgroups, fake_fwhm, rot_angs, flipx, dn_per_contrast, wln_um, highpass, length):
         self.object_name = object_name
         self.mask_xy = mask_xy
 
@@ -394,16 +388,15 @@ class Trial:
         self.spectrum = spectrum
         self.corr_smooth = corr_smooth
 
-        self.fake_PAs = fake_PAs
-        self.fake_fluxes = fake_fluxes
+        self.fakes = fakes
+        self.numsepgroups = numsepgroups
         self.fake_fwhm = fake_fwhm
-        self.fake_seps = fake_seps
 
         # Needed to Replicate Rotation for Fake Planet Retrieval
         self.rot_angs = rot_angs
         self.flipx = flipx
 
-        self.dn_per_cotrast = np.array(dn_per_contrast)
+        self.dn_per_contrast = np.array(dn_per_contrast)
         self.wln_um = wln_um  # only being used to identify wavelength in output filepath name
 
         # Switching Highpass To Image Space If Necessary
@@ -416,7 +409,7 @@ class Trial:
         # String Identifying Parameters Used (Used Later For Saving Contrast Info)
         self.klip_parameters = str(annuli) + 'Annuli_' + str(subsections) + 'Subsections_' + str(movement) + \
                                'Movement_' + str(spectrum) + 'Spectrum_' + str(corr_smooth) + 'Smooth_' + str(
-            highpass) + 'Highpass_'
+                               highpass) + 'Highpass_'
 
         # Filepaths to KLIPped Datacubes
         self.filepaths_Wfakes = [self.object_name + '/klipped_cubes_Wfakes/' + self.object_name + '_withfakes_' +
@@ -430,8 +423,8 @@ class Trial:
 
         # Building a String Which Contains All of the Information For Rebuilding the Trial Instance (this gets used for
         # parallelization)
-        params = [object_name, mask_xy, annuli, subsections, movement, numbasis, spectrum, corr_smooth, fake_PAs,
-                  fake_fluxes, fake_fwhm, fake_seps, rot_angs, flipx, dn_per_contrast, wln_um, highpass, length]
+        params = [object_name, mask_xy, annuli, subsections, movement, numbasis, spectrum, corr_smooth, fakes,
+                  numsepgroups, fake_fwhm, rot_angs, flipx, dn_per_contrast, wln_um, highpass, length]
         modifiedparams = []
         for i in range(len(params)):
             array = False
@@ -537,10 +530,8 @@ class Trial:
         contrast and planet detection can be parallelized.
         """
         p = cls.list_rebuilder(rebuild_string)
-        if len(p) != 18:
-            raise ValueError("Incorrect number of arguments given for building class Trial using from_string method.")
         return cls(p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12], p[13], p[14],
-                   p[15], p[16], p[17])
+                   p[15], p[16])
 
     def get_contrast(self, contains_fakes=True, overwrite=False):
         """
@@ -616,15 +607,14 @@ class Trial:
                 # Measuring Algorithm Throughput BEFORE Fake Planets Get Masked Out
                 if contains_fakes:
                     retrieved_fluxes = []
-                    if np.ndim(self.fake_PAs) == 1:
-                        pas = self.fake_PAs
-                        fluxes = self.fake_fluxes
-                    else:  # i.e., multiple tiers
-                        pas = self.fake_PAs[0]  # using highest tier planets for calibration)
-                        fluxes = self.fake_fluxes[0]
-                    for sep in self.fake_seps:
+                    lensepgroups = int(len(fakes) / self.numsepgroups)
+                    fluxes = [np.mean([fake[0] for fake in self.fakes][k * lensepgroups: (k+1) * lensepgroups + 1])
+                              for k in range(self.numsepgroups)]
+                    locs = [[fk[1], fk[2]] for fk in self.fakes]
+                    for k in range(self.numsepgroups):
+                        Llocs = locs[k * lensepgroups: (k+1) * lensepgroups + 1]
                         fake_planet_fluxes = []
-                        for pa in pas:
+                        for sep, pa in Llocs:
                             try:
                                 fake_flux = retrieve_planet_flux(frame, pa, sep, local_output_wcs, dataset_center,
                                                                  dataset_fwhm)
@@ -639,7 +629,7 @@ class Trial:
 
                 # Applying Mask to Fake Planets
                 if contains_fakes:
-                    fakelocs = pasep_to_xy(np.array(self.fake_PAs).flatten(), np.array(self.fake_seps).flatten())
+                    fakelocs = pasep_to_xy(self.fakes)
                     for fl in fakelocs:
                         x_pos = fl[0] + dataset_center[0]  # moving it into correct coordinate system
                         y_pos = fl[1] + dataset_center[1]
@@ -670,8 +660,11 @@ class Trial:
                 if contains_fakes:
                     # Calibrating For KLIP Subtraction If Fakes Present
                     correct_contrast = np.copy(contrast)
+                    lensepgroups = int(len(fakes) / self.numsepgroups)
+                    seps = [np.mean([fk[1] for fk in self.fakes[k * lensepgroups: (k+1) * lensepgroups + 1]]) for k in
+                            range(self.numsepgroups)]
                     for j, sep in enumerate(contrast_seps):
-                        closest_throughput_index = np.argmin(np.abs(sep - self.fake_seps))
+                        closest_throughput_index = np.argmin(np.abs(sep - seps))
                         if algo_throughput[closest_throughput_index] == 0:  # this would only occur if there were only
                             # negative values near all the fake planet injection loccations at the closest seperation
                             correct_contrast[j] = np.inf  # i.e., divide by zero
@@ -745,7 +738,7 @@ class Trial:
             candidates = pd.DataFrame(candidates_table, columns=['Index', 'SNR Value', 'PA', 'Sep (pix)',
                                                                  'Sep (as)', 'x', 'y', 'row', 'col'])
 
-            fakelocs = pasep_to_xy(self.fake_PAs.flatten(), self.fake_seps.flatten())  # where planets were injected
+            fakelocs = pasep_to_xy(self.fakes)  # where planets were injected
 
             candidate_locations = zip(candidates['x'], candidates['y'])  # where stuff was detected
 
@@ -825,8 +818,8 @@ class TestDataset:
     pyklip.instruments.CHARIS) and then create an instance of Trial for each set of KLIP parameters to be looked at.
     """
 
-    def __init__(self, fileset, object_name, mask_xy, fake_fluxes, fake_seps, annuli, subsections, movement,
-                 numbasis, corr_smooth, highpass, spectrum, fake_fwhm, fake_PAs, mode, batched, overwrite,
+    def __init__(self, fileset, object_name, mask_xy, fakes, numsepgroups, annuli, subsections, movement,
+                 numbasis, corr_smooth, highpass, spectrum, fake_fwhm, mode, batched, overwrite,
                  memorylite, build_all_combos, build_charis_data, verbose=True, generatelogfile=True):
         self.object_name = object_name
         self.mask_xy = mask_xy
@@ -844,6 +837,13 @@ class TestDataset:
             self.write_to_log(f'Title for Set: {object_name}', 'w')
             self.write_to_log(f'\nFileset: {fileset}')
 
+        self.fakes = fakes
+        self.numsepgroups = numsepgroups
+        self.fake_fluxes = [fake[0] for fake in self.fakes]
+        self.fake_seps = [fake[1] for fake in self.fakes]
+        self.fake_fwhm = fake_fwhm
+        self.fake_PAs = [fake[2] for fake in self.fakes]
+
         if build_all_combos:
             param_names = ['Annuli', 'Subsections', 'Movement', 'Numbasis', 'Corr_Smooth', 'Highpass', 'Spectrum',
                            'Mode', 'Fake Fluxes', 'Fake Seps', 'Fake PAs', 'Fake FWHM']
@@ -852,14 +852,14 @@ class TestDataset:
             if generatelogfile:
                 self.write_to_log(f'\nNumber of Parameter Combinations: {number_of_paramcombos}')
 
-            for param in [mode, fake_fluxes, fake_seps, fake_PAs, fake_fwhm]:
+            for param in [mode, self.fake_fluxes, self.fake_seps, self.fake_PAs, fake_fwhm]:
                 params.append(param)
             for name, param in zip(param_names, params):
                 if generatelogfile:
                     self.write_to_log(f'\n{name}: {param}')
         else:  # don't want to write in all values if using text file (could be tens of thousands)
             param_names = ['KLIP Parameters:' 'Mode', 'Fake Fluxes', 'Fake Seps', 'Fake PAs', 'Fake FWHM']
-            params = ['from a text file', mode, fake_fluxes, fake_seps, fake_PAs, fake_fwhm]
+            params = ['from a text file', mode, self.fake_fluxes, self.fake_seps, self.fake_PAs, fake_fwhm]
             if generatelogfile:
                 for name, param in zip(param_names, params):
                     self.write_to_log(f'\n{name}: {param}')
@@ -882,11 +882,6 @@ class TestDataset:
             self.dataset = Dataset_PlaceHolder()
             append_dataset_info(build_charis_data, self.dataset)
 
-        self.fake_fluxes = np.array(fake_fluxes)
-        self.fake_seps = np.array(fake_seps)
-        self.fake_fwhm = fake_fwhm
-        self.fake_PAs = np.array(fake_PAs)
-
         self.trials = list()
         # START OF IF/ELSE AND FOR LOOPS FOR BUILDING TRIALS #
         if build_all_combos:
@@ -900,9 +895,9 @@ class TestDataset:
                                         self.trials.append(Trial(object_name=self.object_name, mask_xy=self.mask_xy,
                                                                  annuli=ani, subsections=subsec, movement=mov,
                                                                  numbasis=numbasis, spectrum=spec, corr_smooth=cs,
-                                                                 fake_PAs=self.fake_PAs, fake_fluxes=self.fake_fluxes,
-                                                                 fake_fwhm=self.fake_fwhm, fake_seps=self.fake_seps,
-                                                                 rot_angs=self.dataset.PAs, flipx=self.dataset.flipx,
+                                                                 fakes=self.fakes, numsepgroups=numsepgroups,
+                                                                 fake_fwhm=self.fake_fwhm, rot_angs=self.dataset.PAs,
+                                                                 flipx=self.dataset.flipx,
                                                                  dn_per_contrast=self.dataset.dn_per_contrast,
                                                                  wln_um=self.dataset.wvs, highpass=hp,
                                                                  length=self.dataset.leNgth))
@@ -912,42 +907,36 @@ class TestDataset:
                 paramset = parameter_set_batcher(batchindex, batchsize, args)
                 for params in paramset:
                     ani, subsec, mov, spec, cs, hp = params
-                    self.trials.append(Trial(object_name=self.object_name, mask_xy=self.mask_xy,
-                                             annuli=ani, subsections=subsec, movement=mov,
-                                             numbasis=numbasis, spectrum=spec, corr_smooth=cs,
-                                             fake_PAs=self.fake_PAs, fake_fluxes=self.fake_fluxes,
-                                             fake_fwhm=self.fake_fwhm, fake_seps=self.fake_seps,
-                                             rot_angs=self.dataset.PAs, flipx=self.dataset.flipx,
-                                             dn_per_contrast=self.dataset.dn_per_contrast,
-                                             wln_um=self.dataset.wvs, highpass=hp,
-                                             length=self.dataset.leNgth))
+                    self.trials.append(Trial(object_name=self.object_name, mask_xy=self.mask_xy, annuli=ani,
+                                             subsections=subsec, movement=mov, numbasis=numbasis, spectrum=spec,
+                                             corr_smooth=cs, fakes=self.fakes, numsepgroups=self.numsepgroups,
+                                             fake_fwhm=self.fake_fwhm, rot_angs=self.dataset.PAs,
+                                             flipx=self.dataset.flipx, dn_per_contrast=self.dataset.dn_per_contrast,
+                                             wln_um=self.dataset.wvs, highpass=hp, length=self.dataset.leNgth))
         else:
             if not isinstance(batched, tuple):
                 for ani, subsec, mov, spec, nb, cs, hp in zip(annuli, subsections, movement, spectrum,
                                                               numbasis, corr_smooth, highpass):
                     self.trials.append(Trial(object_name=self.object_name, mask_xy=self.mask_xy, annuli=ani,
                                              subsections=subsec, movement=mov, numbasis=[nb], spectrum=spec,
-                                             corr_smooth=cs, fake_PAs=self.fake_PAs, fake_fluxes=self.fake_fluxes,
-                                             fake_fwhm=self.fake_fwhm, fake_seps=self.fake_seps,
-                                             rot_angs=self.dataset.PAs, flipx=self.dataset.flipx,
-                                             dn_per_contrast=self.dataset.dn_per_contrast, wln_um=self.dataset.wvs,
-                                             highpass=hp, length=self.dataset.leNgth))
+                                             corr_smooth=cs, fakes=self.fakes, numsepgroups=self.numsepgroups,
+                                             fake_fwhm=self.fake_fwhm, rot_angs=self.dataset.PAs,
+                                             flipx=self.dataset.flipx, dn_per_contrast=self.dataset.dn_per_contrast,
+                                             wln_um=self.dataset.wvs, highpass=hp, length=self.dataset.leNgth))
             else:
                 args = [annuli, subsections, movement, numbasis, spectrum, corr_smooth, highpass]
                 _, batchindex, batchsize = batched
                 startindex = batchsize * (batchindex - 1)  # 1-based indexing being passed in
                 endindex = startindex + batchsize
                 paramset = [arg[startindex: endindex] for arg in args]
-                for params in zip(paramset[0], paramset[1], paramset[2], paramset[3], paramset[4], paramset[5],
-                                  paramset[6]):
-                    ani, subsec, mov, nb, spec, cs, hp = params
+                for ani, subsec, mov, nb, spec, cs, hp in zip(paramset[0], paramset[1], paramset[2], paramset[3],
+                                                               paramset[4], paramset[5], paramset[6]):
                     self.trials.append(Trial(object_name=self.object_name, mask_xy=self.mask_xy, annuli=ani,
                                              subsections=subsec, movement=mov, numbasis=[nb], spectrum=spec,
-                                             corr_smooth=cs, fake_PAs=self.fake_PAs, fake_fluxes=self.fake_fluxes,
-                                             fake_fwhm=self.fake_fwhm, fake_seps=self.fake_seps,
-                                             rot_angs=self.dataset.PAs, flipx=self.dataset.flipx,
-                                             dn_per_contrast=self.dataset.dn_per_contrast, wln_um=self.dataset.wvs,
-                                             highpass=hp, length=self.dataset.leNgth))
+                                             corr_smooth=cs, fakes=self.fakes, numsepgroups=self.numsepgroups,
+                                             fake_fwhm=self.fake_fwhm, rot_angs=self.dataset.PAs,
+                                             flipx=self.dataset.flipx, dn_per_contrast=self.dataset.dn_per_contrast,
+                                             wln_um=self.dataset.wvs, highpass=hp, length=self.dataset.leNgth))
         # END OF IF/ELSE AND FOR LOOPS #
         self.mode = mode
         self.overwrite = overwrite
@@ -970,21 +959,10 @@ class TestDataset:
         print(words)
 
     def inject_fakes(self):
-        if not isinstance(self.fake_fluxes[0], np.ndarray):  # regular like tutorial
-            for fake_flux, sep in zip(self.fake_fluxes, self.fake_seps):
-                flux_to_inject = fake_flux * self.dataset.dn_per_contrast  # UNcalibrating it
-                for pa in self.fake_PAs:
-                    inject_planet(frames=self.dataset.input, centers=self.dataset.centers,
-                                  inputflux=flux_to_inject, astr_hdrs=self.dataset.wcs, radius=sep, pa=pa,
-                                  fwhm=self.fake_fwhm)
-        else:  # multiple tiers of planets
-            for fluxgroup, pagroup in zip(self.fake_fluxes, self.fake_PAs):
-                for fake_flux, sep in zip(fluxgroup, self.fake_seps):
-                    flux_to_inject = fake_flux * self.dataset.dn_per_contrast  # UNcalibrating it
-                    for pa in pagroup:
-                        inject_planet(frames=self.dataset.input, centers=self.dataset.centers,
-                                      inputflux=flux_to_inject, astr_hdrs=self.dataset.wcs, radius=sep,
-                                      pa=pa, fwhm=self.fake_fwhm)
+        for fake_flux, sep, pa in self.fakes:
+            flux_to_inject = fake_flux * self.dataset.dn_per_contrast  # UNcalibrating it
+            inject_planet(frames=self.dataset.input, centers=self.dataset.centers, inputflux=flux_to_inject,
+                          astr_hdrs=self.dataset.wcs, radius=sep, pa=pa, fwhm=self.fake_fwhm)
         if self.generatelogfile and self.verbose:
             self.write_to_log_and_print(f'############ DONE INJECTING FAKES FOR {self.object_name} ############')
         elif self.verbose:

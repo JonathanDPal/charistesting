@@ -42,6 +42,8 @@ memorylite =  # True or False
 fake_fluxes =  # List(s) of Floats
 fake_seps =  # List(s) of Integers
 fake_PAs =  # List(s) of Integers
+compiler =  # either 'zip' or 'iterate'
+numsepgroups =  # integer if compiler == 'zip'; None if compiler == 'iterate'
 
 # Specifying Which Things to Do/Not Do (set to either True or False) #
 # Most of the time, the four values below should be set to True
@@ -94,6 +96,19 @@ if not isinstance(mode, str):
 if overwrite not in [True, False]:
     raise TypeError("Overwrite needs to be either True or False. Check input.")
 
+# Compressing info about fake planet injections into desired format
+if compiler == 'zip':
+    fakes = [np.array((flux, sep, pa)) for flux, sep, pa in zip(fake_fluxes, fake_seps, fake_PAs)]
+elif compiler == 'iterate':
+    fakes = list()
+    for fluxgroup, pagroup in zip(fake_fluxes, fake_PAs):
+        for fake_flux, sep in zip(fluxgroup, fake_seps):
+            for pa in pagroup:
+                fakes.append(np.array((fake_flux, sep, pa)))
+    numsepgroups = len(fake_seps)
+else:
+    raise ValueError('Check value for "compiler" variable.')
+
 # SYNTHESIZING USER INPUTS INTO A COUPLE ADDITIONAL BOOLEANS #
 detect_planets = get_planet_detections_from_dataset_with_fakes or get_planet_detections_from_dataset_without_fakes
 if put_in_fakes:
@@ -136,12 +151,11 @@ with fits.open(glob(fileset0)[0]) as hdulist:
     fake_fwhm0 = FWHMIOWA_calculator(hdulist)[0]
 
 # Create TestDataset For Target 0
-td0 = TestDataset(fileset=fileset0, object_name=object_name0, mask_xy=mask0, fake_fluxes=fake_fluxes,
-                  fake_seps=fake_seps, annuli=annuli, subsections=subsections, movement=movement, numbasis=numbasis,
-                  corr_smooth=corr_smooth, highpass=highpass, spectrum=spectrum, mode=mode, fake_PAs=fake_PAs,
-                  fake_fwhm=fake_fwhm0, batched=batched, overwrite=overwrite, memorylite=memorylite,
-                  build_all_combos=True, build_charis_data=build_charis_data, verbose=verbose,
-                  generatelogfile=create_log_file)
+td0 = TestDataset(fileset=fileset0, object_name=object_name0, mask_xy=mask0, fakes=fakes, numsepgroups=numsepgroups,
+                  annuli=annuli, subsections=subsections, movement=movement, numbasis=numbasis, corr_smooth=corr_smooth,
+                  highpass=highpass, spectrum=spectrum, mode=mode, fake_fwhm=fake_fwhm0, batched=batched,
+                  overwrite=overwrite, memorylite=memorylite, build_all_combos=True,
+                  build_charis_data=build_charis_data, verbose=verbose, generatelogfile=create_log_file)
 
 # Have TestDataset 0 Run Each Part
 # if we want KLIP output of data without fakes, we need to run KLIP before injecting planets
