@@ -4,6 +4,9 @@ import sys
 
 snr = pd.read_csv('numericalscoring/snr_scores.csv')
 contrast = pd.read_csv('numericalscoring/contrast_scores.csv')
+for col in contrast.columns:
+    if col not in ['Annuli', 'Subsections', 'Movement', 'Numbasis', 'Corr_Smooth', 'Highpass', 'Score']:
+        del newdf[col]
 
 if len(sys.argv) > 1:
     snrweight, contrastweight = float(sys.argv[1]), float(sys.argv[2])

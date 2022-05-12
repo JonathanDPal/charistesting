@@ -13,9 +13,10 @@ for star in starsystems[1:]:
     newdf = pd.read_csv(f'{star}/analysis/numericalscoring/overall_scores.csv')
     newdf[f'{star}_snr'] = newdf['Score_snr'].rank(pct=True)
     newdf[f'{star}_contrast'] = newdf['Score_contrast'].rank(pct=True)
-    del newdf['Score_snr']
-    del newdf['Score_contrast']
-    del newdf['Overall Score']
+    for col in newdf.columns:
+        if col not in ['Annuli', 'Subsections', 'Movement', 'Numbasis', 'Corr_Smooth', 'Highpass', f'{star}_snr',
+                       f'{star}_contrast']:
+            del newdf[col]
     df = df.merge(newdf, how='outer', on=['Annuli', 'Subsections', 'Movement', 'Numbasis', 'Corr_Smooth', 'Highpass'])
 
 avgs = list()
