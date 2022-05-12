@@ -14,8 +14,7 @@ for dataset in sys.argv[2:]:
     del newdf['Score_snr']
     del newdf['Score_contrast']
     del newdf['Overall Score']
-    df = df.merge(newdf, how='outer', on=['Annuli', 'Subsections', 'Movement', 'Spectrum', 'Numbasis',
-                                               'Corr_Smooth', 'Highpass'])
+    df = df.merge(newdf, how='outer', on=['Annuli', 'Subsections', 'Movement', 'Numbasis', 'Corr_Smooth', 'Highpass'])
 
 totalscore = []
 for _, row in df.iterrows():

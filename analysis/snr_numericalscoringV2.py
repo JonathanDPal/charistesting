@@ -111,8 +111,8 @@ for reference, inj_flux in zip(reference_contrast, injected_fluxes):
             reference_planets_snr.append(flux / ref_contrast)
 reference_score = np.sum(reference_planets_snr)
 
-annuli, subsections, movement, spectrum, numbasis, corr_smooth, highpass, score = list(), list(), list(), list(), \
-                                                                                  list(), list(), list(), list()
+annuli, subsections, movement, numbasis, corr_smooth, highpass, score = list(), list(), list(), list(), list(), \
+                                                                        list(), list()
 for dfile in detectionsfiles:
     df = pd.read_csv(dfile)
     df = df[df['Injected'] != 'Science Target']  # ignoring science targets for scoring
@@ -144,13 +144,12 @@ for dfile in detectionsfiles:
     annuli.append(ann)
     subsections.append(sbs)
     movement.append(mov)
-    spectrum.append(spec)
     numbasis.append(nb)
     corr_smooth.append(cs)
     highpass.append(hp)
 
-finaldata = pd.DataFrame({'Annuli': annuli, 'Subsections': subsections, 'Movement': movement, 'Spectrum': spectrum,
-                          'Numbasis': numbasis, 'Corr_Smooth': corr_smooth, 'Highpass': highpass, 'Score': score})
+finaldata = pd.DataFrame({'Annuli': annuli, 'Subsections': subsections, 'Movement': movement, 'Numbasis': numbasis,
+                          'Corr_Smooth': corr_smooth, 'Highpass': highpass, 'Score': score})
 sorted_by_score = finaldata.sort_values(by='Score', ascending=False, ignore_index=True)
 
 if not os.path.exists('numericalscoring'):

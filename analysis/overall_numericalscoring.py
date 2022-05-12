@@ -11,7 +11,7 @@ else:
     # this should essentially allow them to be weighted (roughly) equally
     snrweight, contrastweight = contrast['Score'].median(), snr['Score'].median()
 
-overall = snr.merge(contrast, how='outer', on=['Annuli', 'Subsections', 'Movement', 'Spectrum', 'Numbasis',
+overall = snr.merge(contrast, how='outer', on=['Annuli', 'Subsections', 'Movement', 'Numbasis',
                                                'Corr_Smooth', 'Highpass'], suffixes=['_snr', '_contrast'])
 
 overall['Overall Score'] = [(s * snrweight + c * contrastweight) / (snrweight + contrastweight)
