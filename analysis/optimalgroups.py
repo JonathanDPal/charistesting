@@ -60,7 +60,7 @@ for ic in indexcombos:
     threshold = np.min([np.max(subdf[col]) for col in columnnames])
     paramgroups = list()
     for idx in range(len(ic)):
-        paramgroups.append(tuple([subdf.iloc[idx, k] for k in range(7)])[1:])
+        paramgroups.append(tuple([subdf.iloc[idx, k] for k in range(6)])[1:])
     data_to_save['Params'].append(str(paramgroups))
     data_to_save['Threshold'].append(threshold)
 
