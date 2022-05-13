@@ -155,7 +155,8 @@ if len(sys.argv) > 1 and sys.argv[1] == 'all':  # need to collapse all wavelengt
     d = dict()
     # mds = {key: dict() for key in sepscores.keys()}
     for _, row in finaldata.iterrows():
-        idx = tuple(list(row[:3]) + list(row[4:-1 * (1 + len(reference_contrast))]))
+        # idx = tuple(list(row[:3]) + list(row[4:-1 * (1 + len(reference_contrast))]))
+        idx = tuple(list(row[:3]) + list(row[4:]))
         if idx in d.keys():
             d[idx].append(row[-1])
         else:
