@@ -60,12 +60,15 @@ for ic in indexcombos:
     threshold = np.min([np.max(subdf[col]) for col in columnnames])
     paramgroups = list()
     for idx in range(len(ic)):
-        paramgroups.append(tuple([subdf.iloc[idx, k] for k in range(6)])[1:])
+        newgroup = tuple([subdf.iloc[idx, k] for k in range(6)])[1:]
+        newgroup[1] = int(newgroup[1])  # for some reason sbs has been saving as a float
+        paramgroups.append(newgroup)
     data_to_save['Params'].append(str(paramgroups))
     data_to_save['Threshold'].append(threshold)
 
 broken_up_params = [list() for _ in range(n)]
 for pset in data_to_save['Params']:
+    pset = pset.replace("'", "")
     parens = list()
     for i in range(len(pset)):
         if pset[i] in ['(', ')']:
