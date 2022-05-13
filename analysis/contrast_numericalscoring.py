@@ -111,7 +111,7 @@ def valuefinder(filename, param):
 
 annuli, subsections, movement, numbasis, corr_smooth, highpass, scores = list(), list(), list(), list(), list(), \
                                                                          list(), list()
-sepscores = {key[0]: list() for key in reference_contrast}
+# sepscores = {key[0]: list() for key in reference_contrast}
 for cfile in contrastfiles:
     try:
         df = pd.read_csv(cfile)
@@ -131,11 +131,11 @@ for cfile in contrastfiles:
             try:
                 ratio = (np.log10(contrast[closest_seperation_index] / 5)) / (np.log10(reference_val / 5))
                 score_sum += ratio
-                sepscores[sep].append(ratio)
+                # sepscores[sep].append(ratio)
                 # dividing by 5 since we're working with 5 sigma contrast
             except RuntimeWarning:  # this has happened when a negctive number is the value for contrast
                 score_sum += -np.inf
-                sepscores[sep].append(-np.inf)
+                # sepscores[sep].append(-np.inf)
     scores.append(score_sum / len(reference_contrast) * 100)
 
     ann, sbs, mov, spec, nb, cs, hp = valuefinder(cfile, 'all')
@@ -148,28 +148,28 @@ for cfile in contrastfiles:
 
 finaldata = pd.DataFrame({'Annuli': annuli, 'Subsections': subsections, 'Movement': movement, 'Numbasis': numbasis,
                           'Corr_Smooth': corr_smooth, 'Highpass': highpass, 'Score': scores})
-for key in sepscores.keys():
-    finaldata[key] = sepscores[key]
+# for key in sepscores.keys():
+#     finaldata[key] = sepscores[key]
 
 if len(sys.argv) > 1 and sys.argv[1] == 'all':  # need to collapse all wavelength scores into a single contrast score
     d = dict()
-    mds = {key: dict() for key in sepscores.keys()}
+    # mds = {key: dict() for key in sepscores.keys()}
     for _, row in finaldata.iterrows():
         idx = tuple(list(row[:3]) + list(row[4:-1 * (1 + len(reference_contrast))]))
         if idx in d.keys():
             d[idx].append(row[-1])
         else:
             d[idx] = [row[-1]]
-        for key in mds.keys():
-            if idx in mds[key].keys():
-                mds[key][idx].append(row[key])
-            else:
-                mds[key][idx] = [row[key]]
+        # for key in mds.keys():
+        #     if idx in mds[key].keys():
+        #         mds[key][idx].append(row[key])
+        #     else:
+        #         mds[key][idx] = [row[key]]
     d = {key: np.mean(d[key]) for key in d.keys()}
-    mds = {key: {key2: np.mean(mds[key][key2]) for key2 in mds[key].keys()} for key in mds.keys()}
+    # mds = {key: {key2: np.mean(mds[key][key2]) for key2 in mds[key].keys()} for key in mds.keys()}
     annuli, subsections, movement, numbasis, corr_smooth, highpass, scores = list(), list(), list(), list(), list(),\
                                                                              list(), list()
-    seplists = [list() for _ in mds.keys()]
+    # seplists = [list() for _ in mds.keys()]
     for key in d.keys():
         annuli.append(key[0])
         subsections.append(key[1])
@@ -178,12 +178,12 @@ if len(sys.argv) > 1 and sys.argv[1] == 'all':  # need to collapse all wavelengt
         corr_smooth.append(key[4])
         highpass.append(key[5])
         scores.append(d[key])
-        for md, seplist in zip(mds.values(), seplists):
-            seplist.append(md[key])
+        # for md, seplist in zip(mds.values(), seplists):
+        #     seplist.append(md[key])
     finaldata = pd.DataFrame({'Annuli': annuli, 'Subsections': subsections, 'Movement': movement,'Numbasis':
         numbasis, 'Corr_Smooth': corr_smooth, 'Highpass': highpass, 'Score': scores})
-    for key, lst in zip(mds.keys(), seplists):
-        finaldata[key] = lst
+    # for key, lst in zip(mds.keys(), seplists):
+    #     finaldata[key] = lst
 sorted_by_score = finaldata.sort_values(by='Score', ascending=False, ignore_index=True)
 
 if not os.path.exists('numericalscoring'):
