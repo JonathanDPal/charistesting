@@ -112,6 +112,9 @@ elif compiler == 'iterate':
 else:
     raise ValueError('Check value for "compiler" variable.')
 
+assert len(fakes) % numsepgroups == 0, 'Check your fake planet specifications. The number of seperation groups ' \
+                                       'does not divide the number of fake planets.'
+
 # SYNTHESIZING USER INPUTS INTO A COUPLE ADDITIONAL BOOLEANS #
 detect_planets = get_planet_detections_from_dataset_with_fakes or get_planet_detections_from_dataset_without_fakes
 if put_in_fakes:
