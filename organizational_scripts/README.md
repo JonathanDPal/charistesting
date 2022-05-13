@@ -41,3 +41,9 @@ but I needed to have everything standardized for
 analysis purposes. This script searches through a top 
 level output directory and renames the files to be in 
 standard format.
+
+valuefinder.py: Has two functions which are used in some of
+the above scripts. They are two of the most useful things in
+this entire repository. Will be helpful to you if you are 
+trying to run your own analyses which aren't covered by what
+I have written.
