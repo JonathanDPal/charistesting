@@ -34,3 +34,8 @@ between specifying 0.25 & 0.75 and specifying 1 & 3).
 Each one of these will be in a seperate subdirectory
 within "{your object name}/analysis", assuming you 
 set up the way I specified above.
+
+The hr8799_planet_heatmaps.py script is not part of the
+above; it was something I wrote to get specific info about
+particular planets in the hr8799 star system. I include it
+for reference in case you try to do something similar.
