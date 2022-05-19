@@ -2,6 +2,7 @@ import numpy as np
 import sys
 import pandas as pd
 from math import factorial
+import itertools
 
 n = int(sys.argv[1])  # how big of parameter sets we're checking
 csvfile = sys.argv[2]  # where the ranking information is coming from
