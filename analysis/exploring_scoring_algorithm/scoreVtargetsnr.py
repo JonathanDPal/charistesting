@@ -41,5 +41,5 @@ for _, r in scores.iterrows():
         targetsnr.append(df1['SNR Value'].sum())
 
 scores['Science SNR'] = targetsnr
-direc = os.getcwd().split('/')[-2]
+direc = os.getcwd().split('/')[-1]
 scores.to_csv(f'{direc}-{type}_with_target.csv', index=False)
