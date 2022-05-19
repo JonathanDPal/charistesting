@@ -22,7 +22,7 @@ for _, row in df.iterrows():
     scisnrs.append(ldf[ldf['Injected'] == 'Science Target']['SNR Value'].sum())
 os.chdir(analysisdirec)
 
-plt.scatter(sscores, cscores, c=scisnrs, cmap='Greens', s=4)
+plt.scatter(sscores, cscores, c=scisnrs, cmap='Plasma', s=4)
 plt.xlabel('SNR Score')
 plt.ylabel('Contrast Score')
 plt.title(f'Contrast vs. SNR For {str.split(os.getcwd(), "/")[-2]}')
