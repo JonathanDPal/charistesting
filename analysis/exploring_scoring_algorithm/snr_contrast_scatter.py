@@ -11,7 +11,15 @@ df3 = df2[np.isnan(df2['Score_contrast']) == False]
 df = df3[np.isnan(df3['Score_snr']) == False]
 
 sscores, cscores = df['Score_snr'], df['Score_contrast']
-plt.scatter(sscores, cscores)
+scisnrs = list()
+for _, row in df.iterrows():
+    ann, sbs, mov, nb, cs, hp = row['Annuli'], row['Subsections'], row['Movement'], row['Numbasis'], \
+                                row['Corr_Smooth'], row['Highpass']
+    filename = f'{ann}Annuli_{sbs}Subsections_{mov}Movement_NoneSpectrum_{cs}Smooth_{hp}Highpass__KL{nb}_SNR-2.csv'
+    ldf = pd.read_csv(filename)
+    scisnrs.append(ldf[ldf['Injected'] == 'Science Target']['SNR Value'].sum())
+
+plt.scatter(sscores, cscores, c=scisnrs, cmap='Greens')
 plt.xlabel('SNR Score')
 plt.ylabel('Contrast Score')
 plt.title(f'Contrast vs. SNR For {str.split(os.getcwd(), "/")[-2]}')
