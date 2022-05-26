@@ -54,7 +54,7 @@ def FWHMIOWA_calculator(speccubefile=None, filtname=None, FWHM=None):
             filtname = str.lower(speccubefile[1].header['FILTNAME'])
         else:
             filtname = str.lower(filtname)
-        if filtname not in ['k', 'broandband']:
+        if filtname not in ['k', 'broadband']:
             raise ValueError(f'Filter {filtname} currently not supported.')
         fwhms = {'j': None, 'h': None, 'k': 3.5, 'broadband': 3.5}  # make measurements to fill in
         FWHM = fwhms[filtname]
