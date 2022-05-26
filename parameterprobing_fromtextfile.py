@@ -105,9 +105,13 @@ elif compiler == 'iterate':
                 fakes.append(np.array((fake_flux, sep, pa)))
     numsepgroups = len(fake_seps)
 elif compiler is None:
-    pass
+    fakes = None
 else:
     raise ValueError('Check value for "compiler" variable.')
+
+if fakes is not None:
+    assert len(fakes) % numsepgroups == 0, 'Check your fake planet specifications. The number of seperation groups ' \
+                                           'does not divide the number of fake planets.'
 
 # SYNTHESIZING USER INPUTS INTO A COUPLE ADDITIONAL BOOLEANS #
 detect_planets = get_planet_detections_from_dataset_with_fakes or get_planet_detections_from_dataset_without_fakes

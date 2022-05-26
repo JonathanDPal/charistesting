@@ -909,15 +909,19 @@ class TestDataset:
             self.write_to_log(f'Title for Set: {object_name}', 'w')
             self.write_to_log(f'\nFileset: {fileset}')
 
-        if tweak_injections:
+        if tweak_injections and fakes is not None:
             self.fakes = injection_tweaker(fakes, annuli, subsections, fake_fwhm)
         else:
             self.fakes = fakes
-        self.numsepgroups = numsepgroups
-        self.fake_fluxes = [fake[0] for fake in self.fakes]
-        self.fake_seps = [fake[1] for fake in self.fakes]
-        self.fake_fwhm = fake_fwhm
-        self.fake_PAs = [fake[2] for fake in self.fakes]
+        if fakes is not None:
+            self.numsepgroups = numsepgroups
+            self.fake_fluxes = [fake[0] for fake in self.fakes]
+            self.fake_seps = [fake[1] for fake in self.fakes]
+            self.fake_fwhm = fake_fwhm
+            self.fake_PAs = [fake[2] for fake in self.fakes]
+        else:
+            self.numsepgroups, self.fake_fluxes, self.fake_seps, self.fake_fwhm, self.fake_PAs = None, None, None, \
+                                                                                                 None, None
 
         if build_all_combos:
             param_names = ['Annuli', 'Subsections', 'Movement', 'Numbasis', 'Corr_Smooth', 'Highpass', 'Spectrum',
