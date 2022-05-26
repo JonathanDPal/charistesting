@@ -41,15 +41,17 @@ numsepgroups =  # integer if compiler == 'zip'; None if compiler == 'iterate'
 tweak_injections =  # boolean
 
 # Specifying Which Things to Do/Not Do (set to either True or False) #
-# Most of the time, the four values below should be set to True
+# Most of the time, the five values below should be set to True
 put_in_fakes =
 run_KLIP_on_dataset_with_fakes =   # if no fakes are injected, this will just be a dataset without fakes
 get_contrast =   # won't be calibrated if no fake planets are injected
 get_planet_detections_from_dataset_with_fakes =
-# Most of the time, these three values below should be set to False
+create_log_file =  # whether or not to create log file; note that if one exists, then it will be destroyed and replaced
+# Most of the time, these four values below should be set to False
 run_KLIP_on_dataset_without_fakes =
 get_planet_detections_from_dataset_without_fakes =
 overwrite =   # whether or not to replace existing files if they exist
+verbose =  # if False, then less stuff printed and less stuff in log file
 
 ######################
 # END OF USER INPUTS #
@@ -102,6 +104,8 @@ elif compiler == 'iterate':
             for pa in pagroup:
                 fakes.append(np.array((fake_flux, sep, pa)))
     numsepgroups = len(fake_seps)
+elif compiler is None:
+    pass
 else:
     raise ValueError('Check value for "compiler" variable.')
 
