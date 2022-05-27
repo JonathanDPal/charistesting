@@ -829,7 +829,7 @@ class Trial:
                     distances_from_fakes.append(np.min(distances))
                 else:
                     distances_from_fakes.append('n/a')
-                if self.mask_xy is None:
+                if self.mask_xy is not None:
                     distances2 = []
                     for mask in self.mask_xy:
                         mask = np.array(mask) - np.array(center)  # aligning coordinate systems
