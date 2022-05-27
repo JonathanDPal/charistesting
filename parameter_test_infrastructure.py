@@ -810,34 +810,40 @@ class Trial:
             candidates = pd.DataFrame(candidates_table, columns=['Index', 'SNR Value', 'PA', 'Sep (pix)',
                                                                  'Sep (as)', 'x', 'y', 'row', 'col'])
 
-            fakelocs = pasep_to_xy(self.fakes)  # where planets were injected
+            if self.fakes is not None:
+                fakelocs = pasep_to_xy(self.fakes)  # where planets were injected
 
             candidate_locations = zip(candidates['x'], candidates['y'])  # where stuff was detected
 
-            if self.mask_xy is None:
-                self.mask_xy = [[1000, 1000]]  # nothing gets identified as science target
-            elif not isinstance(self.mask_xy[0], (list, tuple)):
+            if self.mask_xy is not None and not isinstance(self.mask_xy[0], (list, tuple)):
                 self.mask_xy = [self.mask_xy]  # making it a list of a list so that it can get iterated over
                 # properly
 
             distances_from_fakes = []  # going to be an additional column of candidates DataFrame
             distances_from_targets = []  # going to be an additional column of candidates DataFrame
             for c in candidate_locations:
-                distances = []
-                for fl in fakelocs:
-                    distances.append(distance(c, fl))
-                distances_from_fakes.append(np.min(distances))
-                distances2 = []
-                for mask in self.mask_xy:
-                    mask = np.array(mask) - np.array(center)  # aligning coordinate systems
-                    distances2.append(distance(c, mask))
-                distances_from_targets.append(np.min(distances2))
+                if self.fakes is not None:
+                    distances = []
+                    for fl in fakelocs:
+                        distances.append(distance(c, fl))
+                    distances_from_fakes.append(np.min(distances))
+                else:
+                    distances_from_fakes.append('n/a')
+                if self.mask_xy is None:
+                    distances2 = []
+                    for mask in self.mask_xy:
+                        mask = np.array(mask) - np.array(center)  # aligning coordinate systems
+                        distances2.append(distance(c, mask))
+
+                    distances_from_targets.append(np.min(distances2))
+                else:
+                    distances_from_targets.append('n/a')
 
             injected = []  # going to be an additional column of candidates DataFrame
             for d1, d2 in zip(distances_from_targets, distances_from_fakes):
-                if d1 < self.fake_fwhm * 1.5:
+                if d1 != 'n/a' and d1 < self.fake_fwhm * 1.5:
                     injected.append("Science Target")
-                elif d2 < self.fake_fwhm * 1.5:
+                elif d2 != 'n/a' and d2 < self.fake_fwhm * 1.5:
                     injected.append(True)
                 else:
                     injected.append(False)
