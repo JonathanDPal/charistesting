@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.optimize import minimize, Bounds
-from check_injection_locations import define_subsection_bounds
+from check_injection_locations import define_subsection_bounds, FWHMIOWA_calculator
 from astropy.io import fits
 import pandas as pd
 from pyklip.klip import define_annuli_bounds
@@ -15,6 +15,7 @@ output_file = ''
 
 with fits.open(file_with_sat_spots) as hdulist:
     sat_spot_locs = [hdulist[1].header[hdr] for hdr in hdulist[1].header.keys() if 'SATS' in hdr]
+    _, iwa, owa = FWHMIOWA_calculator(speccubefile=hdulist)
     SSxs, SSys = list(), list()
     for i, loc in enumerate(sat_spot_locs):
         parts = loc.split(' ')
@@ -29,10 +30,10 @@ x0 = np.array([elm[2] for elm in bounds_initialvals])
 bounds = Bounds(LB, UB)
 
 
-def negdistance(fakelocs, annuli, subsections, st_locs, ss_locs):
+def negdistance(fakelocs, annuli, subsections, st_locs, ss_locs, IWA, OWA):
     seps = [elm for idx, elm in enumerate(fakelocs) if idx % 2 == 0]
     pas = [elm for idx, elm in enumerate(fakelocs) if idx % 2 == 1]
-    ann_boundaries = {ann: define_annuli_bounds(ann, 5, OWA) for ann in annuli}
+    ann_boundaries = {ann: define_annuli_bounds(ann, IWA, OWA) for ann in annuli}
     sbs_boundaries = {sbs: define_subsection_bounds(sbs) for sbs in subsections}
     inj_locations = lsts_pasep_to_xy(pas, seps)
 
@@ -92,8 +93,8 @@ def negdistance(fakelocs, annuli, subsections, st_locs, ss_locs):
     return -1 * np.min(everythingtomin)
 
 
-result = minimize(fun=negdistance, args=(num_annuli, num_subsections, science_target_locs, sat_spot_locs), x0=x0,
-                  bounds=bounds)
+result = minimize(fun=negdistance, args=(num_annuli, num_subsections, science_target_locs, sat_spot_locs, iwa, owa),
+                  x0=x0, bounds=bounds)
 if result.success:
     solution = result.x
     with open(output_file, 'w') as f:
