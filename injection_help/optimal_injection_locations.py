@@ -50,7 +50,7 @@ def negdistance(fakelocs, annuli, subsections, st_locs, ss_locs, IWA, OWA):
         xs.append(loc[0])
         ys.append(loc[1])
 
-    df = pd.DataFrame((xs, ys), columns=['xpos', 'ypos'])
+    df = pd.DataFrame({'xpos': xs, 'ypos': ys})
     dfsepspas = lsts_xy_to_pasep(xs, ys)
     dfseps = [elm[0] for elm in dfsepspas]
     dfpas = [elm[1] for elm in dfsepspas]
