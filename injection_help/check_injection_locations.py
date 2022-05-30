@@ -17,7 +17,7 @@ def define_subsection_bounds(sbs):
     """
     Taken verbatim from pyklip.parallelized.klip_dataset()
     """
-    dphi = 2 * np.pi / subsections
+    dphi = 2 * np.pi / sbs
     phi_bounds = [[dphi * phi_i - np.pi, dphi * (phi_i + 1) - np.pi] for phi_i in range(sbs)]
     phi_bounds[-1][1] = np.pi
     return phi_bounds
@@ -73,7 +73,7 @@ def FWHMIOWA_calculator(speccubefile=None, filtname=None, FWHM=None):
             filtname = str.lower(speccubefile[1].header['FILTNAME'])
         else:
             filtname = str.lower(filtname)
-        if filtname not in ['k', 'broandband']:
+        if filtname not in ['k', 'broadband']:
             raise ValueError(f'Filter {filtname} currently not supported.')
         fwhms = {'j': None, 'h': None, 'k': 3.5, 'broadband': 3.5}  # make measurements to fill in
         FWHM = fwhms[filtname]
@@ -86,7 +86,11 @@ def FWHMIOWA_calculator(speccubefile=None, filtname=None, FWHM=None):
 
 
 def loc_checker(num_annuli, num_subsections, pas, seps, science_target_locs, file_with_sat_spots):
-    ann_boundaries = {ann: define_annuli_bounds(ann, 5, OWA) for ann in num_annuli}
+    with fits.open(file_with_sat_spots) as hdulist:
+        sat_spot_locs = [hdulist[1].header[hdr] for hdr in hdulist[1].header.keys() if 'SATS' in hdr]
+        dataset_fwhm, iwa, owa = FWHMIOWA_calculator(hdulist)[0]
+
+    ann_boundaries = {ann: define_annuli_bounds(ann, iwa, owa) for ann in num_annuli}
     sbs_boundaries = {sbs: define_subsection_bounds(sbs) for sbs in num_subsections}
 
     inj_locations = lsts_pasep_to_xy(pas, seps)
@@ -99,10 +103,6 @@ def loc_checker(num_annuli, num_subsections, pas, seps, science_target_locs, fil
 
     xs.append(loc[0] for loc in science_target_locs)
     ys.append(loc[1] for loc in science_target_locs)
-
-    with fits.open(file_with_sat_spots) as hdulist:
-        sat_spot_locs = [hdulist[1].header[hdr] for hdr in hdulist[1].header.keys() if 'SATS' in hdr]
-        dataset_fwhm = FWHMIOWA_calculator(hdulist)[0]
 
     for i, loc in enumerate(sat_spot_locs):
         parts = loc.split(' ')
