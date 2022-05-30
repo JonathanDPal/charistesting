@@ -88,7 +88,7 @@ def FWHMIOWA_calculator(speccubefile=None, filtname=None, FWHM=None):
 def loc_checker(num_annuli, num_subsections, pas, seps, science_target_locs, file_with_sat_spots):
     with fits.open(file_with_sat_spots) as hdulist:
         sat_spot_locs = [hdulist[1].header[hdr] for hdr in hdulist[1].header.keys() if 'SATS' in hdr]
-        dataset_fwhm, iwa, owa = FWHMIOWA_calculator(hdulist)[0]
+        dataset_fwhm, iwa, owa = FWHMIOWA_calculator(hdulist)
 
     ann_boundaries = {ann: define_annuli_bounds(ann, iwa, owa) for ann in num_annuli}
     sbs_boundaries = {sbs: define_subsection_bounds(sbs) for sbs in num_subsections}
@@ -101,12 +101,12 @@ def loc_checker(num_annuli, num_subsections, pas, seps, science_target_locs, fil
     if not isinstance(science_target_locs[0], (list, tuple, np.ndarray)):
         science_target_locs = [science_target_locs]
 
-    xs.append(loc[0] for loc in science_target_locs)
-    ys.append(loc[1] for loc in science_target_locs)
+    for loc in science_target_locs:
+        xs.append(loc[0])
+        ys.append(loc[1])
 
-    for i, loc in enumerate(sat_spot_locs):
-        parts = loc.split(' ')
-        x, y = [float(part) for part in parts if part != '']
+    for loc in sat_spot_locs:
+        x, y = [float(part) for part in loc.split(' ') if part != '']
         xs.append(x)
         ys.append(y)
 
@@ -118,7 +118,7 @@ def loc_checker(num_annuli, num_subsections, pas, seps, science_target_locs, fil
     for _ in range(len(sat_spot_locs)):
         types.append('satellite spot')
 
-    df = pd.DataFrame((xs, ys, types), columns=['xpos', 'ypos', 'type'])
+    df = pd.DataFrame({'xpos': xs, 'ypos': ys, 'type': types})
     dfsepspas = lsts_xy_to_pasep(xs, ys)
     dfseps = [elm[0] for elm in dfsepspas]
     dfpas = [elm[1] for elm in dfsepspas]
@@ -131,7 +131,7 @@ def loc_checker(num_annuli, num_subsections, pas, seps, science_target_locs, fil
     for _, row0 in df.iterrows():
         distances = list()
         for _, row1 in df.iterrows():
-            if row0 == row1:
+            if all(row0) == all(row1):
                 continue
             else:
                 x0 = row0['xpos']
@@ -141,7 +141,7 @@ def loc_checker(num_annuli, num_subsections, pas, seps, science_target_locs, fil
                 distances.append(np.sqrt((x1 - x0) ** 2 + (y1 - y0) ** 2))
         min_distance_column.append(np.min(distances))
 
-        anndistances = {ann: np.min(np.abs(np.array(ann_boundaries[ann])) - row0['sep']) for ann in num_annuli}
+        anndistances = {ann: np.min(np.abs(np.array(ann_boundaries[ann]) - row0['sep'])) for ann in num_annuli}
         for ann in anndistances.keys():
             min_distance_from_ann[ann].append(anndistances[ann])
         sbsdistances = {sbs: row0['sep'] * np.min(np.abs(np.sin(np.array(sbs_boundaries[sbs]) - row0['pa']))) for sbs in
@@ -151,13 +151,13 @@ def loc_checker(num_annuli, num_subsections, pas, seps, science_target_locs, fil
 
     df['min distance from objects'] = min_distance_column
     for ann in min_distance_from_ann.keys():
-        df[f'min distance from radial bounds for ann={ann}'] = min_distance_from_ann[ann]
+        df[f'ann={ann}'] = min_distance_from_ann[ann]
     for sbs in min_distance_from_sbs.keys():
-        df[f'min distance from angle bounds for sbs={sbs}'] = min_distance_from_sbs[sbs]
+        df[f'sbs={sbs}'] = min_distance_from_sbs[sbs]
 
     everythingtomin = [np.min(min_distance_column)] + [np.min(lst) for lst in min_distance_from_ann.values()] + \
                       [np.min(lst) for lst in min_distance_from_sbs.values()]
-    if np.min(everythingtomin) < 2 * dataset_fwhm:
+    if np.min(everythingtomin) > 2 * dataset_fwhm:
         injectionsokay = True
     else:
         injectionsokay = False
@@ -169,6 +169,8 @@ if __name__ == '__main__':
     injok, dataframe = loc_checker(num_annuli=num_annuli, num_subsections=num_subsections, pas=pas, seps=seps,
                                    science_target_locs=science_target_locs, file_with_sat_spots=file_with_sat_spots)
     if injok is False:
+        with fits.open(file_with_sat_spots) as f:
+            dataset_fwhm = FWHMIOWA_calculator(f)[0]
         print(f"Some things are too close together. See information below, specifically the value(s) in the right most "
               f"columns which are less than {2 * dataset_fwhm}.")
         print(dataframe)
