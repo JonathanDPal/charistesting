@@ -912,8 +912,8 @@ class TestDataset:
                 pass
 
         if generatelogfile:
-            self.write_to_log(f'Title for Set: {object_name}', 'w')
-            self.write_to_log(f'\nFileset: {fileset}')
+            self.write_to_log(f'Title for Set: {object_name}\n', 'w')
+            self.write_to_log(f'Fileset: {fileset}\n')
 
         if tweak_injections and fakes is not None:
             self.fakes = injection_tweaker(fakes, annuli, subsections, fake_fwhm)
@@ -935,19 +935,19 @@ class TestDataset:
             params = [annuli, subsections, movement, numbasis, corr_smooth, highpass, spectrum]
             number_of_paramcombos = np.prod([len(p) for p in params])
             if generatelogfile:
-                self.write_to_log(f'\nNumber of Parameter Combinations: {number_of_paramcombos}')
+                self.write_to_log(f'Number of Parameter Combinations: {number_of_paramcombos}\n')
 
             for param in [mode, self.fake_fluxes, self.fake_seps, self.fake_PAs, fake_fwhm]:
                 params.append(param)
             for name, param in zip(param_names, params):
                 if generatelogfile:
-                    self.write_to_log(f'\n{name}: {param}')
+                    self.write_to_log(f'{name}: {param}\n')
         else:  # don't want to write in all values if using text file (could be tens of thousands)
-            param_names = ['KLIP Parameters:' 'Mode', 'Fake Fluxes', 'Fake Seps', 'Fake PAs', 'Fake FWHM']
+            param_names = ['KLIP Parameters' 'Mode', 'Fake Fluxes', 'Fake Seps', 'Fake PAs', 'Fake FWHM']
             params = ['from a text file', mode, self.fake_fluxes, self.fake_seps, self.fake_PAs, fake_fwhm]
             if generatelogfile:
                 for name, param in zip(param_names, params):
-                    self.write_to_log(f'\n{name}: {param}')
+                    self.write_to_log(f'{name}: {param}\n')
 
         if generatelogfile:
             self.write_to_log_and_print(f'############### STARTING WORK ON {self.object_name} ################\n')
