@@ -43,10 +43,11 @@ def negdistance(fakelocs, annuli, subsections, st_locs, ss_locs, IWA, OWA):
     if not isinstance(st_locs[0], (list, tuple, np.ndarray)):
         st_locs = [st_locs]
 
-    xs.append(loc[0] for loc in st_locs)
-    ys.append(loc[1] for loc in st_locs)
+    for loc in st_locs:
+        xs.append(loc[0])
+        ys.append(loc[1])
 
-    for loc in enumerate(ss_locs):
+    for loc in ss_locs:
         xs.append(loc[0])
         ys.append(loc[1])
 
@@ -63,7 +64,7 @@ def negdistance(fakelocs, annuli, subsections, st_locs, ss_locs, IWA, OWA):
     for _, row0 in df.iterrows():
         distances = list()
         for _, row1 in df.iterrows():
-            if row0 == row1:
+            if all(row0) == all(row1):
                 continue
             else:
                 x0 = row0['xpos']
@@ -73,19 +74,13 @@ def negdistance(fakelocs, annuli, subsections, st_locs, ss_locs, IWA, OWA):
                 distances.append(np.sqrt((x1 - x0) ** 2 + (y1 - y0) ** 2))
         min_distance_column.append(np.min(distances))
 
-        anndistances = {ann: np.min(np.abs(np.array(ann_boundaries[ann])) - row0['sep']) for ann in num_annuli}
+        anndistances = {ann: np.min(np.abs(np.array(ann_boundaries[ann]) - row0['sep'])) for ann in num_annuli}
         for ann in anndistances.keys():
             min_distance_from_ann[ann].append(anndistances[ann])
         sbsdistances = {sbs: row0['sep'] * np.min(np.abs(np.sin(np.array(sbs_boundaries[sbs]) - row0['pa']))) for sbs in
                         num_subsections}
         for sbs in sbsdistances.keys():
             min_distance_from_sbs[sbs].append(sbsdistances[sbs])
-
-    df['min distance from objects'] = min_distance_column
-    for ann in min_distance_from_ann.keys():
-        df[f'min distance from radial bounds for ann={ann}'] = min_distance_from_ann[ann]
-    for sbs in min_distance_from_sbs.keys():
-        df[f'min distance from angle bounds for sbs={sbs}'] = min_distance_from_sbs[sbs]
 
     everythingtomin = [np.min(min_distance_column)] + [np.min(lst) for lst in min_distance_from_ann.values()] + \
                       [np.min(lst) for lst in min_distance_from_sbs.values()]
