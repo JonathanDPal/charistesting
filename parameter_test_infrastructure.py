@@ -732,7 +732,7 @@ class Trial:
                 if contains_fakes:
                     # Calibrating For KLIP Subtraction If Fakes Present
                     correct_contrast = np.copy(contrast)
-                    lensepgroups = int(len(fakes) / self.numsepgroups)
+                    lensepgroups = int(len(self.fakes) / self.numsepgroups)
                     seps = [np.mean([fk[1] for fk in self.fakes[k * lensepgroups: (k+1) * lensepgroups + 1]]) for k in
                             range(self.numsepgroups)]
                     for j, sep in enumerate(contrast_seps):
