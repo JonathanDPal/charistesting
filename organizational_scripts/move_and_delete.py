@@ -16,7 +16,7 @@ perm = list(itertools.permutations(np.arange(len(initfiles))))[np.random.randint
 newfiles = [initfiles[perm[idx]] for idx in range(len(initfiles))]
 for file in newfiles:
     subdirec = file.split('/')[-2]
-    if subdirec in ['klipped_cubes_W_fakes', 'klipped_cubes_N_fakes']:
+    if subdirec in ['klipped_cubes_Wfakes', 'klipped_cubes_Nfakes']:
         try:
             assert os.path.exists(file)
             os.system(f'rsync -caqz {file} jpal@planetfinder.esc.nd.edu:/home/jpal/data1/jpal/{direc}/{subdirec}')
