@@ -5,8 +5,8 @@ import itertools
 import numpy as np
 
 direc = sys.argv[1]
-klipfiles = glob(f'{direc}/klipped_cubes_W_fakes/*.fits')
-klipnofakesfiles = glob(f'{direc}/klipped_cubes_N_fakes/*.fits')
+klipfiles = glob(f'{direc}/klipped_cubes_Wfakes/*.fits')
+klipnofakesfiles = glob(f'{direc}/klipped_cubes_Nfakes/*.fits')
 contrastfiles = glob(f'{direc}/calibrated_contrast/*.csv')
 uncalcontrastfiles = glob(f'{direc}/uncalibrated_contrast/*.csv')
 detectionsfiles = glob(f'{direc}/detections/*.csv')
