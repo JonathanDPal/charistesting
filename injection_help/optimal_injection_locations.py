@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.optimize import minimize, Bounds
-from check_injection_locations import define_subsection_bounds, FWHMIOWA_calculator
+from check_injection_locations import *
 from astropy.io import fits
 import pandas as pd
 from pyklip.klip import define_annuli_bounds
