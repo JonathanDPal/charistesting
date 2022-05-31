@@ -1,6 +1,8 @@
 import sys
 from glob import glob
 import os
+import itertools
+import numpy as np
 
 direc = sys.argv[1]
 klipfiles = glob(f'{direc}/klipped_cubes_W_fakes/*.fits')
@@ -9,8 +11,10 @@ contrastfiles = glob(f'{direc}/calibrated_contrast/*.csv')
 uncalcontrastfiles = glob(f'{direc}/uncalibrated_contrast/*.csv')
 detectionsfiles = glob(f'{direc}/detections/*.csv')
 
-files = klipfiles + klipnofakesfiles + contrastfiles + uncalcontrastfiles + detectionsfiles
-for file in files:
+initfiles = klipfiles + klipnofakesfiles + contrastfiles + uncalcontrastfiles + detectionsfiles
+perm = list(itertools.permutations(np.arange(len(initfiles))))[np.random.randint(len(initfiles))]
+newfiles = [initfiles[perm[idx]] for idx in range(len(initfiles))]
+for file in newfiles:
     subdirec = file.split('/')[-2]
     if subdirec in ['klipped_cubes_W_fakes', 'klipped_cubes_N_fakes']:
         try:
