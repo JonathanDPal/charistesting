@@ -679,7 +679,7 @@ class Trial:
                 # Measuring Algorithm Throughput BEFORE Fake Planets Get Masked Out
                 if contains_fakes:
                     retrieved_fluxes = []
-                    lensepgroups = int(len(fakes) / self.numsepgroups)
+                    lensepgroups = int(len(self.fakes) / self.numsepgroups)
                     fluxes = [np.mean([fake[0] for fake in self.fakes][k * lensepgroups: (k+1) * lensepgroups + 1])
                               for k in range(self.numsepgroups)]
                     locs = [[fk[1], fk[2]] for fk in self.fakes]
