@@ -99,6 +99,10 @@ if compiler == 'zip':
     fakes = [np.array((flux, sep, pa)) for flux, sep, pa in zip(fake_fluxes, fake_seps, fake_PAs)]
 elif compiler == 'iterate':
     fakes = list()
+    if type(fake_fluxes[0]) not in [tuple, list]:
+        fake_fluxes = [fake_fluxes]
+    if type(fake_PAs[0]) not in [tuple, list]:
+        fake_PAs = [fake_PAs]
     for fluxgroup, pagroup in zip(fake_fluxes, fake_PAs):
         for fake_flux, sep in zip(fluxgroup, fake_seps):
             for pa in pagroup:
