@@ -19,6 +19,7 @@ from contextlib import contextmanager
 import inspect
 from time import time
 from scipy.optimize import curve_fit, minimize, Bounds
+from scipy.special import j1, jn_zeros
 
 
 ####################
@@ -400,7 +401,7 @@ def injection_tweaker(fakes, annuli, subsections, fwhm):
         pas = [elm for idx, elm in enumerate(locs) if idx % 2 == 1]
         dists = list()
         for sep, pa in zip(seps, pas):
-            anndsts = [np.min(np.abs(np.array(ann_sep)) - sep) for ann_sep in a_bounds.values()]
+            anndsts = [np.min(np.abs(np.array(ann_sep) - sep)) for ann_sep in a_bounds.values()]
             sbsdsts = [sep * np.min(np.abs(np.sin(np.array(sbs_pa) - pa))) for sbs_pa in
                        s_bounds.values()]
             dists.append(np.min([np.min(anndsts), np.min(sbsdsts)]))
@@ -427,6 +428,13 @@ def injection_tweaker(fakes, annuli, subsections, fwhm):
         fakes = [(flux, sep, pa) for flux, sep, pa in zip(fluxes, seps, pas)]
 
     return fakes
+
+
+def airydisk(x, y, amplitude=1.0, x0= 0.0, y0 = 0.0, radius=1.0):
+    rz = jn_zeros(1, 1)[0] / np.pi
+    r = np.pi * np.sqrt((x - x0) ** 2 + (y - y0) ** 2) / (radius / rz)
+    output = amplitude * ((2 * j1(r) / r) ** 2)
+    return output
 
 
 ####################################################################################
