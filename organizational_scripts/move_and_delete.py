@@ -5,12 +5,16 @@ import numpy as np
 
 
 def permgenerator(n):
-    perm = list()
-    while len(perm) < n:
-        num = np.random.randint(n)
-        while num in perm:
-            num = np.random.randint(n)
-        perm.append(num)
+    """
+    Using Fisher-Yates Algorithm so that computation time grows linearly (and is considerably smaller than previous
+    algorithm).
+    """
+    perm = list(np.arange(n))
+    for i in range(n-1):
+        j = np.random.randint(low=i, high=n)
+        newi = perm[j]
+        perm[j] = perm[i]
+        perm[i] = newi
     return perm
 
 
