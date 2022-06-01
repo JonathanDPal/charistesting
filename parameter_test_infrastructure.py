@@ -979,7 +979,11 @@ class TestDataset:
             print(f'############### STARTING WORK ON {self.object_name} ################\n')
 
         if build_charis_data == 'true' or build_charis_data == 'temporary':
-            with log_file_output(self.object_name):
+            if generatelogfile:
+                write_type = 'a'
+            else:
+                write_type = None
+            with log_file_output(self.object_name, write_type=write_type):
                 self.dataset = CHARISData(glob(fileset))
                 make_dn_per_contrast(self.dataset)
                 self.dataset.leNgth = self.dataset.input.shape[1]

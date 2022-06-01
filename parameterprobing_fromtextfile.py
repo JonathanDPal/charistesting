@@ -190,3 +190,5 @@ if create_log_file and verbose:
 elif verbose:
     print(f'##################### TIME ELAPSED: {hours} Hours, {minutes} Minutes, {seconds} Seconds '
           f'#####################')
+if not create_log_file:
+    os.remove(f'{object_name0}/temp.txt')
