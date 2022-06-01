@@ -1,10 +1,14 @@
 from astropy.io import fits
 from astropy.wcs import WCS
-from astropy.convolution import AiryDisk2DKernel
-import numpy as np
-from glob import glob
-from pyklip.instruments.CHARIS import CHARISData
+from astropy.modeling.functional_models import AiryDisk2D
+from contextlib import contextmanager
 from copy import copy, deepcopy
+from glob import glob
+import inspect
+import numpy as np
+import os
+import pandas as pd
+from pyklip.instruments.CHARIS import CHARISData
 from pyklip.parallelized import klip_dataset
 from pyklip.klip import meas_contrast, define_annuli_bounds
 from pyklip.fakes import inject_planet, convert_pa_to_image_polar
@@ -13,14 +17,9 @@ from pyklip.kpp.utils.mathfunc import gauss2d
 from pyklip.kpp.metrics.crossCorr import calculate_cc
 from pyklip.kpp.stat.statPerPix_utils import get_image_stat_map_perPixMasking
 from pyklip.kpp.detection.detection import point_source_detection
-import pandas as pd
 import sys
-import os
-from contextlib import contextmanager
-import inspect
-from time import time
 from scipy.optimize import curve_fit, minimize, Bounds
-from scipy.special import j1, jn_zeros
+from time import time
 
 
 ####################
@@ -440,13 +439,6 @@ def injection_tweaker(fakes, annuli, subsections, fwhm):
     return fakes
 
 
-def airydisk(x, y, amplitude=1.0, x0= 0.0, y0 = 0.0, radius=1.0):
-    rz = jn_zeros(1, 1)[0] / np.pi
-    r = np.pi * np.sqrt((x - x0) ** 2 + (y - y0) ** 2) / (radius / rz)
-    output = amplitude * ((2 * j1(r) / r) ** 2)
-    return output
-
-
 ####################################################################################
 # TestDataset Will Manage a List of Trials (one for each group of KLIP Parameters) #
 ####################################################################################
@@ -819,10 +811,7 @@ class Trial:
 
             x_grid, y_grid = np.meshgrid(np.arange(-10, 10), np.arange(-10, 10))
             if str.lower(kernel_type) == 'airy':
-                from astropy.modeling.functional_models import AiryDisk2D
-                # kernel = airydisk(x_grid, y_grid)
-                # kernel = AiryDisk2DKernel(radius=1, x_size=10, y_size=10)
-                kernel = AiryDisk2D().evaluate(x_grid, y_grid)
+                kernel = AiryDisk2D().evaluate(x=x_grid, y=y_grid, amplitude=1.0, x_0=0.0, y_0=0.0, radius=1.0)
             else:
                 kernel = gauss2d(x_grid, y_grid)
 
