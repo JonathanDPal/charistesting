@@ -7,11 +7,10 @@ import numpy as np
 def permgenerator(n):
     perm = list()
     while len(perm) < n:
-        allnums = np.arange(n)
-        remainingnums = list(set(allnums) - set(perm))
-        idx = np.random.randint(len(remainingnums))
-        perm.append(remainingnums[idx])
-    assert len(perm) == len(set(perm))
+        num = np.random.randint(n)
+        while num in perm:
+            num = np.random.randint(n)
+        perm.append(num)
     return perm
 
 
