@@ -31,13 +31,22 @@ def log_file_output(directory, write_type='a'):
     """
     Has outputs written out to a log file in the specified directory instead of printed in terminal.
     """
-    with open(f'{directory}/log.txt', write_type) as log_file:
-        old_stdout = sys.stdout
-        sys.stdout = log_file
-        try:
-            yield
-        finally:
-            sys.stdout = old_stdout
+    if write_type is not None:
+        with open(f'{directory}/log.txt', write_type) as log_file:
+            old_stdout = sys.stdout
+            sys.stdout = log_file
+            try:
+                yield
+            finally:
+                sys.stdout = old_stdout
+    else:
+        with open(f'{directory}/temp.txt', 'w') as log_file:
+            old_stdout = sys.stdout
+            sys.stdout = log_file
+            try:
+                yield
+            finally:
+                sys.stdout = old_stdout
 
 
 def FWHMIOWA_calculator(speccubefile=None, filtname=None, FWHM=None):
@@ -1112,7 +1121,12 @@ class TestDataset:
                               f"parameters")
                     continue
 
-            with log_file_output(self.object_name):
+            if self.generatelogfile:
+                write_type = 'a'
+            else:
+                write_type = None
+
+            with log_file_output(self.object_name, write_type=write_type):
                 klip_dataset(self.dataset, outputdir=self.object_name + '/klipped_cubes_Nfakes',
                              fileprefix=self.object_name + '_withoutfakes_' + trial.klip_parameters,
                              annuli=trial.annuli, subsections=trial.subsections, movement=trial.movement,
@@ -1162,7 +1176,12 @@ class TestDataset:
                               f"parameters")
                     continue
 
-            with log_file_output(self.object_name):
+            if self.generatelogfile:
+                write_type = 'a'
+            else:
+                write_type = None
+
+            with log_file_output(self.object_name, write_type=write_type):
                 klip_dataset(self.dataset, outputdir=self.object_name + '/klipped_cubes_Wfakes',
                              fileprefix=self.object_name + '_withfakes_' + trial.klip_parameters,
                              annuli=trial.annuli, subsections=trial.subsections, movement=trial.movement,

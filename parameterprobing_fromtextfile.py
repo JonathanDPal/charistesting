@@ -179,5 +179,9 @@ remaining_time = time_elapsed - (hours * 3600)
 minutes = int(floor(remaining_time / 60))
 seconds = round(remaining_time - minutes * 60)
 
-td0.write_to_log_and_print(f'##################### TIME ELAPSED: {hours} Hours, {minutes} Minutes, {seconds} Seconds '
-                           '#####################')
+if create_log_file and verbose:
+    td0.write_to_log_and_print(f'##################### TIME ELAPSED: {hours} Hours, {minutes} Minutes, {seconds} Seconds '
+                                '#####################')
+elif verbose:
+    print(f'##################### TIME ELAPSED: {hours} Hours, {minutes} Minutes, {seconds} Seconds '
+          f'#####################')
