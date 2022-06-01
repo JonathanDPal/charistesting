@@ -1,5 +1,6 @@
 from astropy.io import fits
 from astropy.wcs import WCS
+from astropy.convolution import AiryDisk2DKernel
 import numpy as np
 from glob import glob
 from pyklip.instruments.CHARIS import CHARISData
@@ -818,7 +819,8 @@ class Trial:
 
             x_grid, y_grid = np.meshgrid(np.arange(-10, 10), np.arange(-10, 10))
             if str.lower(kernel_type) == 'airy':
-                kernel = airydisk(x_grid, y_grid)
+                # kernel = airydisk(x_grid, y_grid)
+                kernel = AiryDisk2DKernel(radius=1, x_size=10, y_size=10)
             else:
                 kernel = gauss2d(x_grid, y_grid)
 
