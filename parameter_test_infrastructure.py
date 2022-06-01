@@ -819,8 +819,10 @@ class Trial:
 
             x_grid, y_grid = np.meshgrid(np.arange(-10, 10), np.arange(-10, 10))
             if str.lower(kernel_type) == 'airy':
+                from astropy.modeling.functional_models import AiryDisk2D
                 # kernel = airydisk(x_grid, y_grid)
-                kernel = AiryDisk2DKernel(radius=1, x_size=10, y_size=10)
+                # kernel = AiryDisk2DKernel(radius=1, x_size=10, y_size=10)
+                kernel = AiryDisk2D().evaluate(x_grid, y_grid)
             else:
                 kernel = gauss2d(x_grid, y_grid)
 
