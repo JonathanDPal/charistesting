@@ -1,8 +1,18 @@
 import sys
 from glob import glob
 import os
-import itertools
 import numpy as np
+
+
+def permgenerator(n):
+    perm = list()
+    while len(perm) < n:
+        num = np.random.randint(n)
+        while num in perm:
+            num = np.random.randint(n)
+        perm.append(num)
+    return perm
+
 
 direc = sys.argv[1]
 klipfiles = glob(f'{direc}/klipped_cubes_Wfakes/*.fits')
@@ -12,7 +22,7 @@ uncalcontrastfiles = glob(f'{direc}/uncalibrated_contrast/*.csv')
 detectionsfiles = glob(f'{direc}/detections/*.csv')
 
 initfiles = klipfiles + klipnofakesfiles + contrastfiles + uncalcontrastfiles + detectionsfiles
-perm = list(itertools.permutations(np.arange(len(initfiles))))[np.random.randint(len(initfiles))]
+perm = permgenerator(len(initfiles))
 newfiles = [initfiles[perm[idx]] for idx in range(len(initfiles))]
 for file in newfiles:
     subdirec = file.split('/')[-2]
