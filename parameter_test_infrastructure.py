@@ -774,7 +774,7 @@ class Trial:
                     except OSError:  # get this sometimes on Kappa where CSV file is too big? trying to figure out why
                         pass
 
-    def detect_planets(self, SNR_threshold=2, datasetwithfakes=True, override=False):
+    def detect_planets(self, SNR_threshold=2, datasetwithfakes=True, override=False, kernel_type='gaussian'):
         """
         Looks at a KLIPped dataset with fakes and indicates potential planets. Identifies
         ---
@@ -784,6 +784,10 @@ class Trial:
                                      injected planets; if False, then run planet detection on dataset not containing
                                      injected planets.
             override (bool): Default: False. Whether or not to override filepath if output filepath already exists.
+            kernel_type (str): Default: 'gaussian'. What type of kernel to use when doing cross-correlation before
+                                         creating SNR map for point source detection. If 'airy', then Airy disk will
+                                         be used. If anything else, then a Gaussian will be used (no other kernels
+                                         currently built in).
 		"""
         if datasetwithfakes:
             filepaths = self.filepaths_Wfakes
@@ -813,11 +817,14 @@ class Trial:
                 continue
 
             x_grid, y_grid = np.meshgrid(np.arange(-10, 10), np.arange(-10, 10))
-            kernel_gauss = gauss2d(x_grid, y_grid)
+            if str.lower(kernel_type) == 'airy':
+                kernel = airydisk(x_grid, y_grid)
+            else:
+                kernel = gauss2d(x_grid, y_grid)
 
             # flat spectrum given here for generating cross-coorelated image so that pyKLIP collapses it into one
             # image, instead of giving seperate images for each wavelength
-            image_cc = calculate_cc(image, kernel_gauss, spectrum=np.ones(len(image[0])), nans2zero=True)
+            image_cc = calculate_cc(image, kernel, spectrum=np.ones(len(image[0])), nans2zero=True)
 
             SNR_map = get_image_stat_map_perPixMasking(image_cc, centroid=center, mask_radius=5, Dr=2, type='SNR')
 
@@ -1208,7 +1215,8 @@ class TestDataset:
                         minutes_per_run))
                 prevtime = time()
 
-    def contrast_and_detection(self, run_contrast=True, run_planet_detection=True, datasetwithfakes=True):
+    def contrast_and_detection(self, run_contrast=True, run_planet_detection=True, datasetwithfakes=True,
+                               kernel_type='gaussian'):
         if not os.path.exists(self.object_name + '/detections') and run_planet_detection:
             try:
                 os.mkdir(self.object_name + '/detections')
@@ -1267,7 +1275,8 @@ class TestDataset:
         if run_planet_detection:
             # at the moment, can't parallelize because planet detection already utilizes (a little) parallelization
             for i, trial in enumerate(self.trials):
-                trial.detect_planets(datasetwithfakes=datasetwithfakes, override=self.overwrite)
+                trial.detect_planets(datasetwithfakes=datasetwithfakes, override=self.overwrite,
+                                     kernel_type=kernel_type)
                 if (i + 1) % 100 == 0:
                     print(f'# DONE WITH DETECTION FOR {i + 1} TRIALS #')
 

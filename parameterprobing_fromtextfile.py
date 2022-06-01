@@ -50,6 +50,7 @@ create_log_file =  # whether or not to create log file; note that if one exists,
 # Most of the time, these four values below should be set to False
 run_KLIP_on_dataset_without_fakes =
 get_planet_detections_from_dataset_without_fakes =
+airydisk_kernel = # for cross-correlation prior to creating SNR map for point source detections (if False, then Gauss)
 overwrite =   # whether or not to replace existing files if they exist
 verbose =  # if False, then less stuff printed and less stuff in log file
 
@@ -117,13 +118,17 @@ if fakes is not None:
     assert len(fakes) % numsepgroups == 0, 'Check your fake planet specifications. The number of seperation groups ' \
                                            'does not divide the number of fake planets.'
 
-# SYNTHESIZING USER INPUTS INTO A COUPLE ADDITIONAL BOOLEANS #
+# SYNTHESIZING USER INPUTS INTO A COUPLE ADDITIONAL THINGS #
 detect_planets = get_planet_detections_from_dataset_with_fakes or get_planet_detections_from_dataset_without_fakes
 get_contrast_and_detections = get_contrast or detect_planets
 if run_KLIP_on_dataset_without_fakes or run_KLIP_on_dataset_with_fakes:
     build_charis_data = 'true'
 else:
     build_charis_data = 'temporary'
+if airydisk_kernel:
+    kernel_type = 'airy'
+else:
+    kernel_type = 'gaussian'
 
 # Selecting Batch if Needed (or providing link to instructions document)
 if len(sys.argv) != 1:
@@ -169,7 +174,7 @@ if run_KLIP_on_dataset_with_fakes:
     td0.run_KLIP_on_data_with_fakes(numthreads=max_numthreads)
 if get_contrast_and_detections:
     td0.contrast_and_detection(run_contrast=get_contrast, run_planet_detection=detect_planets,
-                               datasetwithfakes=put_in_fakes)
+                               datasetwithfakes=put_in_fakes, kernel_type=kernel_type)
 
 # Print Out Time Taken
 end0 = time()
