@@ -126,7 +126,7 @@ except UnboundLocalError:
                      "based off parameters in a text file. Either modify the log file to include all of the desired "
                      "parameters to check if present, or bring in another log file which contains all of them.")
 
-if direc in ['HD1160', 'HR8799', 'HIP86032']:  # broadband
+if direc in ['HD1160', 'HR8799', 'HIP86032', 'KB']:  # broadband
     wavelength = [float(f'{round(wvl, 2)}') for wvl in [1.15956144, 1.19969705, 1.24122187, 1.28418397, 1.32863311,
                                                         1.37462076, 1.42220017, 1.47142643, 1.52235655, 1.5750495,
                                                         1.6295663, 1.68597007, 1.74432613, 1.80470206, 1.86716776,
