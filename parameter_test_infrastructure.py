@@ -1274,7 +1274,7 @@ class TestDataset:
             for i, trial in enumerate(self.trials):
                 trial.detect_planets(datasetwithfakes=datasetwithfakes, override=self.overwrite,
                                      kernel_type=kernel_type)
-                if (i + 1) % 100 == 0:
+                if (i + 1) % 100 == 0 and self.verbose:
                     print(f'# DONE WITH DETECTION FOR {i + 1} TRIALS #')
 
         if run_planet_detection:
