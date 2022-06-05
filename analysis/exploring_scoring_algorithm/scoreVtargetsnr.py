@@ -6,7 +6,7 @@ import os
 try:
     type = sys.argv[1]  # either 'snr' or 'contrast'
 except IndexError:
-    raise IndexError("Please specify either 'snr' or 'contrast'")
+    raise ValueError("Please specify either 'snr' or 'contrast' as a keyword argument.")
 
 if str.lower(type) == 'snr':
     scores = pd.read_csv('analysis/numericalscoring/snr_scores.csv')
