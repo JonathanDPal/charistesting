@@ -4,11 +4,6 @@ import numpy as np
 from glob import glob
 from valuefinder import valuefinder, paramvaluesfinder
 
-
-def listset(alist):
-    return list(set(alist))
-
-
 direc = sys.argv[1]
 klip_outputs = glob(f'{direc}/klipped_cubes_Wfakes/*.fits')
 try:
@@ -33,11 +28,8 @@ numbasis = paramvaluesfinder('numbasis')
 corr_smooth = paramvaluesfinder('corr_smooth')
 highpass = paramvaluesfinder('highpass')
 
-
-c = 0
-n = 0
-nc = list()
 ce = list()
+nc = list()
 for ann in annuli:
     for sbs in subsections:
         for mov in movement:
@@ -47,22 +39,17 @@ for ann in annuli:
                         for hp in highpass:
                             if [ann, sbs, mov, spec, nb, cs, hp] in completed:
                                 ce.append([ann, sbs, mov, spec, nb, cs, hp])
-                                c += 1
                             else:
                                 nc.append([ann, sbs, mov, spec, nb, cs, hp])
-                                n += 1
-print(c)
-print(n)
+print(len(ce))  # number completed
+print(len(ne))  # number left
 
-os.chdir(olddirec)
-with open(f'{direc}/remainingparams.txt', 'w') as file:
+with open(f'remainingparams.txt', 'w') as file:
     for incompleteparams in nc:
         ann, sbs, mov, spec, nb, cs, hp = incompleteparams
         file.write(f'{ann},{sbs},{mov},{spec},{nb},{cs},{hp}\n')
 if len(sys.argv) > 2 and sys.argv[2] == 'complete':
-    with open(f'{direc}/completedparams.txt', 'w') as file:
+    with open(f'completedparams.txt', 'w') as file:
         for completeparams in ce:
             ann, sbs, mov, spec, nb, cs, hp = completeparams
             file.write(f'{ann},{sbs},{mov},{spec},{nb},{cs},{hp}\n')
-
-
