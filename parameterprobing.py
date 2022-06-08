@@ -1,7 +1,6 @@
 import numpy as np
 from parameter_test_infrastructure import *
 from time import time
-from numpy import floor
 from astropy.io import fits
 from glob import glob
 import os
@@ -188,9 +187,9 @@ if get_contrast_and_detections:
 # Print Out Time Taken
 end0 = time()
 time_elapsed = end0 - start0
-hours = int(floor(time_elapsed / 3600))
+hours = int(np.floor(time_elapsed / 3600))
 remaining_time = time_elapsed - (hours * 3600)
-minutes = int(floor(remaining_time / 60))
+minutes = int(np.floor(remaining_time / 60))
 seconds = round(remaining_time - minutes * 60)
 
 if create_log_file and verbose:
