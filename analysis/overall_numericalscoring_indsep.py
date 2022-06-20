@@ -8,6 +8,4 @@ for col in contrast.columns:
 
 overall = snr.merge(contrast, how='outer', on=['Annuli', 'Subsections', 'Movement', 'Numbasis',
                                                'Corr_Smooth', 'Highpass'], suffixes=['_snr', '_contrast'])
-
-sorted_by_score = overall.sort_values(by='Overall Score', ascending=False, ignore_index=True)
-sorted_by_score.to_csv('numericalscoring/overall_scores_indsep.csv', index=False)
+overall.to_csv('numericalscoring/overall_scores_indsep.csv', index=False)

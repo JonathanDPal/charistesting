@@ -186,4 +186,4 @@ if len(sys.argv) > 1 and sys.argv[1] == 'all':  # need to collapse all wavelengt
 
 if not os.path.exists('numericalscoring'):
     os.mkdir('numericalscoring')
-sorted_by_score.to_csv('numericalscoring/contrast_scores_indsep.csv', index=False)
+finaldata.to_csv('numericalscoring/contrast_scores_indsep.csv', index=False)

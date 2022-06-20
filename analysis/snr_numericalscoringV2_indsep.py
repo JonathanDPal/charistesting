@@ -145,8 +145,7 @@ for dfile in detectionsfiles:
 finaldata = pd.DataFrame({'Annuli': annuli, 'Subsections': subsections, 'Movement': movement, 'Numbasis': numbasis,
                           'Corr_Smooth': corr_smooth, 'Highpass': highpass, 'Score20': score20, 'Score40': score40,
                           'Score60': score60})
-sorted_by_score = finaldata.sort_values(by='Score', ascending=False, ignore_index=True)
 
 if not os.path.exists('numericalscoring'):
     os.mkdir('numericalscoring')
-sorted_by_score.to_csv('numericalscoring/snr_scores_indsep.csv', index=False)
+finaldata.to_csv('numericalscoring/snr_scores_indsep.csv', index=False)
