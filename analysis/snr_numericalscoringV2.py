@@ -104,7 +104,6 @@ def valuefinder(filename, param):
 reference_planets_snr = []
 for reference, inj_flux in zip(reference_contrast, injected_fluxes):
     _, ref_contrast = reference
-    ref_contrast /= 5  # stuff above is 5 sigma contrast
     _, fluxes = inj_flux
     for flux in fluxes:
         for _ in range(int(total_injected / (len(injected_fluxes) * len(fluxes)))):
