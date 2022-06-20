@@ -119,7 +119,7 @@ for dfile in detectionsfiles:
     except ValueError:  # this means that the detections file is empty
         continue
 
-    for score, df in zip([sco20, sco40, sco60], [df20, df40, df60]):
+    for score, df in zip([score20, score40, score60], [df20, df40, df60]):
         cumulative_score = 0
         for snr, tf in zip(df['SNR Value'], df['Injected']):
             if type(tf) == str:
@@ -143,8 +143,8 @@ for dfile in detectionsfiles:
     highpass.append(hp)
 
 finaldata = pd.DataFrame({'Annuli': annuli, 'Subsections': subsections, 'Movement': movement, 'Numbasis': numbasis,
-                          'Corr_Smooth': corr_smooth, 'Highpass': highpass, 'Score20': sco20, 'Score40': sco40,
-                          'Score60': sco60})
+                          'Corr_Smooth': corr_smooth, 'Highpass': highpass, 'Score20': score20, 'Score40': score40,
+                          'Score60': score60})
 sorted_by_score = finaldata.sort_values(by='Score', ascending=False, ignore_index=True)
 
 if not os.path.exists('numericalscoring'):
