@@ -141,7 +141,7 @@ def planet_detection(trial_string):
     """
     Used for parallelization on planet detections. Not currently in use because the planet detection section of
     pyKLIP utilizes the multiprocessing process pool for computing SNR maps and multiprocessing cannot support
-    a pool inside of another pool. (I might utilize a workaround on this later on)
+    a pool inside another pool. (I might utilize a workaround on this later on)
     """
     t = Trial.from_string(trial_string)
     t.detect_planets()
@@ -265,9 +265,10 @@ def retrieve_planet_flux(frame, pa, sep, output_wcs, dataset_center, dataset_fwh
         return 0
     else:
         if guess_peak_flux is None:
-            # if None, starting guess (default 1) will be outside of the boundaries we specify, yielding an error
-            guess_peak_flux = np.max(data_to_fit) * 0.9  # optimal peak flux is usually pretty close to brightest pixel,
-            # but we don't want to have our guess be all the way at the upper bound (the brightest pixel), so using 90%
+            # if None, starting guess (default 1) will be outside the boundaries we specify, yielding an error
+            guess_peak_flux = np.max(data_to_fit) * 0.9  # optimal peak flux is usually pretty close to the brightest
+            # pixel, but we don't want to have our guess be all the way at the upper bound (the brightest pixel),
+            # so using 90%
 
         if force_fwhm:
             guesses = [guess_peak_flux, 0]
@@ -384,8 +385,8 @@ def rotate_wcs_hdr(wcs_header, rot_angle, flipx=False, flipy=False):
     Args:
         wcs_header: wcs astrometry header
         rot_angle: in degrees CCW, the specified rotation desired
-        flipx: after the rotation, reverse x axis? Yes if True
-        flipy: after the rotation, reverse y axis? Yes if True
+        flipx: after the rotation, reverse x-axis? Yes if True
+        flipy: after the rotation, reverse y-axis? Yes if True
     """
     # rotate WCS header by a rotation matrix
     rot_angle_rad = np.radians(rot_angle)
@@ -503,7 +504,7 @@ class Trial:
         self.filepath_detections_prefixes = [self.object_name + f'/detections/{self.klip_parameters}_KL{nb}_SNR-'
                                              for nb in self.numbasis]
 
-        # Building a String Which Contains All of the Information For Rebuilding the Trial Instance (this gets used for
+        # Building a String Which Contains All the Information For Rebuilding the Trial Instance (this gets used for
         # parallelization)
         params = [object_name, mask_xy, annuli, subsections, movement, numbasis, spectrum, corr_smooth, fakes,
                   numsepgroups, fake_fwhm, rot_angs, flipx, dn_per_contrast, wln_um, highpass, length]
@@ -622,7 +623,7 @@ class Trial:
         ---
         Args:
             contains_fakes (bool): Default: True. Whether to use data with fakes (True) or without fakes (False).
-            overwrite (bool): Default: False. Whether or not to override filepath if output filepath already exists.
+            overwrite (bool): Default: False. Whether not to override filepath if output filepath already exists.
         """
         if contains_fakes:
             filepaths = self.filepaths_Wfakes
@@ -776,7 +777,7 @@ class Trial:
             datasetwithfakes (Bool): Default: True. If True, then run planet detection on dataset containing
                                      injected planets; if False, then run planet detection on dataset not containing
                                      injected planets.
-            override (bool): Default: False. Whether or not to override filepath if output filepath already exists.
+            override (bool): Default: False. Whether not to override filepath if output filepath already exists.
             kernel_type (str): Default: 'gaussian'. What type of kernel to use when doing cross-correlation before
                                          creating SNR map for point source detection. If 'airy', then Airy disk will
                                          be used. If anything else, then a Gaussian will be used (no other kernels
