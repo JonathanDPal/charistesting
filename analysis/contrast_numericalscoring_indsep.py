@@ -145,7 +145,7 @@ for cfile in contrastfiles:
     highpass.append(hp)
 
 finaldata = pd.DataFrame({'Annuli': annuli, 'Subsections': subsections, 'Movement': movement, 'Numbasis': numbasis,
-                          'Corr_Smooth': corr_smooth, 'Highpass': highpass, 'Score13': scores15, 'Score30': scores30,
+                          'Corr_Smooth': corr_smooth, 'Highpass': highpass, 'Score13': scores13, 'Score30': scores30,
                           'Score50': scores50})
 
 if len(sys.argv) > 1 and sys.argv[1] == 'all':  # need to collapse all wavelength scores into a single contrast score
