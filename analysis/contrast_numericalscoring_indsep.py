@@ -183,7 +183,6 @@ if len(sys.argv) > 1 and sys.argv[1] == 'all':  # need to collapse all wavelengt
     finaldata = pd.DataFrame({'Annuli': annuli, 'Subsections': subsections, 'Movement': movement, 'Numbasis':
                                numbasis, 'Corr_Smooth': corr_smooth, 'Highpass': highpass, 'Score13': sco13,
                               'Score30': sco30, 'Score50': d50})
-sorted_by_score = finaldata.sort_values(by='Score', ascending=False, ignore_index=True)
 
 if not os.path.exists('numericalscoring'):
     os.mkdir('numericalscoring')
