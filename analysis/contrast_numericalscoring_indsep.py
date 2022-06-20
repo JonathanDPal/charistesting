@@ -187,4 +187,4 @@ sorted_by_score = finaldata.sort_values(by='Score', ascending=False, ignore_inde
 
 if not os.path.exists('numericalscoring'):
     os.mkdir('numericalscoring')
-sorted_by_score.to_csv('numericalscoring/contrast_scores.csv', index=False)
+sorted_by_score.to_csv('numericalscoring/contrast_scores_indsep.csv', index=False)
