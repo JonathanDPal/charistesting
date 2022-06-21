@@ -14,11 +14,11 @@ reference_contrast = [(13, 1.2e-5), (30, 2e-6), (50, 1e-6)]  # some values that 
 
 if len(sys.argv) == 2:
     if sys.argv[1] == 'all':
-        wavelength = ''
+        wavelength = ''  # to get all wvs
     else:
         wavelength = sys.argv[1]  # in microns
 else:
-    wavelength = 1.63  # what we've been looking at on broadband
+    wavelength = ''  # to get all wvs
 contrastfiles = glob(f'../calibrated_contrast/*{wavelength}um*.csv')
 try:
     assert len(contrastfiles) != 0
@@ -125,12 +125,12 @@ for cfile in contrastfiles:
     for score_lst, reference in zip([scores13, scores30, scores50], reference_contrast):
         score_sum = 0
         sep, reference_val = reference
-        closest_seperation_index = np.argmin(sep - seps)
+        closest_seperation_index = np.argmin(np.abs(sep - seps))
         if contrast[closest_seperation_index] == -np.inf:
             score_sum += -np.inf
         else:
             try:
-                ratio = (np.log10(contrast[closest_seperation_index])) / (np.log10(reference_val))
+                ratio = np.log(contrast[closest_seperation_index]) / np.log(reference_val)
                 score_sum += ratio
             except RuntimeWarning:  # this has happened when a negctive number is the value for contrast
                 score_sum += -np.inf
@@ -182,7 +182,7 @@ if len(sys.argv) > 1 and sys.argv[1] == 'all':  # need to collapse all wavelengt
         sco50.append(d50[key])
     finaldata = pd.DataFrame({'Annuli': annuli, 'Subsections': subsections, 'Movement': movement, 'Numbasis':
                                numbasis, 'Corr_Smooth': corr_smooth, 'Highpass': highpass, 'Score13': sco13,
-                              'Score30': sco30, 'Score50': d50})
+                              'Score30': sco30, 'Score50': sco50})
 
 if not os.path.exists('numericalscoring'):
     os.mkdir('numericalscoring')
