@@ -1,21 +1,18 @@
 import numpy as np
 import pandas as pd
+import sys
 
 starsystems = sys.argv[1:]
 nums = [13, 20, 30, 40, 50, 60]
 df = pd.read_csv(f'{starsystems[0]}/analysis/numericalscoring/overall_scores_indsep.csv')
 for num in nums:
-    df[f'{starsystems[0]}_{num}'] = df[f'Score_{num}'].rank(pct=True)
-    df[f'{starsystems[0]}_{num}'] = df[f'Score_{num}'].rank(pct=True)
-    del df[f'Score_{num}']
+    df[f'{starsystems[0]}_{num}'] = df[f'Score{num}'].rank(pct=True)
     del df[f'Score_{num}']
 
 for star in starsystems[1:]:
     newdf = pd.read_csv(f'{star}/analysis/numericalscoring/overall_scores_indsep.csv')
     for num in nums:
-        newdf[f'{star}_{num}'] = newdf[f'Score_{num}'].rank(pct=True)
-        newdf[f'{star}_{num}'] = newdf[f'Score_{num}'].rank(pct=True)
-        del newdf[f'Score_{num}']
+        newdf[f'{star}_{num}'] = newdf[f'Score{num}'].rank(pct=True)
         del newdf[f'Score_{num}']
     for col in newdf.columns:
         if col not in ['Annuli', 'Subsections', 'Movement', 'Numbasis', 'Corr_Smooth', 'Highpass'] + [f'{star}_{num}'
