@@ -7,13 +7,13 @@ nums = [13, 20, 30, 40, 50, 60]
 df = pd.read_csv(f'{starsystems[0]}/analysis/numericalscoring/overall_scores_indsep.csv')
 for num in nums:
     df[f'{starsystems[0]}_{num}'] = df[f'Score{num}'].rank(pct=True)
-    del df[f'Score_{num}']
+    del df[f'Score{num}']
 
 for star in starsystems[1:]:
     newdf = pd.read_csv(f'{star}/analysis/numericalscoring/overall_scores_indsep.csv')
     for num in nums:
         newdf[f'{star}_{num}'] = newdf[f'Score{num}'].rank(pct=True)
-        del newdf[f'Score_{num}']
+        del newdf[f'Score{num}']
     for col in newdf.columns:
         if col not in ['Annuli', 'Subsections', 'Movement', 'Numbasis', 'Corr_Smooth', 'Highpass'] + [f'{star}_{num}'
                                                                                                       for num in nums]:
