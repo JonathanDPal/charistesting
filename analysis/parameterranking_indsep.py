@@ -22,7 +22,7 @@ for star in starsystems[1:]:
 
 avgs = list()
 for _, row in df.iterrows():
-    scores = [row[col] for col in df.columns if 'Score' in col]
+    scores = [row[col] for col in df.columns if np.sum([f'{num}' in col for num in nums]) > 0]
     avg = np.mean(scores)
     avgs.append(avg)
 df['Average'] = avgs
