@@ -11,7 +11,7 @@ import pandas as pd
 from pyklip.instruments.CHARIS import CHARISData
 from pyklip.parallelized import klip_dataset
 from pyklip.klip import meas_contrast, define_annuli_bounds
-from pyklip.fakes import inject_planet, convert_pa_to_image_polar
+from pyklip.fakes import inject_planet, convert_pa_to_image_polar, airyfit2d
 from pyklip.fakes import retrieve_planet_flux as pyklip_retrieve_planet_flux
 from pyklip.kpp.utils.mathfunc import gauss2d
 from pyklip.kpp.metrics.crossCorr import calculate_cc
