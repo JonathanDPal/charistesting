@@ -80,8 +80,8 @@ def FWHMIOWA_calculator(fileset=None, speccubefile=None, filtname=None, FWHM=Non
             for fle in fileset:
                 fwhms = list()
                 with fits.open(fle) as f:
-                    spots = [f[1].header[key] for key in f[1].header.keys() if key[:3] == 'SATS']
-                    fluxes = [float(f[1].header[key]) for key in f[1].header.keys() if key[:3] == 'SATF']
+                    spots = [f[1].header[key] for key in f[1].header.keys() if key[:4] == 'SATS']
+                    fluxes = [float(f[1].header[key]) for key in f[1].header.keys() if key[:4] == 'SATF']
                     data = f[1].data
                 assert len(spots) == len(fluxes), 'Check keywords in FITS header; there seems to be different ' \
                                                   'quantities of keywords which are giving a satellite spot ' \
