@@ -99,9 +99,9 @@ def FWHMIOWA_calculator(fileset=None, speccubefile=None, filtname=None, FWHM=Non
                 assert len(xlocs) % 4 == 0 and len(ylocs) % 4 == 0 and len(fluxes) % 4 == 0, 'There should be ' \
                                                                                              'four satellite ' \
                                                                                              'spots in each frame.'
-                xlocs = [xlocs[4 * i: 4 * (i+1)] for i in range(len(xlocs))]
-                ylocs = [ylocs[4 * i: 4 * (i+1)] for i in range(len(ylocs))]
-                fluxes = [fluxes[4 * i: 4 * (i+1)] for i in range(len(fluxes))]
+                xlocs = [xlocs[4 * i: 4 * (i+1)] for i in range(int(len(xlocs) / 4))]
+                ylocs = [ylocs[4 * i: 4 * (i+1)] for i in range(int(len(ylocs) / 4))]
+                fluxes = [fluxes[4 * i: 4 * (i+1)] for i in range(int(len(fluxes) / 4))]
                 for idx, (xloc, yloc, flux) in enumerate(zip(xlocs, ylocs, fluxes)):
                     frame = data[idx]
                     for x, y, fx in zip(xloc, yloc, flux):
