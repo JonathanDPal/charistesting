@@ -49,25 +49,65 @@ def log_file_output(directory, write_type='a'):
                 sys.stdout = old_stdout
 
 
-def FWHMIOWA_calculator(speccubefile=None, filtname=None, FWHM=None):
+def FWHMIOWA_calculator(fileset=None, speccubefile=None, filtname=None, FWHM=None):
     """
+    Calculates full width at half max (FWHM), inner working angle (IWA), and outer working angle (OWA) for the
+    observation set. Handing any of the four arguments is sufficient. The best is to specify the "fileset" argument
+    with all the calibrated cubes for the observation set. This will have the FWHM calculated from the satellite spots.
+    ---
     Args (all optional, but at least one must be specified in order for code to work):
-        speccubefile (str): FITS file which has the name of the filter used. If filtname or FWHM arguments specified,
-                            then this will not be used.
-        filtname (str): Name of the filter used for observations. If FWHM is specified, this will not be used.
-        FWHM (float): FWHM of the obsevations.
+        fileset (list): List of the calibrated cubes for an observation set. If FWHM is specified, this won't be used.
+        speccubefile (str): FITS file which has the name of the filter used. If fileset, filtname or FWHM argument is
+        specified, then this will not be used.
+        filtname (str): Name of the filter used for observations. If FWHM or fileset is given, this will not be used.
+        FWHM (float): FWHM of the observations.
+    Returns:
+        FWHM, IWA, and OWA.
     """
-    if (speccubefile, filtname, FWHM) == (None, None, None):
+    if (fileset, speccubefile, filtname, FWHM) == (None, None, None, None):
         raise ValueError("At least one argument must be specified.")
     if FWHM is None:
-        if filtname is None:
-            filtname = str.lower(speccubefile[1].header['FILTNAME'])
+        if fileset is None:
+            if filtname is None:
+                filtname = str.lower(speccubefile[1].header['FILTNAME'])
+            else:
+                filtname = str.lower(filtname)
+            if filtname not in ['k', 'broadband']:
+                raise ValueError('Filter {0} currently not supported.'.format(filtname))
+            fwhms = {'j': None, 'h': None, 'k': 3.5, 'broadband': 3.5}  # make better measurements for all filters
+            FWHM = fwhms[filtname]
         else:
-            filtname = str.lower(filtname)
-        if filtname not in ['k', 'broadband']:
-            raise ValueError(f'Filter {filtname} currently not supported.')
-        fwhms = {'j': None, 'h': None, 'k': 3.5, 'broadband': 3.5}  # make measurements to fill in
-        FWHM = fwhms[filtname]
+            for fle in fileset:
+                fwhms = list()
+                with fits.open(fle) as f:
+                    spots = [f[1].header[key] for key in f[1].header.keys() if key[:3] == 'SATS']
+                    fluxes = [float(f[1].header[key]) for key in f[1].header.keys() if key[:3] == 'SATF']
+                    data = f[1].data
+                assert len(spots) == len(fluxes), 'Check keywords in FITS header; there seems to be different ' \
+                                                  'quantities of keywords which are giving a satellite spot ' \
+                                                  'location and keywords which are giving a satellite spot flux.'
+                assert len(spots) != 0, 'Need to have satellite spot locations in FITS header in order to ' \
+                                        'calculate FWHM.'
+                xlocs, ylocs = list(), list()
+                for spot in spots:
+                    if spot[0] == ' ':
+                        xloc, yloc = [float(y) for y in spot[1:].split(' ')]
+                    else:
+                        xloc, yloc = [float(y) for y in spot.split(' ')]
+                    xlocs.append(xloc)
+                    ylocs.append(yloc)
+                assert len(xlocs) % 4 == 0 and len(ylocs) % 4 == 0 and len(fluxes) % 4 == 0, 'There should be ' \
+                                                                                             'four satellite ' \
+                                                                                             'spots in each frame.'
+                xlocs = [xlocs[4 * i: 4 * (i+1)] for i in range(len(xlocs))]
+                ylocs = [ylocs[4 * i: 4 * (i+1)] for i in range(len(ylocs))]
+                fluxes = [fluxes[4 * i: 4 * (i+1)] for i in range(len(fluxes))]
+                for idx, (xloc, yloc, flux) in enumerate(zip(xlocs, ylocs, fluxes)):
+                    frame = data[idx]
+                    for x, y, fx in zip(xloc, yloc, flux):
+                        measuredfwhm = airyfit2d(frame=frame, xguess=x, yguess=y, guesspeak=fx)[1]
+                        fwhms.append(measuredfwhm)
+            FWHM = np.mean(fwhms)
     lenslet_scale = 0.0162
     field_radius = 1.035
     IWA = 5
