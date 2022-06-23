@@ -91,9 +91,9 @@ def FWHMIOWA_calculator(fileset=None, speccubefile=None, filtname=None, FWHM=Non
                 xlocs, ylocs = list(), list()
                 for spot in spots:
                     if spot[0] == ' ':
-                        xloc, yloc = [float(y) for y in spot[1:].split(' ')]
+                        xloc, yloc = [float(y) for y in spot[1:].split(' ') if y != '']
                     else:
-                        xloc, yloc = [float(y) for y in spot.split(' ')]
+                        xloc, yloc = [float(y) for y in spot.split(' ') if y != '']
                     xlocs.append(xloc)
                     ylocs.append(yloc)
                 assert len(xlocs) % 4 == 0 and len(ylocs) % 4 == 0 and len(fluxes) % 4 == 0, 'There should be ' \
