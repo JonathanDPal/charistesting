@@ -168,7 +168,7 @@ def roc_generator(snr_values, param1, num_injections, filepath_to_save, file_fin
     originalwd = os.getcwd()
     os.chdir(os.path.realpath('../detections/'))
     filelist = glob(file_finder)
-    for file in filelist:  # i used only to get different colors/markers on graph
+    for file in filelist:  # I used only to get different colors/markers on graph
         detections = pd.read_csv(file)
         val = valuefinder(file, param1[0])
         for snr in snr_values:
@@ -269,6 +269,7 @@ def specific_target_heatmap(param1, param2, filepath_to_save, target_loc, file_f
         filepath_to_save: string
         target_loc: list of form [X, Y], w/ position of target post-KLIP (in pixels)
         file_finder: str -- passed into glob to get all relevant (CSV) files.
+        target_name: str or None -- if string then it will be included in title of output figure.
     """
     originalwd = os.getcwd()
     os.chdir(os.path.realpath('../detections/'))
