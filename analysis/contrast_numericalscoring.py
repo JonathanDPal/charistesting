@@ -123,7 +123,7 @@ for cfile in contrastfiles:
     score_sum = 0
     for reference in reference_contrast:
         sep, reference_val = reference
-        closest_seperation_index = np.argmin(sep - seps)
+        closest_seperation_index = np.argmin(np.abs(sep - seps))
         if contrast[closest_seperation_index] == -np.inf:
             score_sum += -np.inf
         else:
