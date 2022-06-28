@@ -110,14 +110,10 @@ for dfile in detectionsfiles:
     df = pd.read_csv(dfile)
     df1 = df[df['Injected'] == 'Science Target']
     scisnr.append(df1['SNR Value'].sum())
-    df = df[df['Injected'] != 'Science Target']  # ignoring science targets for scoring
+    df = df[df['Injected'] != 'Science Target']
     df20 = df[np.abs(df['Sep (pix)'] - 20) < 1]
     df40 = df[np.abs(df['Sep (pix)'] - 40) < 1]
     df60 = df[np.abs(df['Sep (pix)'] - 60) < 1]
-    try:
-        snrvals = np.arange(start=2, stop=np.ceil(df['SNR Value'].max()), step=0.25)
-    except ValueError:  # this means that the detections file is empty
-        continue
 
     for score, df in zip([score20, score40, score60], [df20, df40, df60]):
         cumulative_score = 0
@@ -144,7 +140,7 @@ for dfile in detectionsfiles:
 
 finaldata = pd.DataFrame({'Annuli': annuli, 'Subsections': subsections, 'Movement': movement, 'Numbasis': numbasis,
                           'Corr_Smooth': corr_smooth, 'Highpass': highpass, 'Score20': score20, 'Score40': score40,
-                          'Score60': score60})
+                          'Score60': score60, 'SciSNR': scisnr})
 
 if not os.path.exists('numericalscoring'):
     os.mkdir('numericalscoring')

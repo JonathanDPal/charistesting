@@ -12,7 +12,7 @@ if numcombos < numtosave:
     numtosave = None
 print(f'{numcombos} combinations will be checked.')  # so that if it's like a trillion then I just kill the script
 
-stars, nums = ['HD1160', 'HR8799', 'KB', 'Kappa'], [13, 20, 30, 40, 50, 60]
+stars, nums = ['HD1160', 'HR8799', 'KB', 'Kappa'], [13, 20, 30, 40, 50, 60, 'SciSNR']
 columnnames = [f'{star}_{num}' for star in stars for num in nums]
 df = pd.read_csv(csvfile)[:numrows]
 indexcombos = itertools.combinations(np.arange(numrows), n)
