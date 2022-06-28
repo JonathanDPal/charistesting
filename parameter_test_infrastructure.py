@@ -808,7 +808,8 @@ class Trial:
                     except OSError:  # get this sometimes on Kappa where CSV file is too big? trying to figure out why
                         pass
 
-    def detect_planets(self, SNR_threshold=2, datasetwithfakes=True, override=False, kernel_type='gaussian'):
+    def detect_planets(self, SNR_threshold=2, datasetwithfakes=True, override=False, kernel_type='gaussian',
+                       kernel_fwhm=1.0):
         """
         Looks at a KLIPped dataset with fakes and indicates potential planets. Identifies
         ---
@@ -822,6 +823,7 @@ class Trial:
                                          creating SNR map for point source detection. If 'airy', then Airy disk will
                                          be used. If anything else, then a Gaussian will be used (no other kernels
                                          currently built in).
+            kernel_fwhm (float): Default: 1.0. FWHM to use for the kernel.
 		"""
         if datasetwithfakes:
             filepaths = self.filepaths_Wfakes
@@ -852,9 +854,11 @@ class Trial:
 
             x_grid, y_grid = np.meshgrid(np.arange(-10, 10), np.arange(-10, 10))
             if str.lower(kernel_type) == 'airy':
-                kernel = AiryDisk2D().evaluate(x=x_grid, y=y_grid, amplitude=1.0, x_0=0.0, y_0=0.0, radius=1.0)
+                rad = kernel_fwhm * (1.028 / 1.22)
+                kernel = AiryDisk2D().evaluate(x=x_grid, y=y_grid, amplitude=1.0, x_0=0.0, y_0=0.0, radius=rad)
             else:
-                kernel = gauss2d(x_grid, y_grid)
+                sigma = kernel_fwhm / (2 * np.sqrt(2 * np.log(2)))
+                kernel = gauss2d(x=x_grid, y=y_grid, sigma_x=sigma, sigma_y=sigma)
 
             # flat spectrum given here for generating cross-coorelated image so that pyKLIP collapses it into one
             # image, instead of giving seperate images for each wavelength
