@@ -1,0 +1,38 @@
+import pandas as pd
+import numpy as np
+import itertools
+
+df = pd.read_csv('paramrankings_indsep.csv')
+annuli = np.arange(12) + 1
+subsections = np.arange(6) + 1
+movement = [float(x) for x in np.arange(6)]
+corr_smooth = [float(x) for x in np.arange(4)]
+highpass = ['False', '15.0', '30.0']
+newdf = pd.DataFrame(columns=df.columns)
+
+stars, nums = ['HD1160', 'HR8799', 'KB', 'Kappa'], [13, 20, 30, 40, 50, 60, 'SciSNR']
+columnnames = [f'{star}_{num}' for star in stars for num in nums]
+pcols = ['Annuli', 'Subsections', 'Movement', 'Corr_Smooth', 'Highpass']
+
+for ann in annuli:
+    for sbs in subsections:
+        for mov in movement:
+            for cs in corr_smooth:
+                for hp in highpass:
+                    subdf = df[df['Annuli'] == ann]
+                    subdf = subdf[subdf['Subsections'] == sbs]
+                    subdf = subdf[subdf['Movement'] == mov]
+                    subdf = subdf[subdf['Corr_Smooth'] == cs]
+                    subdf = subdf[subdf['Highpass'] == hp]
+                    assert len(subdf) == 6
+                    cbs = [cbo for cbo in itertools.combinations(np.arange(6), 4)]
+                    tholds = [np.min([subdf[col].max()]) for col in columnnames]
+                    ssdf = subdf[list(cbs[np.argmax(tholds)]), :]
+                    newrow = [ssdf[col][0] for col in pcols]
+                    maxes = [ssdf[col].max() for col in columnnames]
+                    newrow += maxes
+                    newrow += [np.mean(maxes)]
+                    newdf.loc[len(newdf.index)] = newrow
+
+newdf = newdf.sort_values('Average', ascending=False)
+newdf.to_csv('paramrankings_indsep.csv', index=False)
