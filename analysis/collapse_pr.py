@@ -26,7 +26,7 @@ for ann in annuli:
                     subdf = subdf[subdf['Highpass'] == hp]
                     assert len(subdf) == 6
                     cbs = [cbo for cbo in itertools.combinations(np.arange(6), 4)]
-                    tholds = [np.min([subdf[col].max()]) for col in columnnames]
+                    tholds = [np.min([subdf.iloc[list(cbo), :][col].max() for col in columnnames]) for cbo in cbs]
                     ssdf = subdf.iloc[list(cbs[np.argmax(tholds)]), :]
                     assert len(ssdf) == 4
                     newrow = [ssdf[col][ssdf.index[0]] for col in pcols]
