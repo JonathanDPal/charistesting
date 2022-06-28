@@ -27,8 +27,9 @@ for ann in annuli:
                     assert len(subdf) == 6
                     cbs = [cbo for cbo in itertools.combinations(np.arange(6), 4)]
                     tholds = [np.min([subdf[col].max()]) for col in columnnames]
-                    ssdf = subdf[list(cbs[np.argmax(tholds)]), :]
-                    newrow = [ssdf[col][0] for col in pcols]
+                    ssdf = subdf.iloc[list(cbs[np.argmax(tholds)]), :]
+                    assert len(ssdf) == 4
+                    newrow = [ssdf[col][ssdf.index[0]] for col in pcols]
                     maxes = [ssdf[col].max() for col in columnnames]
                     newrow += maxes
                     newrow += [np.mean(maxes)]
