@@ -16,8 +16,8 @@ for star in starsystems[1:]:
     for num in nums:
         newdf[f'{star}_{num}'] = newdf[f'Score{num}'].rank(pct=True)
         del newdf[f'Score{num}']
-    df[f'{star}_SciSNR'] = df['SciSNR'].rank(pct=True)
-    del df['SciSNR']
+    newdf[f'{star}_SciSNR'] = newdf['SciSNR'].rank(pct=True)
+    del newdf['SciSNR']
     for col in newdf.columns:
         if col not in ['Annuli', 'Subsections', 'Movement', 'Numbasis', 'Corr_Smooth', 'Highpass'] + \
                         [f'{star}_{num}' for num in nums] + [f'{star}_SciSNR']:
