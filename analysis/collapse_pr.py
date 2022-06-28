@@ -8,7 +8,7 @@ subsections = np.arange(6) + 1
 movement = [float(x) for x in np.arange(6)]
 corr_smooth = [float(x) for x in np.arange(4)]
 highpass = ['False', '15.0', '30.0']
-newdf = pd.DataFrame(columns=df.columns)
+newdf = pd.DataFrame(columns=[col for col in df.columns if col != 'Numbasis'])
 
 stars, nums = ['HD1160', 'HR8799', 'KB', 'Kappa'], [13, 20, 30, 40, 50, 60, 'SciSNR']
 columnnames = [f'{star}_{num}' for star in stars for num in nums]
