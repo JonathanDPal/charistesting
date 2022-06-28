@@ -8,6 +8,8 @@ csvfile = sys.argv[2]  # where the ranking information is coming from
 numrows = int(sys.argv[3])  # how many parameter sets are we using for combinations
 numtosave = int(sys.argv[4])  # only going to save some subset of all the combinations checked
 numcombos = int(np.prod([numrows - k for k in range(n)]) / np.prod(np.arange(n) + 1))  # ={numrows \choose n}
+if numcombos < numtosave:
+    numtosave = None
 print(f'{numcombos} combinations will be checked.')  # so that if it's like a trillion then I just kill the script
 
 stars, nums = ['HD1160', 'HR8799', 'KB', 'Kappa'], [13, 20, 30, 40, 50, 60]
