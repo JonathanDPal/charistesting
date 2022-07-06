@@ -130,8 +130,7 @@ for cfile in contrastfiles:
             score_sum += -np.inf
         else:
             try:
-                ratio = np.log(contrast[closest_seperation_index]) / np.log(reference_val)
-                score_sum += ratio
+                score_sum += np.log(contrast[closest_seperation_index]) / np.log(reference_val)
             except RuntimeWarning:  # this has happened when a negctive number is the value for contrast
                 score_sum += -np.inf
         score_lst.append(score_sum / len(reference_contrast) * 100)
