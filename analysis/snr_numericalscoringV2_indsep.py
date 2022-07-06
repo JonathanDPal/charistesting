@@ -98,7 +98,7 @@ for reference, inj_flux in zip(reference_contrast, injected_fluxes):
     _, fluxes = inj_flux
     for flux in fluxes:
         for _ in range(int(total_injected / (len(injected_fluxes) * len(fluxes)))):
-            reference_planets_snr.append(flux / ref_contrast)
+            reference_planets_snr.append(flux * 5 / ref_contrast)
 reference_score = np.sum(reference_planets_snr)
 
 annuli, subsections, movement, numbasis, corr_smooth, highpass, score20, score40, score60, scisnr = list(), list(), \
@@ -111,9 +111,9 @@ for dfile in detectionsfiles:
     df1 = df[df['Injected'] == 'Science Target']
     scisnr.append(df1['SNR Value'].sum())
     df = df[df['Injected'] != 'Science Target']
-    df20 = df[np.abs(df['Sep (pix)'] - 20) < 1]
-    df40 = df[np.abs(df['Sep (pix)'] - 40) < 1]
-    df60 = df[np.abs(df['Sep (pix)'] - 60) < 1]
+    df20 = df[np.abs(df['Sep (pix)'] - 20) < 10]
+    df40 = df[np.abs(df['Sep (pix)'] - 40) < 10]
+    df60 = df[np.abs(df['Sep (pix)'] - 60) < 10]
 
     for score, df in zip([score20, score40, score60], [df20, df40, df60]):
         cumulative_score = 0
