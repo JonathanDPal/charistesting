@@ -16,6 +16,8 @@ stars, nums = ['HD1160', 'HR8799', 'KB', 'Kappa'], [13, 20, 30, 40, 50, 60, 'Sci
 columnnames = [f'{star}_{num}' for star in stars for num in nums]
 pcols = ['Annuli', 'Subsections', 'Movement', 'Corr_Smooth', 'Highpass']
 
+maxcol = list()
+
 for ann in annuli:
     for sbs in subsections:
         for mov in movement:
@@ -36,6 +38,8 @@ for ann in annuli:
                     newrow += maxes
                     newrow += [np.mean(maxes)]
                     newdf.loc[len(newdf.index)] = newrow
+                    maxcol.append(np.max(maxes))
 
-newdf = newdf.sort_values('Average', ascending=False)
+newdf['max'] = maxcol
+newdf = newdf.sort_values('Average', ascending=False, ignore_index=True)
 newdf.to_csv(f'paramrankings/paramrankings_indsep_nb{numnb_touse}.csv', index=False)
