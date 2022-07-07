@@ -52,16 +52,16 @@ for idx, ic in enumerate(indexcombos):
                 row['max'] = ssdf[col]
                 threshold = local_cm['max'].min()
         if threshold > max_threshold:
-            subdf = subdf.append(ssdf)
-            subdf.index = np.arange(N)
-            paramgroups = [tuple(subdf.iloc[idx, :5]) for idx in range(N)]
+            ssubdf = subdf.append(ssdf)
+            ssubdf.index = np.arange(N)
+            paramgroups = [tuple(ssubdf.iloc[idx, :5]) for idx in range(N)]
             data_to_save['Params'] = [str(paramgroups)]
             data_to_save['Threshold'] = [threshold]
             max_threshold = threshold
         elif threshold == max_threshold:
-            subdf = subdf.append(ssdf)
-            subdf.index = np.arange(N)
-            paramgroups = [tuple(subdf.iloc[idx, :5]) for idx in range(N)]
+            ssubdf = subdf.append(ssdf)
+            ssubdf.index = np.arange(N)
+            paramgroups = [tuple(ssubdf.iloc[idx, :5]) for idx in range(N)]
             data_to_save['Params'].append(str(paramgroups))
             data_to_save['Threshold'].append(threshold)
     if idx != 0 and idx % 5e5 == 0:
