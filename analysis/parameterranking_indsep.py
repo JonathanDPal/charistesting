@@ -33,4 +33,4 @@ for _, row in df.iterrows():
 df['Average'] = avgs
 
 df = df.sort_values(by='Average', ascending=False, ignore_index=True)
-df.to_csv('paramrankings_indsep.csv', index=False)
+df.to_csv('paramrankings/paramrankings_indsep.csv', index=False)
