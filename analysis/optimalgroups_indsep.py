@@ -26,7 +26,7 @@ def find_threshold(ic):
     return str(paramgroups), threshold
 
 
-data = map(find_threshold, indexcombos)
+data = list(map(find_threshold, indexcombos))
 data_to_save = {'Params': [t[0] for t in data], 'Threshold': [t[1] for t in data]}
 
 
@@ -37,7 +37,7 @@ def break_up_params(pset):
     return pts
 
 
-bkp = map(break_up_params, data_to_save['Params'])
+bkp = list(map(break_up_params, data_to_save['Params']))
 broken_up_params = [[pts[k] for pts in bkp] for k in range(n)]
 del data_to_save['Params']
 

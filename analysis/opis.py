@@ -73,7 +73,7 @@ for idx, ic in enumerate(indexcombos):
         to_save = combined.sort_values('Threshold', ascending=False, ignore_index=True)
         to_save.to_csv(output_filename, index=False)
 
-bkp = map(break_up_params, data_to_save['Params'])
+bkp = list(map(break_up_params, data_to_save['Params']))
 broken_up_params = [[pts[k] for pts in bkp] for k in range(N)]
 combined = pd.DataFrame(data_to_save)
 for m, psets in enumerate(broken_up_params):
