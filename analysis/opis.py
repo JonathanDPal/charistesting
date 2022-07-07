@@ -35,15 +35,15 @@ for idx, ic in enumerate(indexcombos):
     colmaxes = pd.DataFrame({'max': [np.max(subdf[col]) for col in columnnames]}, index=columnnames).sort_values('max')
     curr = np.max(ic) + 1
     for k in np.arange(numrows - curr) + curr:
+        found = 0
+        if found < N - 1 and k in ic:
+            found += 1
+            continue
         ssdf = df.iloc[k, :]
         if ssdf['max'] < max_threshold:
             continue
         local_cm = copy(colmaxes)
         threshold = local_cm['max'][0]
-        found = 0
-        if found < N - 1 and k in ic:
-            found += 1
-            continue
         for col, row in local_cm.iterrows():
             if ssdf[col] <= row['max']:
                 if row['max'] <= threshold:
@@ -53,7 +53,11 @@ for idx, ic in enumerate(indexcombos):
                 threshold = local_cm['max'].min()
         if threshold > max_threshold:
             subdf.append(ssdf)
-            subdf.index = np.arange(N)
+            try:
+                subdf.index = np.arange(N)
+            except:
+                print(subdf)
+                raise KeyboardInterrupt
             paramgroups = [tuple(subdf.iloc[idx, :5]) for idx in range(N)]
             data_to_save['Params'] = [str(paramgroups)]
             data_to_save['Threshold'] = [threshold]
