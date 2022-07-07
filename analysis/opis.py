@@ -33,9 +33,10 @@ for idx, ic in enumerate(indexcombos):
     if subdf['max'].min() < max_threshold:
         continue
     colmaxes = pd.DataFrame({'max': [np.max(subdf[col]) for col in columnnames]}, index=columnnames).sort_values('max')
-    for k in np.arange(numrows):
+    curr = np.max(ic) + 1
+    for k in np.arange(numrows - curr) + curr:
         ssdf = df.iloc[k, :]
-        if ssdf['max'][0] < max_threshold:
+        if ssdf['max'] < max_threshold:
             continue
         local_cm = copy(colmaxes)
         threshold = local_cm['max'][0]
@@ -44,11 +45,11 @@ for idx, ic in enumerate(indexcombos):
             found += 1
             continue
         for col, row in local_cm.iterrows():
-            if ssdf[col][0] <= row['max']:
+            if ssdf[col] <= row['max']:
                 if row['max'] <= threshold:
                     break
             else:
-                row['max'] = ssdf[col][0]
+                row['max'] = ssdf[col]
                 threshold = local_cm['max'].min()
         if threshold > max_threshold:
             subdf.append(ssdf)
