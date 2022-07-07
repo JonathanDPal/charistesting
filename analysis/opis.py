@@ -7,7 +7,7 @@ from copy import copy
 N = int(sys.argv[1])  # how big of parameter sets we're checking
 csvfile = sys.argv[2]  # where the ranking information is coming from
 output_filename = sys.argv[3]
-num_to_skip = sys.argv[4]  # ones that have already been checked
+num_to_skip = int(sys.argv[4])  # ones that have already been checked
 max_threshold = float(sys.argv[5])  # it'll start at whatever the current known value is
 print(f'{numcombos} combinations will be checked.')  # so that if it's like a trillion then I just kill the script
 
