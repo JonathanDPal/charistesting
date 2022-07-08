@@ -3,7 +3,7 @@ import numpy as np
 import itertools
 import sys
 
-df = pd.read_csv('paramrankings/paramrankings_indsep.csv')
+df = pd.read_csv('paramrankings/paramrankings_indsep.csv').fillna(0)
 annuli = np.arange(12) + 1
 subsections = np.arange(6) + 1
 movement = [float(x) for x in np.arange(6)]
