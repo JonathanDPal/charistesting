@@ -73,13 +73,17 @@ for idx, ic in enumerate(indexcombos):
                     row['max'] = new_val
                     threshold = local_cm['max'].min()
         if threshold > max_threshold:
-            ssubdf = pd.concat([subdf, ssdf], axis=1, ignore_index=True)
+            ssubdf = copy(subdf)
+            ssubdf.loc[len(ssubdf.index)] = ssdf
+            ssubdf.index = np.arange(N)
             paramgroups = [tuple(ssubdf.iloc[idx, :5]) for idx in range(N)]
             data_to_save['Params'] = [str(paramgroups)]
             data_to_save['Threshold'] = [threshold]
             max_threshold = threshold
         elif threshold == max_threshold:
-            ssubdf = pd.concat([subdf, ssdf], axis=1, ignore_index=True)
+            ssubdf = copy(subdf)
+            ssubdf.loc[len(ssubdf.index)] = ssdf
+            ssubdf.index = np.arange(N)
             paramgroups = [tuple(ssubdf.iloc[idx, :5]) for idx in range(N)]
             data_to_save['Params'].append(str(paramgroups))
             data_to_save['Threshold'].append(threshold)
