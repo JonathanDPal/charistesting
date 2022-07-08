@@ -10,5 +10,3 @@ for bf in batchfiles[1:]:
 max_thold = df['Threshold'].max()
 df = df[df['Threshold'] == max_thold]
 df.to_csv(sys.argv[2], index=False)
-for bf in batchfiles:
-    os.remove(bf)
