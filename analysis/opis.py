@@ -48,6 +48,7 @@ if batched:
 if not batched:  # don't want a bunch of print statements on the batched stuff
     print(f'{numindexcombos} combinations will be checked.')
 data_to_save = {'Params': list(), 'Threshold': list()}
+v_errs = 0
 
 if not parallelize:
     for ic in indexcombos:
@@ -83,7 +84,11 @@ if not parallelize:
             if threshold > max_threshold:
                 ssubdf = copy(subdf)
                 ssubdf.loc[len(ssubdf.index)] = ssdf
-                ssubdf.index = np.arange(N)
+                try:
+                    ssubdf.index = np.arange(N)
+                except ValueError:
+                    v_errs += 1
+                    continue
                 paramgroups = [tuple(ssubdf.iloc[idx, :5]) for idx in range(N)]
                 data_to_save['Params'] = [str(paramgroups)]
                 data_to_save['Threshold'] = [threshold]
@@ -91,7 +96,11 @@ if not parallelize:
             elif threshold == max_threshold:
                 ssubdf = copy(subdf)
                 ssubdf.loc[len(ssubdf.index)] = ssdf
-                ssubdf.index = np.arange(N)
+                try:
+                    ssubdf.index = np.arange(N)
+                except ValueError:
+                    v_errs += 1
+                    continue
                 paramgroups = [tuple(ssubdf.iloc[idx, :5]) for idx in range(N)]
                 data_to_save['Params'].append(str(paramgroups))
                 data_to_save['Threshold'].append(threshold)
@@ -167,3 +176,6 @@ for m, psets in enumerate(broken_up_params):
     combined.insert(m, f'Params {m + 1}', psets)
 to_save = combined.sort_values('Threshold', ascending=False, ignore_index=True)
 to_save.to_csv(output_filename, index=False)
+if v_errs > 0:
+    with open(output_filename[:-3] + 'txt', 'w') as f:
+        f.write(f"{verrs}")
