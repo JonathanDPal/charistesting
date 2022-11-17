@@ -6,17 +6,17 @@ starsystems = sys.argv[1:]
 nums = [13, 20, 30, 40, 50, 60]
 df = pd.read_csv(f'{starsystems[0]}/analysis/numericalscoring/overall_scores_indsep.csv')
 for num in nums:
-    df[f'{starsystems[0]}_{num}'] = df[f'Score{num}'].rank(pct=True)
+    df[f'{starsystems[0]}_{num}'] = df[f'Score{num}'] / df[f'Score{num}'].max()
     del df[f'Score{num}']
-df[f'{starsystems[0]}_SciSNR'] = df['SciSNR'].rank(pct=True)
+df[f'{starsystems[0]}_SciSNR'] = df['SciSNR'] / df['SciSNR'].max()
 del df['SciSNR']
 
 for star in starsystems[1:]:
     newdf = pd.read_csv(f'{star}/analysis/numericalscoring/overall_scores_indsep.csv')
     for num in nums:
-        newdf[f'{star}_{num}'] = newdf[f'Score{num}'].rank(pct=True)
+        newdf[f'{star}_{num}'] = newdf[f'Score{num}'] / newdf[f'Score{num}'].max()
         del newdf[f'Score{num}']
-    newdf[f'{star}_SciSNR'] = newdf['SciSNR'].rank(pct=True)
+    newdf[f'{star}_SciSNR'] = newdf['SciSNR'] / newdf['SciSNR'].max()
     del newdf['SciSNR']
     for col in newdf.columns:
         if col not in ['Annuli', 'Subsections', 'Movement', 'Numbasis', 'Corr_Smooth', 'Highpass'] + \
