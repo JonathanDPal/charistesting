@@ -162,8 +162,7 @@ warnings.simplefilter('ignore', category=RuntimeWarning)
 warnings.simplefilter('ignore', category=FITSFixedWarning)
 
 # FWHM Is Based on Central Wavelength of Filter Used During Obsveration.
-with fits.open(glob(fileset0)[0]) as hdulist:
-    fake_fwhm0 = FWHMIOWA_calculator(hdulist)[0]
+fake_fwhm0 = FWHMIOWA_calculator(glob(fileset0))[0]
 
 # Create TestDataset For Target 0
 td0 = TestDataset(fileset=fileset0, object_name=object_name0, mask_xy=mask0, fakes=fakes, numsepgroups=numsepgroups,
