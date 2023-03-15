@@ -706,12 +706,13 @@ class Trial:
         return cls(p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7], p[8], p[9], p[10], p[11], p[12], p[13], p[14],
                    p[15], p[16])
 
-    def get_contrast(self, contains_fakes=True, overwrite=False):
+    def get_contrast(self, fwhm, contains_fakes=True, overwrite=False):
         """
         Measures contrast at a particular wavelength, then saves contrast data as a CSV. CSV file is saved from a
         Pandas DataFrame, which makes it easy to load the data back into a Pandas DataFrame later on for analysis.
         ---
         Args:
+            fwhm (float): The measured full width at half max value for the given observation set
             contains_fakes (bool): Default: True. Whether to use data with fakes (True) or without fakes (False).
             overwrite (bool): Default: False. Whether not to override filepath if output filepath already exists.
         """
@@ -726,7 +727,7 @@ class Trial:
                 with fits.open(filepath) as hdulist:
                     cube = copy(hdulist[1].data)
                     dataset_center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
-                    dataset_fwhm, dataset_iwa, dataset_owa = FWHMIOWA_calculator(hdulist)
+                    dataset_fwhm, dataset_iwa, dataset_owa = FWHMIOWA_calculator(FWHM=fwhm)
                     output_wcs = WCS(hdulist[0].header, naxis=[1, 2])
                 corrupt_file = False
             except OSError:
@@ -1355,7 +1356,7 @@ class TestDataset:
 
         if run_contrast:
             for i, trial in enumerate(self.trials):
-                trial.get_contrast(contains_fakes=datasetwithfakes)
+                trial.get_contrast(fwhm=self.fake_fwhm, contains_fakes=datasetwithfakes)
                 if (i + 1) % 100 == 0 and self.verbose:
                     print(f'# DONE WITH CONTRAST FOR {i + 1} TRIALS #')
 
