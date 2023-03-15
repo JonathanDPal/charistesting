@@ -99,9 +99,9 @@ def FWHMIOWA_calculator(fileset=None, speccubefile=None, filtname=None, FWHM=Non
                 assert len(xlocs) % 4 == 0 and len(ylocs) % 4 == 0 and len(fluxes) % 4 == 0, 'There should be ' \
                                                                                              'four satellite ' \
                                                                                              'spots in each frame.'
-                xlocs = [xlocs[4 * i: 4 * (i+1)] for i in range(int(len(xlocs) / 4))]
-                ylocs = [ylocs[4 * i: 4 * (i+1)] for i in range(int(len(ylocs) / 4))]
-                fluxes = [fluxes[4 * i: 4 * (i+1)] for i in range(int(len(fluxes) / 4))]
+                xlocs = [xlocs[4 * i: 4 * (i + 1)] for i in range(int(len(xlocs) / 4))]
+                ylocs = [ylocs[4 * i: 4 * (i + 1)] for i in range(int(len(ylocs) / 4))]
+                fluxes = [fluxes[4 * i: 4 * (i + 1)] for i in range(int(len(fluxes) / 4))]
                 for idx, (xloc, yloc, flux) in enumerate(zip(xlocs, ylocs, fluxes)):
                     frame = data[idx]
                     for x, y, fx in zip(xloc, yloc, flux):
@@ -461,7 +461,7 @@ def injection_tweaker(fakes, annuli, subsections, fwhm):
     for _, sep, pa in fakes:
         anndsts = [np.min(np.abs(np.array(ann_boundaries[ann])) - sep) for ann in num_annuli]
         sbsdsts = [sep * np.min(np.abs(np.sin(np.array(sbs_boundaries[sbs]) - pa))) for sbs in
-                        num_subsections]
+                   num_subsections]
         dsts.append(np.min([np.min(anndsts), np.min(sbsdsts)]))
     if np.min(dsts) < fwhm:
         minsep = np.min([fk[1] for fk in fakes])
@@ -478,6 +478,56 @@ def injection_tweaker(fakes, annuli, subsections, fwhm):
         fakes = [(flux, sep, pa) for flux, sep, pa in zip(fluxes, seps, pas)]
 
     return fakes
+
+
+def find_bin_weights(filt):
+    """
+    Taylor's code.
+    """
+    filt = filt.lower()
+    # Spectral resolution, R, for CHARIS lowres (broadband) or hires (J, H, K) modes
+    CHARIS_spec_res = {'lowres': 30, 'hires': 100}
+
+    # Sets ends of wavelength bands, in um, for each band; uses same values as buildcal code, which are used to set the
+    #   values in the extractcube cubes that use those cals
+    CHARIS_filter_ends = {'j': [1.155, 1.340], 'h': [1.470, 1.800], 'k': [2.005, 2.380], 'broadband': [1.140, 2.410]}
+
+    # Calculating edges and midpoints of wavelength bins #
+
+    # First get R from dictionary based on filter
+    if filt in ['j', 'h', 'k']:
+        R = CHARIS_spec_res['hires']
+    elif filt == 'broadband':
+        R = CHARIS_spec_res['lowres']
+    else:
+        raise ValueError("Filter {0} not recognized. Please enter 'J', 'H', 'K', or 'Broadband'".format(filt))
+
+    # Calculate wavelength bin end and midpoints like buildcal does
+    # Side note: this is converted to natural log space with math's log function and back with numpy's
+    #   np.exp function for the bin spacing to be logarithmic. This could also be done in base-10 log
+    #   space, as long as it was converted back with 10**x instead of np.exp. You should get the same answer
+    #   either way.
+    Nspec = int(np.log(CHARIS_filter_ends[filt][1] / CHARIS_filter_ends[filt][0]) * R + 1.5)
+    loglam_endpts = np.linspace(log(CHARIS_filter_ends[filter][0]), log(CHARIS_filter_ends[filter][1]), Nspec)
+    loglam_midpts = (loglam_endpts[1:] + loglam_endpts[:-1]) / 2.0
+    lam_midpts = np.exp(loglam_midpts)  # NumPy array of bin MID points, in mircons #
+
+    # Calculating the wavelength-averaged contrast #
+
+    # If your contrast at each wavelength is in a NumPy array called "contrast_spec", it should have
+    #   the same shape as lam_midpts. lam_endpts should be one value longer than that.
+    # Then calculate the wavelength-averaged contrast with the following:
+    #   (note: code below not debugged, just a mock-up)
+
+    # First, the normalized weight for each contrast is the fraction of the total wavelength range covered
+    #   that is contained in that wavelength bin (note: the 'divide by the total' part of the average is
+    #   already contained in the weights. If each wavelength bin was the same width, the weight would be
+    #   1 / Number_of_bins )
+    bin_widths = (lam_midpts[1:] - lam_midpts[:-1])
+    bin_weights = bin_widths / (CHARIS_filter_ends[filter][1] - CHARIS_filter_ends[filter][0])
+    return bin_weights
+    # # Then just multiply each contrast by the corresponding weight and sum together
+    # mean_contrast = np.sum(bin_weights * contrast_spec)
 
 
 ####################################################################################
@@ -532,7 +582,7 @@ class Trial:
         # String Identifying Parameters Used (Used Later For Saving Contrast Info)
         self.klip_parameters = str(annuli) + 'Annuli_' + str(subsections) + 'Subsections_' + str(movement) + \
                                'Movement_' + str(spectrum) + 'Spectrum_' + str(corr_smooth) + 'Smooth_' + str(
-                               highpass) + 'Highpass_'
+            highpass) + 'Highpass_'
 
         # Filepaths to KLIPped Datacubes
         self.filepaths_Wfakes = [self.object_name + '/klipped_cubes_Wfakes/' + self.object_name + '_withfakes_' +
@@ -731,11 +781,11 @@ class Trial:
                 if contains_fakes:
                     retrieved_fluxes = []
                     lensepgroups = int(len(self.fakes) / self.numsepgroups)
-                    fluxes = [np.mean([fake[0] for fake in self.fakes][k * lensepgroups: (k+1) * lensepgroups + 1])
+                    fluxes = [np.mean([fake[0] for fake in self.fakes][k * lensepgroups: (k + 1) * lensepgroups + 1])
                               for k in range(self.numsepgroups)]
                     locs = [[fk[1], fk[2]] for fk in self.fakes]
                     for k in range(self.numsepgroups):
-                        Llocs = locs[k * lensepgroups: (k+1) * lensepgroups + 1]
+                        Llocs = locs[k * lensepgroups: (k + 1) * lensepgroups + 1]
                         fake_planet_fluxes = []
                         for sep, pa in Llocs:
                             try:
@@ -778,13 +828,14 @@ class Trial:
                 try:
                     df.to_csv(uncal_contrast_output_filepath, index=False)
                 except OSError:  # get this sometimes on Kappa where CSV file is too big? trying to figure out why
-                    pass
+                    print(df)
+                    print(df.shape)
 
                 if contains_fakes:
                     # Calibrating For KLIP Subtraction If Fakes Present
                     correct_contrast = np.copy(contrast)
                     lensepgroups = int(len(self.fakes) / self.numsepgroups)
-                    seps = [np.mean([fk[1] for fk in self.fakes[k * lensepgroups: (k+1) * lensepgroups + 1]]) for k in
+                    seps = [np.mean([fk[1] for fk in self.fakes[k * lensepgroups: (k + 1) * lensepgroups + 1]]) for k in
                             range(self.numsepgroups)]
                     for j, sep in enumerate(contrast_seps):
                         closest_throughput_index = np.argmin(np.abs(sep - seps))
@@ -806,7 +857,8 @@ class Trial:
                     try:
                         df.to_csv(cal_contrast_output_filepath, index=False)
                     except OSError:  # get this sometimes on Kappa where CSV file is too big? trying to figure out why
-                        pass
+                        print(df)
+                        print(df.shape)
 
     def detect_planets(self, SNR_threshold=2, datasetwithfakes=True, override=False, kernel_type='gaussian',
                        kernel_fwhm=1.0):
@@ -843,6 +895,7 @@ class Trial:
                 with fits.open(filepath) as hdulist:
                     image = copy(hdulist[1].data)
                     center = [hdulist[1].header['PSFCENTX'], hdulist[1].header['PSFCENTY']]
+                    filtname = hdulist[1].header['FILTNAME']
                 corrupt_file = False
             except OSError:  # occurs if the file is corrupt or empty
                 corrupt_file = True
@@ -862,7 +915,9 @@ class Trial:
 
             # flat spectrum given here for generating cross-coorelated image so that pyKLIP collapses it into one
             # image, instead of giving seperate images for each wavelength
-            image_cc = calculate_cc(image, kernel, spectrum=np.ones(len(image[0])), nans2zero=True)
+            wavelength_weights = find_bin_weights(filtname)
+            assert len(wavelength_weights) == len(image[0])
+            image_cc = calculate_cc(image, kernel, spectrum=wavelength_weights, nans2zero=True)
 
             SNR_map = get_image_stat_map_perPixMasking(image_cc, centroid=center, mask_radius=5, Dr=2, type='SNR')
 
@@ -948,6 +1003,7 @@ class Dataset_PlaceHolder:
     """
     Helper class for TestDataset
     """
+
     def __init__(self):
         pass
 
@@ -1081,7 +1137,7 @@ class TestDataset:
                 endindex = startindex + batchsize
                 paramset = [arg[startindex: endindex] for arg in args]
                 for ani, subsec, mov, nb, spec, cs, hp in zip(paramset[0], paramset[1], paramset[2], paramset[3],
-                                                               paramset[4], paramset[5], paramset[6]):
+                                                              paramset[4], paramset[5], paramset[6]):
                     self.trials.append(Trial(object_name=self.object_name, mask_xy=self.mask_xy, annuli=ani,
                                              subsections=subsec, movement=mov, numbasis=[nb], spectrum=spec,
                                              corr_smooth=cs, fakes=self.fakes, numsepgroups=self.numsepgroups,
@@ -1150,7 +1206,7 @@ class TestDataset:
                 if self.generatelogfile and self.verbose:
                     self.write_to_log_and_print('####### {0}/{1} KLIP Runs Complete ({2}%) -- avg speed: {3} min/run '
                                                 '#######'.format(klip_runs + 1, number_of_klip, round(float(
-                                                 klip_runs + 1) / float(number_of_klip) * 100, 1), minutes_per_run))
+                        klip_runs + 1) / float(number_of_klip) * 100, 1), minutes_per_run))
                 elif self.verbose:
                     print('####### {0}/{1} KLIP Runs Complete ({2}%) -- avg speed: {3} min/run #######'.format(
                         klip_runs + 1, number_of_klip, round(float(klip_runs + 1) / float(number_of_klip) * 100, 1),
@@ -1164,7 +1220,7 @@ class TestDataset:
                 if os.path.exists(filename):
                     if self.generatelogfile:
                         self.write_to_log_and_print(f"{filename} ALREADY EXISTS -- continuing without running KLIP "
-                                                     f"on this set of parameters")
+                                                    f"on this set of parameters")
                     else:
                         print(f"{filename} ALREADY EXISTS -- continuing without running KLIP on this set of "
                               f"parameters")
@@ -1328,4 +1384,4 @@ class TestDataset:
                                             f"##############")
             else:
                 print(f"\n############## DONE WITH DETECTION FOR {self.object_name} "
-                                            f"##############")
+                      f"##############")
