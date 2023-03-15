@@ -508,7 +508,7 @@ def find_bin_weights(filt):
     #   space, as long as it was converted back with 10**x instead of np.exp. You should get the same answer
     #   either way.
     Nspec = int(np.log(CHARIS_filter_ends[filt][1] / CHARIS_filter_ends[filt][0]) * R + 1.5)
-    loglam_endpts = np.linspace(log(CHARIS_filter_ends[filter][0]), log(CHARIS_filter_ends[filter][1]), Nspec)
+    loglam_endpts = np.linspace(np.log(CHARIS_filter_ends[filter][0]), np.log(CHARIS_filter_ends[filter][1]), Nspec)
     loglam_midpts = (loglam_endpts[1:] + loglam_endpts[:-1]) / 2.0
     lam_midpts = np.exp(loglam_midpts)  # NumPy array of bin MID points, in mircons #
 
