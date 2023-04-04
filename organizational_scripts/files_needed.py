@@ -82,13 +82,14 @@ def valuefinder(filename, param):
         return values
 
 
+already_used = list()
 with open(f'{sys.argv[1]}/calibrated_contrast/missingfiles.txt') as f:
-    with open(f'{sys.argv[1]}/neededparams.txt', 'w') as g:
-        already_used = list()
-        for lst in [valuefinder(line[:-1], 'all') for line in f]:
-            if lst in already_used:
-                continue
-            for elm in lst:
-                g.write(f'{elm},')
-            g.write('\n')
-            already_used.append(lst)
+    lsts = [valuefinder(line[:-1], 'all') for line in f]
+for lst in lsts:
+    with open(f'{sys.argv[1]}/neededparams.txt', 'a') as g:
+        if lst in already_used:
+            continue
+        for elm in lst:
+            g.write(f'{elm},')
+        g.write('\n')
+        already_used.append(lst)
