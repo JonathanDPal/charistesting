@@ -30,7 +30,7 @@ def valuefinder(filename, param):
         if startingindex is not None:
             if param != 'kl':
                 valuelength = 0
-                while startingindex > 0 and filename[startingindex] != '_' and filename[startingindex] != '/':
+                while startingindex >= 0 and filename[startingindex] != '_' and filename[startingindex] != '/':
                     startingindex -= 1
                     valuelength += 1
                 end_index = startingindex + 1 + valuelength
@@ -54,7 +54,7 @@ def valuefinder(filename, param):
 
             if prm != 'kl':
                 valuelength = 0
-                while startingindex > 0 and filename[startingindex] != '_' and filename[startingindex] != '/':
+                while startingindex >= 0 and filename[startingindex] != '_' and filename[startingindex] != '/':
                     startingindex -= 1
                     valuelength += 1
                 end_index = startingindex + 1 + valuelength
