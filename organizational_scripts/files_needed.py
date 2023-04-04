@@ -89,7 +89,7 @@ for lst in lsts:
     with open(f'{sys.argv[1]}/neededparams.txt', 'a') as g:
         if lst in already_used:
             continue
-        for elm in lst:
+        for elm in lst[:-1]:
             g.write(f'{elm},')
-        g.write('\n')
+        g.write(f'{lst[-1]}\n')
         already_used.append(lst)
