@@ -13,7 +13,7 @@ reference_contrast = [(13, 1.2e-5), (30, 2e-6), (50, 1e-6)]  # some values that 
 # SPIE proceeding paper
 
 contrastfiles = glob(f'../calibrated_contrast/*.csv')
-assert len(contrastfiles) != 0
+assert len(contrastfiles) in [798336, 616896]
 object_filtnames = {'HD1160': 'Broadband', 'HR8799': 'Broadband', 'HIP86032': 'Broadband', 'Kappa': 'K'}
 object_name = os.getcwd().split('/')[-2]
 
