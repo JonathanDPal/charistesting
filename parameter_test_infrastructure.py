@@ -509,8 +509,9 @@ def find_bin_weights(filt):
     #   either way.
     Nspec = int(np.log(CHARIS_filter_ends[filt][1] / CHARIS_filter_ends[filt][0]) * R + 1.5)
     loglam_endpts = np.linspace(np.log(CHARIS_filter_ends[filt][0]), np.log(CHARIS_filter_ends[filt][1]), Nspec)
-    loglam_midpts = (loglam_endpts[1:] + loglam_endpts[:-1]) / 2.0
-    lam_midpts = np.exp(loglam_midpts)  # NumPy array of bin MID points, in mircons #
+    # loglam_midpts = (loglam_endpts[1:] + loglam_endpts[:-1]) / 2.0
+    # lam_midpts = np.exp(loglam_midpts)  # NumPy array of bin MID points, in microns #
+    lam_endpts = np.exp(loglam_endpts)
 
     # Calculating the wavelength-averaged contrast #
 
@@ -523,7 +524,9 @@ def find_bin_weights(filt):
     #   that is contained in that wavelength bin (note: the 'divide by the total' part of the average is
     #   already contained in the weights. If each wavelength bin was the same width, the weight would be
     #   1 / Number_of_bins )
-    bin_widths = (lam_midpts[1:] - lam_midpts[:-1])
+
+    # bin_widths = (lam_midpts[1:] - lam_midpts[:-1])
+    bin_widths = (lam_endpts[1:] - lam_endpts[:-1])
     bin_weights = bin_widths / (CHARIS_filter_ends[filt][1] - CHARIS_filter_ends[filt][0])
     return bin_weights
     # # Then just multiply each contrast by the corresponding weight and sum together
@@ -914,10 +917,8 @@ class Trial:
                 sigma = kernel_fwhm / (2 * np.sqrt(2 * np.log(2)))
                 kernel = gauss2d(x=x_grid, y=y_grid, sigma_x=sigma, sigma_y=sigma)
 
-            # flat spectrum given here for generating cross-coorelated image so that pyKLIP collapses it into one
-            # image, instead of giving seperate images for each wavelength
             wavelength_weights = find_bin_weights(filtname)
-            assert len(wavelength_weights) == len(image[0])
+            assert len(wavelength_weights) == image.shape[0]
             image_cc = calculate_cc(image, kernel, spectrum=wavelength_weights, nans2zero=True)
 
             SNR_map = get_image_stat_map_perPixMasking(image_cc, centroid=center, mask_radius=5, Dr=2, type='SNR')
