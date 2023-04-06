@@ -112,7 +112,7 @@ for dfile in detectionsfiles:
     scisnr.append(df1['SNR Value'].sum())
     df = df[df['Injected'] != 'Science Target']
     df20 = df[np.abs(df['Sep (pix)'] - 20) < 10]
-    df40 = df[np.abs(df['Sep (pix)'] - 40) < 10]
+    df40 = df[np.abs(df['Sep (pix)'] - 40) <= 10]
     df60 = df[np.abs(df['Sep (pix)'] - 60) < 10]
 
     for score, df in zip([score20, score40, score60], [df20, df40, df60]):
