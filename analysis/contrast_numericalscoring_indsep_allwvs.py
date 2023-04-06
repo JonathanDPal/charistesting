@@ -41,28 +41,19 @@ def find_bin_weights(filt):
         raise ValueError("Filter {0} not recognized. Please enter 'J', 'H', 'K', or 'Broadband'".format(filt))
 
     # Calculate wavelength bin end and midpoints like buildcal does
-    # Side note: this is converted to natural log space with math's log function and back with numpy's
-    #   np.exp function for the bin spacing to be logarithmic. This could also be done in base-10 log
-    #   space, as long as it was converted back with 10**x instead of np.exp. You should get the same answer
-    #   either way.
     Nspec = int(np.log(CHARIS_filter_ends[filt][1] / CHARIS_filter_ends[filt][0]) * R + 1.5)
-    loglam_endpts = np.linspace(log(CHARIS_filter_ends[filter][0]), log(CHARIS_filter_ends[filter][1]), Nspec)
-    loglam_midpts = (loglam_endpts[1:] + loglam_endpts[:-1]) / 2.0
-    lam_midpts = np.exp(loglam_midpts)  # NumPy array of bin MID points, in mircons #
+    loglam_endpts = np.linspace(np.log(CHARIS_filter_ends[filt][0]), np.log(CHARIS_filter_ends[filt][1]), Nspec)
+    lam_endpts = np.exp(loglam_endpts)
 
     # Calculating the wavelength-averaged contrast #
-
-    # If your contrast at each wavelength is in a NumPy array called "contrast_spec", it should have
-    #   the same shape as lam_midpts. lam_endpts should be one value longer than that.
-    # Then calculate the wavelength-averaged contrast with the following:
-    #   (note: code below not debugged, just a mock-up)
 
     # First, the normalized weight for each contrast is the fraction of the total wavelength range covered
     #   that is contained in that wavelength bin (note: the 'divide by the total' part of the average is
     #   already contained in the weights. If each wavelength bin was the same width, the weight would be
     #   1 / Number_of_bins )
-    bin_widths = (lam_midpts[1:] - lam_midpts[:-1])
-    bin_weights = bin_widths / (CHARIS_filter_ends[filter][1] - CHARIS_filter_ends[filter][0])
+
+    bin_widths = (lam_endpts[1:] - lam_endpts[:-1])
+    bin_weights = bin_widths / (CHARIS_filter_ends[filt][1] - CHARIS_filter_ends[filt][0])
     return bin_weights
     # # Then just multiply each contrast by the corresponding weight and sum together
     # mean_contrast = np.sum(bin_weights * contrast_spec)
