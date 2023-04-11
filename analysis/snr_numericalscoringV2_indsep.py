@@ -1,6 +1,5 @@
 import numpy as np
 from glob import glob
-import sys
 import os
 import pandas as pd
 
