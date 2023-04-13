@@ -191,12 +191,12 @@ if len(sys.argv) > 1 and sys.argv[1] == 'all':  # need to collapse all wavelengt
             d50[idx].append(row['Con50'])
         else:
             d50[idx] = [row['Con50']]
-    d13 = {key: -np.log(np.sum(np.array(d13[key]) * bin_weights)) if -np.inf not in np.array(d13[key]) else -np.inf
-           for key in d13.keys()}
-    d30 = {key: -np.log(np.sum(np.array(d30[key]) * bin_weights)) if -np.inf not in np.array(d30[key]) else -np.inf
-           for key in d13.keys()}
-    d50 = {key: -np.log(np.sum(np.array(d50[key]) * bin_weights)) if -np.inf not in np.array(d50[key]) else -np.inf
-           for key in d13.keys()}
+    d13 = {key: np.array(d13[key]) for key in d13.keys()}
+    d30 = {key: np.array(d30[key]) for key in d30.keys()}
+    d50 = {key: np.array(d50[key]) for key in d50.keys()}
+    d13 = {key: -np.log(np.sum(d13[key] * bin_weights)) if np.sum(d13[key] < 0) == 0 else -np.inf for key in d13.keys()}
+    d30 = {key: -np.log(np.sum(d30[key] * bin_weights)) if np.sum(d30[key] < 0) == 0 else -np.inf for key in d13.keys()}
+    d50 = {key: -np.log(np.sum(d50[key] * bin_weights)) if np.sum(d50[key] < 0) == 0 else -np.inf for key in d13.keys()}
     annuli, subsections, movement, numbasis, corr_smooth, highpass, sco13, sco30, sco50 = list(), list(), list(), \
                                                                                           list(), list(), list(), \
                                                                                           list(), list(), list()
