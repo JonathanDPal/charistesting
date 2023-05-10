@@ -6,7 +6,7 @@ import sys
 df = pd.read_csv('paramrankings/paramrankings_indsep.csv').fillna(0)
 annuli = np.arange(12) + 1
 subsections = np.arange(6) + 1
-movement = [float(x) for x in np.arange(6)]
+movement = [float(x) for x in np.arange(7)]
 corr_smooth = [float(x) for x in np.arange(4)]
 highpass = ['False', '15.0', '30.0']
 newdf = pd.DataFrame(columns=[col for col in df.columns if col != 'Numbasis'])
