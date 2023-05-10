@@ -178,7 +178,7 @@ if len(sys.argv) > 1 and sys.argv[1] == 'all':  # need to collapse all wavelengt
     bin_weights = find_bin_weights(object_filtnames[object_name])
     d13, d30, d50 = dict(), dict(), dict()
     for _, row in finaldata.iterrows():
-        idx = tuple(row[:-3])
+        idx = tuple(row[:-4])
         if idx in d13.keys():
             d13[idx].append(row['Con13'])
         else:
