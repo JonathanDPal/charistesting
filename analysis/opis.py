@@ -46,7 +46,7 @@ if batched:
     numindexcombos = len(indexcombos)
 
 if not batched:  # don't want a bunch of print statements on the batched stuff
-    print(f'{numindexcombos} combinations will be checked.')
+    print(f'Beginning checks.')
 data_to_save = {'Params': list(), 'Threshold': list()}
 v_errs = 0
 
@@ -178,4 +178,4 @@ to_save = combined.sort_values('Threshold', ascending=False, ignore_index=True)
 to_save.to_csv(output_filename, index=False)
 if v_errs > 0:
     with open(output_filename[:-3] + 'txt', 'w') as f:
-        f.write(f"{verrs}")
+        f.write(f"{v_errs}")
