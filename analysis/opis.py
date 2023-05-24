@@ -5,18 +5,20 @@ import itertools
 from copy import copy
 from multiprocessing.pool import Pool
 
-N = int(sys.argv[1])  # how big of parameter sets we're checking
-csvfile = sys.argv[2]  # where the ranking information is coming from
+N = int(sys.argv[1])  # how many parameter sets in each group we're checking
+csvfile = sys.argv[2]  # where the ranking information is coming from (this should be output of parameterranking.py)
 output_filename = sys.argv[3]
-num_to_skip = int(sys.argv[4])  # ones that have already been checked
-max_threshold = float(sys.argv[5]) if '.csv' not in sys.argv[5] else sys.argv[5]  # start at current known value
+num_to_skip = int(sys.argv[4])  # if you have already checked some number of them, then you can skip doing them again
+max_threshold = float(sys.argv[5]) if '.csv' not in sys.argv[5] else sys.argv[5]  # start at best known value
 if len(sys.argv) >= 8:
-    batched = True
+    batched = True  # this would be appropriate for Condor or another similar system
+    # if using this part, then have all of the output files land in the same folder so that they can be globbed
+    # easily in the "collapse_batches.py" script.
     batchindex, batchsize = int(sys.argv[6]), int(sys.argv[7])
 else:
     batched = False
 if len(sys.argv) == 9:
-    parallelize = True
+    parallelize = True # do not do this until the script has been fixed
     num_cores = int(sys.argv[8])
 else:
     parallelize = False
@@ -84,11 +86,7 @@ if not parallelize:
             if threshold > max_threshold:
                 ssubdf = copy(subdf)
                 ssubdf.loc[len(ssubdf.index)] = ssdf
-                try:
-                    ssubdf.index = np.arange(N)
-                except ValueError:
-                    v_errs += 1
-                    continue
+                ssubdf.index = np.arange(N)
                 paramgroups = [tuple(ssubdf.iloc[idx, :5]) for idx in range(N)]
                 data_to_save['Params'] = [str(paramgroups)]
                 data_to_save['Threshold'] = [threshold]
@@ -96,11 +94,7 @@ if not parallelize:
             elif threshold == max_threshold:
                 ssubdf = copy(subdf)
                 ssubdf.loc[len(ssubdf.index)] = ssdf
-                try:
-                    ssubdf.index = np.arange(N)
-                except ValueError:
-                    v_errs += 1
-                    continue
+                ssubdf.index = np.arange(N)
                 paramgroups = [tuple(ssubdf.iloc[idx, :5]) for idx in range(N)]
                 data_to_save['Params'].append(str(paramgroups))
                 data_to_save['Threshold'].append(threshold)
@@ -176,6 +170,3 @@ for m, psets in enumerate(broken_up_params):
     combined.insert(m, f'Params {m + 1}', psets)
 to_save = combined.sort_values('Threshold', ascending=False, ignore_index=True)
 to_save.to_csv(output_filename, index=False)
-if v_errs > 0:
-    with open(output_filename[:-3] + 'txt', 'w') as f:
-        f.write(f"{v_errs}")

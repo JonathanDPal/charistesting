@@ -8,24 +8,56 @@ import warnings
 
 warnings.filterwarnings("error", category=RuntimeWarning)  # error if dividing by zero or taking log of negative number
 
-reference_contrast = [(13, 1.2e-5), (30, 2e-6), (50, 1e-6)]  # some values that are the standard everything is judged
+reference_contrast = [(13, 1.2e-5), (30, 2e-6), (50, 1e-6)]  # values that are the standard everything is judged
 # against (first value is seperation, second is standard value for that seperation). standard values taken from an
 # SPIE proceeding paper
 
-if len(sys.argv) == 2:
-    if sys.argv[1] == 'all':
-        wavelength = ''  # to get all wvs
+contrastfiles = glob(f'../calibrated_contrast/*.csv')
+# next two lines are entirely specific to the specific star systems we were working with
+assert len(contrastfiles) in [798336, 616896] # first corresponds to broadband (22 wvs); second corresponds to k-band
+object_filtnames = {'HD1160': 'Broadband', 'HR8799': 'Broadband', 'KB': 'Broadband', 'Kappa': 'K'}
+object_name = os.getcwd().split('/')[-2]
+
+
+def find_bin_weights(filt):
+    """
+    Taylor's code.
+    """
+    filt = filt.lower()
+    # Spectral resolution, R, for CHARIS lowres (broadband) or hires (J, H, K) modes
+    CHARIS_spec_res = {'lowres': 30, 'hires': 100}
+
+    # Sets ends of wavelength bands, in um, for each band; uses same values as buildcal code, which are used to set the
+    #   values in the extractcube cubes that use those cals
+    CHARIS_filter_ends = {'j': [1.155, 1.340], 'h': [1.470, 1.800], 'k': [2.005, 2.380], 'broadband': [1.140, 2.410]}
+
+    # Calculating edges and midpoints of wavelength bins #
+
+    # First get R from dictionary based on filter
+    if filt in ['j', 'h', 'k']:
+        R = CHARIS_spec_res['hires']
+    elif filt == 'broadband':
+        R = CHARIS_spec_res['lowres']
     else:
-        wavelength = sys.argv[1]  # in microns
-else:
-    wavelength = ''  # to get all wvs
-contrastfiles = glob(f'../calibrated_contrast/*{wavelength}um*.csv')
-try:
-    assert len(contrastfiles) != 0
-except AssertionError:
-    raise ValueError('The default wavelength (1.63 um) is not a wavelength of the dataset that is being analyzed '
-                     'here. Please specify the wavelength on the command line, i.e. say "python contrast_numerical '
-                     'scoring.py {insert wavelength here}"')
+        raise ValueError("Filter {0} not recognized. Please enter 'J', 'H', 'K', or 'Broadband'".format(filt))
+
+    # Calculate wavelength bin end and midpoints like buildcal does
+    Nspec = int(np.log(CHARIS_filter_ends[filt][1] / CHARIS_filter_ends[filt][0]) * R + 1.5)
+    loglam_endpts = np.linspace(np.log(CHARIS_filter_ends[filt][0]), np.log(CHARIS_filter_ends[filt][1]), Nspec)
+    lam_endpts = np.exp(loglam_endpts)
+
+    # Calculating the wavelength-averaged contrast #
+
+    # First, the normalized weight for each contrast is the fraction of the total wavelength range covered
+    #   that is contained in that wavelength bin (note: the 'divide by the total' part of the average is
+    #   already contained in the weights. If each wavelength bin was the same width, the weight would be
+    #   1 / Number_of_bins )
+
+    bin_widths = (lam_endpts[1:] - lam_endpts[:-1])
+    bin_weights = bin_widths / (CHARIS_filter_ends[filt][1] - CHARIS_filter_ends[filt][0])
+    return bin_weights
+    # # Then just multiply each contrast by the corresponding weight and sum together
+    # mean_contrast = np.sum(bin_weights * contrast_spec)
 
 
 def valuefinder(filename, param):
@@ -109,31 +141,18 @@ def valuefinder(filename, param):
         return values
 
 
-annuli, subsections, movement, numbasis, corr_smooth, highpass, scores13, scores30, scores50 = list(), list(), \
-                                                                                               list(), list(), \
-                                                                                               list(), list(), \
-                                                                                               list(), list(), list()
+annuli, subsections, movement, numbasis, corr_smooth, highpass, wavelength, \
+con13, con30, con50 = list(), list(), list(), list(), list(), list(), list(), list(), list(), list()
+
 for cfile in contrastfiles:
-    try:
-        df = pd.read_csv(cfile)
-    except pandas.errors.EmptyDataError:
-        print(f'{cfile} had no columns to parse. Will not be included in final CSV')
-        continue
+    df = pd.read_csv(cfile)
     contrast = df['Calibrated Contrast']
     seps = df['Seperation']
 
-    for score_lst, reference in zip([scores13, scores30, scores50], reference_contrast):
-        score_sum = 0
+    for con_lst, reference in zip([con13, con30, con50], reference_contrast):
         sep, reference_val = reference
         closest_seperation_index = np.argmin(np.abs(sep - seps))
-        if contrast[closest_seperation_index] == -np.inf:
-            score_sum += -np.inf
-        else:
-            try:
-                score_sum += np.log(contrast[closest_seperation_index]) / np.log(reference_val)
-            except RuntimeWarning:  # this has happened when a negctive number is the value for contrast
-                score_sum += -np.inf
-        score_lst.append(score_sum / len(reference_contrast) * 100)
+        con_lst.append(contrast[closest_seperation_index])
 
     ann, sbs, mov, spec, nb, cs, hp = valuefinder(cfile, 'all')
     annuli.append(ann)
@@ -142,30 +161,39 @@ for cfile in contrastfiles:
     numbasis.append(nb)
     corr_smooth.append(cs)
     highpass.append(hp)
+    wavelength.append(float(cfile.split('_')[-2][:-2]))
+
 
 finaldata = pd.DataFrame({'Annuli': annuli, 'Subsections': subsections, 'Movement': movement, 'Numbasis': numbasis,
-                          'Corr_Smooth': corr_smooth, 'Highpass': highpass, 'Score13': scores13, 'Score30': scores30,
-                          'Score50': scores50})
+                          'Corr_Smooth': corr_smooth, 'Highpass': highpass, 'Wavelength': wavelength,
+                          'Con13': con13, 'Con30': con30, 'Con50': con50}).sort_values(['Annuli', 'Subsections',
+                                                                                        'Movement', 'Numbasis',
+                                                                                        'Corr_Smooth', 'Highpass',
+                                                                                        'Wavelength'])
 
 if len(sys.argv) > 1 and sys.argv[1] == 'all':  # need to collapse all wavelength scores into a single contrast score
+    bin_weights = find_bin_weights(object_filtnames[object_name])
     d13, d30, d50 = dict(), dict(), dict()
     for _, row in finaldata.iterrows():
-        idx = tuple(row[:-3])
+        idx = tuple(row[:-4])
         if idx in d13.keys():
-            d13[idx].append(row[-1])
+            d13[idx].append(row['Con13'])
         else:
-            d13[idx] = [row[-1]]
+            d13[idx] = [row['Con13']]
         if idx in d30.keys():
-            d30[idx].append(row[-2])
+            d30[idx].append(row['Con30'])
         else:
-            d30[idx] = [row[-2]]
+            d30[idx] = [row['Con30']]
         if idx in d50.keys():
-            d50[idx].append(row[-3])
+            d50[idx].append(row['Con50'])
         else:
-            d50[idx] = [row[-3]]
-    d13 = {key: np.mean(d13[key]) for key in d13.keys()}
-    d30 = {key: np.mean(d30[key]) for key in d30.keys()}
-    d50 = {key: np.mean(d50[key]) for key in d50.keys()}
+            d50[idx] = [row['Con50']]
+    d13 = {key: np.array(d13[key]) for key in d13.keys()}
+    d30 = {key: np.array(d30[key]) for key in d30.keys()}
+    d50 = {key: np.array(d50[key]) for key in d50.keys()}
+    d13 = {key: -np.log(np.sum(d13[key] * bin_weights)) if np.sum(d13[key] < 0) == 0 else -np.inf for key in d13.keys()}
+    d30 = {key: -np.log(np.sum(d30[key] * bin_weights)) if np.sum(d30[key] < 0) == 0 else -np.inf for key in d13.keys()}
+    d50 = {key: -np.log(np.sum(d50[key] * bin_weights)) if np.sum(d50[key] < 0) == 0 else -np.inf for key in d13.keys()}
     annuli, subsections, movement, numbasis, corr_smooth, highpass, sco13, sco30, sco50 = list(), list(), list(), \
                                                                                           list(), list(), list(), \
                                                                                           list(), list(), list()

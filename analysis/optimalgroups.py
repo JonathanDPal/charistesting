@@ -3,10 +3,10 @@ import sys
 import pandas as pd
 import itertools
 
-n = int(sys.argv[1])  # how big of parameter sets we're checking
-csvfile = sys.argv[2]  # where the ranking information is coming from
+n = int(sys.argv[1])  # how many parameter sets in each group we're checking
+csvfile = sys.argv[2]  # where the ranking information is coming from (this should be output of parameterranking.py)
 numrows = int(sys.argv[3])  # how many parameter sets are we using for combinations
-numtosave = int(sys.argv[4])  # only going to save some subset of all the combinations checked
+numtosave = int(sys.argv[4])  # how many of the combinations checked to save in output file
 output_filename = sys.argv[5]
 numcombos = int(np.prod([numrows - k for k in range(n)]) / np.prod(np.arange(n) + 1))  # ={numrows \choose n}
 if numcombos < numtosave or sys.argv[4].lower() == 'none':

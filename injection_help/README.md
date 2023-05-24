@@ -1,5 +1,5 @@
 I made these to help with finding the best places
-to inject fake planets.
+to inject fake planets. I haven't tested these extensively.
 
 check_injection_locations.py: This script will 
 take in some hard coded suggestions for position angles 
