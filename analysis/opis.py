@@ -85,16 +85,14 @@ if not parallelize:
                         threshold = local_cm['max'].min()
             if threshold > max_threshold:
                 ssubdf = copy(subdf)
-                ssubdf.loc[len(ssubdf.index)] = ssdf
-                ssubdf.index = np.arange(N)
+                ssubdf.append(ssdf, ignore_index=True, verify_integrity=True)
                 paramgroups = [tuple(ssubdf.iloc[idx, :5]) for idx in range(N)]
                 data_to_save['Params'] = [str(paramgroups)]
                 data_to_save['Threshold'] = [threshold]
                 max_threshold = threshold
             elif threshold == max_threshold:
                 ssubdf = copy(subdf)
-                ssubdf.loc[len(ssubdf.index)] = ssdf
-                ssubdf.index = np.arange(N)
+                ssubdf.append(ssdf, ignore_index=True, vertify_integrity=True)
                 paramgroups = [tuple(ssubdf.iloc[idx, :5]) for idx in range(N)]
                 data_to_save['Params'].append(str(paramgroups))
                 data_to_save['Threshold'].append(threshold)
