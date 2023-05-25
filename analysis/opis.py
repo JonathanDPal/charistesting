@@ -2,7 +2,7 @@ import numpy as np
 import sys
 import pandas as pd
 import itertools
-from copy import copy
+from copy import copy, deepcopy
 from multiprocessing.pool import Pool
 
 N = int(sys.argv[1])  # how many parameter sets in each group we're checking
@@ -84,15 +84,13 @@ if not parallelize:
                         row['max'] = new_val
                         threshold = local_cm['max'].min()
             if threshold > max_threshold:
-                ssubdf = copy(subdf)
-                ssubdf.append(ssdf, ignore_index=True, verify_integrity=True)
+                ssubdf = df.iloc[ic + [k], :]
                 paramgroups = [tuple(ssubdf.iloc[idx, :5]) for idx in range(N)]
                 data_to_save['Params'] = [str(paramgroups)]
                 data_to_save['Threshold'] = [threshold]
                 max_threshold = threshold
             elif threshold == max_threshold:
-                ssubdf = copy(subdf)
-                ssubdf.append(ssdf, ignore_index=True, vertify_integrity=True)
+                ssubdf = df.iloc[ic + [k], :]
                 paramgroups = [tuple(ssubdf.iloc[idx, :5]) for idx in range(N)]
                 data_to_save['Params'].append(str(paramgroups))
                 data_to_save['Threshold'].append(threshold)
@@ -130,15 +128,13 @@ else:
                         row['max'] = new_val
                         threshold = local_cm['max'].min()
             if threshold > m_threshold:
-                ssubdf = copy(subdf)
-                ssubdf.loc[len(ssubdf.index)] = ssdf
+                ssubdf = df.iloc[ic + [k], :]
                 ssubdf.index = np.arange(N)
                 paramgroups = [tuple(ssubdf.iloc[idx, :5]) for idx in range(N)]
                 prms = [str(paramgroups)]
                 m_threshold = threshold
             elif threshold == m_threshold:
-                ssubdf = copy(subdf)
-                ssubdf.loc[len(ssubdf.index)] = ssdf
+                ssubdf = df.iloc[ic + [k], :]
                 ssubdf.index = np.arange(N)
                 paramgroups = [tuple(ssubdf.iloc[idx, :5]) for idx in range(N)]
                 prms.append(str(paramgroups))

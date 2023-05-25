@@ -1,6 +1,15 @@
 I used these scripts to help me out with keeping 
 everything organized properly.
 
+Short Version:
+-
+"valuefinder" is incredibly useful for basically any sort
+of analysis that you may perform. Aside from that, it's
+unlikely that any of these scripts would be useful to you.
+
+Full Version:
+-
+
 check.py: This script searched through a top level 
 output directory indicated by command line argument, 
 then indicated how many parameter combinations had
@@ -24,7 +33,7 @@ contrast/detections, without having to build an entire CHARISData
 class like you normally would.
 
 move_and_delete.py: I used this script when using
-Notre Dame's computer clusters so that I could automate
+the ND CRC's clusters so that I could automate
 the file transfer.
 
 nextparams.py: This script searched through a top level
